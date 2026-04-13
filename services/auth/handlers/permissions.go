@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/data"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
 func HandleGetPermissions(ctx *gin.Context) {

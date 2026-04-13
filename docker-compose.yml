@@ -74,29 +74,3 @@ services:
       SPICEDB_DATASTORE_CONN_URI: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
     networks:
       - auth-net
-  # orgs-api:
-  #   restart: unless-stopped
-  #   build: https://git@git.sourcecraft.dev/organization-shipmonitor/ship-cloud-organizations.git
-  #   ports:
-  #     - "8081:8080"
-  #   environment:
-  #     PORT: 8080
-  #     DB_CONNECTION_STRING: postgres://postgres:postgres@orgs-db:5432/postgres?sslmode=disable
-  #     JWT_SECURITY_KEY: "your_jwt_security_key_here"
-  #   depends_on:
-  #     - orgs-db
-  #     - auth-api
-  #   networks:
-  #     - orgs-net
-  # orgs-db:
-  #   networks:
-  #     - orgs-net
-  #   image: postgres:18
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: postgres
-  #     PGDATA: /var/lib/postgresql/data
-  #   volumes:
-  #     - orgs_data:/var/lib/postgresql/data

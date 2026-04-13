@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/katy248/auth"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/data"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
 func HandleGetUser(ctx *gin.Context) {

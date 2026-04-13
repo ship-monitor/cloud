@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/data"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
 func mapErrors(vErrors validator.ValidationErrors) []gin.H {

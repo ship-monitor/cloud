@@ -1,6 +1,7 @@
 package keyval
 
 import (
+	"charm.land/log/v2"
 	"github.com/redis/go-redis/v9"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 )
@@ -13,4 +14,10 @@ func Setup() {
 		Password: config.Config.GetString("redis-password"),
 		DB:       0,
 	})
+}
+func Close() {
+
+	if err := RDB.Close(); err != nil {
+		log.Error("failed to close redis", "error", err)
+	}
 }
