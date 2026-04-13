@@ -110,7 +110,7 @@ func (m *Middleware) addToContext(ctx *gin.Context) {
 	ctx.Set(middlewareKey, m)
 }
 
-func (m *Middleware) WithMiddlewareOnly(ctx *gin.Context) {
+func (m *Middleware) WithMiddleware(ctx *gin.Context) {
 	m.addToContext(ctx)
 }
 
