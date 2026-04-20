@@ -6,16 +6,10 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
-func panicIfErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func Migrate() {
 	ctx := context.TODO()
 	models := []interface{}{
-		(*User)(nil),
+		(*Organization)(nil),
 	}
 
 	for _, model := range models {
@@ -23,6 +17,8 @@ func Migrate() {
 			Model(model).
 			IfNotExists().
 			Exec(ctx)
-		panicIfErr(err)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
