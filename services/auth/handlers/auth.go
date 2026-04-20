@@ -78,7 +78,7 @@ func HandleLogin(c *gin.Context) {
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	bindJSON(c, request)
+	bindJSON(c, &request)
 
 	user, err := data.GetUserByEmail(request.Email)
 	if err != nil {
@@ -107,7 +107,7 @@ func HandleRefresh(c *gin.Context) {
 	var request struct {
 		RefreshToken string `json:"refreshToken" binding:"required"`
 	}
-	bindJSON(c, request)
+	bindJSON(c, &request)
 
 	middleware := auth.GetMiddleware(c)
 

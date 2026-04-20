@@ -13,7 +13,7 @@ import (
 )
 
 type User struct {
-	*bun.BaseModel   `bun:"table:users"`
+	*bun.BaseModel   `bun:"table:user"`
 	*TimestampsModel `bun:",embed"`
 
 	ID            uuid.UUID `bun:",pk,type:uuid,default:gen_random_uuid()" json:"id"`
