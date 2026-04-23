@@ -20,4 +20,12 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.GET("/:id", HandleGetOrganization)
 	orgs.PATCH("/:id", HandleUpdateOrganization)
 	orgs.DELETE("/:id", HandleDeleteOrganization)
+	orgRouter := router.Group("/organizations/:id")
+	{
+		orgRouter.POST("/invitations", HandleCreateInvitation)
+		orgRouter.GET("/invitations", HandleListInvitations)
+		orgRouter.POST("/invitations/:token/accept", HandleAcceptInvitation)
+		orgRouter.POST("/invitations/:token/decline", HandleDeclineInvitation)
+	}
+
 }

@@ -14,12 +14,12 @@ import (
 func HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
 		return
 	}
 
 	session := auth.GetSession(c)
-	
+
 	// Создаём организацию
 	org, err := data.CreateOrganization(data.CreateOrganizationInput{
 		Name:      req.Name,
@@ -134,13 +134,13 @@ func HandleUpdateOrganization(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
 		return
 	}
-	
+
 	if org.CreatorID != session.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only creator can update organization"})
 		return
 	}
 
-	org, err = data.UpdateOrganization(id, req.Name)
+	org, err = data.UpdateOrganization(org, req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -173,7 +173,7 @@ func HandleDeleteOrganization(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
 		return
 	}
-	
+
 	if org.CreatorID != session.UserID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only creator can delete organization"})
 		return

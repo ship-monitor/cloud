@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
@@ -13,15 +14,16 @@ import (
 )
 
 type User struct {
-	*bun.BaseModel   `bun:"table:users"`
-	*TimestampsModel `bun:",embed"`
+	*bun.BaseModel `bun:"table:users"`
 
-	ID            uuid.UUID `bun:",pk,type:uuid,default:gen_random_uuid()" json:"id"`
+	ID            uuid.UUID `bun:",pk,type:varchar" json:"id"`
 	Name          string    `bun:",notnull" json:"name"`
 	Email         string    `bun:",unique" json:"email"`
 	EmailVerified bool      `bun:",notnull,default:false" json:"emailVerified"`
 	PasswordHash  []byte    `bun:",notnull" json:"-"`
 	Blocked       bool      `bun:",notnull,default:false" json:"blocked"`
+	CreatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"createdAt"`
+	UpdatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"updatedAt"`
 }
 
 func normalizeEmail(email string) string {
@@ -75,9 +77,14 @@ func NewUser(name, email, password string) (*User, error) {
 	}
 
 	user := User{
-		Name:         name,
-		Email:        normalizeEmail(email),
-		PasswordHash: hashPassword(password),
+		ID:            uuid.New(),
+		Name:          name,
+		Email:         normalizeEmail(email),
+		PasswordHash:  hashPassword(password),
+		EmailVerified: false,
+		Blocked:       false,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if _, err := db.DB.NewInsert().Model(&user).Exec(context.TODO()); err != nil {
@@ -102,7 +109,7 @@ func checkEmailTaken(email string) (bool, error) {
 }
 
 func (u *User) SetPassword(password string) error {
-	u.UpdateTimestamp()
+	u.UpdatedAt = time.Now()
 	u.PasswordHash = hashPassword(password)
 
 	_, err := db.DB.NewUpdate().
@@ -115,7 +122,7 @@ func (u *User) SetPassword(password string) error {
 }
 
 func (u *User) SetEmail(email string) error {
-	u.UpdateTimestamp()
+	u.UpdatedAt = time.Now()
 	u.Email = normalizeEmail(email)
 	u.EmailVerified = false
 
@@ -128,7 +135,7 @@ func (u *User) SetEmail(email string) error {
 	return err
 }
 func (u *User) Block() error {
-	u.UpdateTimestamp()
+	u.UpdatedAt = time.Now()
 	u.Blocked = true
 	_, err := db.DB.NewUpdate().
 		Model(u).

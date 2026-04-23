@@ -1,13 +1,13 @@
 {
     "mcpServers": {
         "sourcecraft": {
+            "disabled": false,
+            "timeout": 60,
+            "alwaysAllow": [],
+            "disabledTools": [],
             "type": "streamable-http",
             "url": "https://api.sourcecraft.tech/mcp",
-            "disabled": false,
-            "headers": {},
-            "disabledTools": [],
-            "timeout": 60,
-            "alwaysAllow": []
+            "headers": {}
         }
     }
 }

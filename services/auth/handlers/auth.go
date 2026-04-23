@@ -39,7 +39,8 @@ func bindJSON(ctx *gin.Context, data any) {
 				"details":          "body validation fails",
 				"validationErrors": mapErrors(vErrors),
 			})
-			panic("validation fails")
+			// panic("validation fails")
+			log.Error("Validation fails", "error", err)
 
 		}
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "failed get JSON body: " + err.Error()})

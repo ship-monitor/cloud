@@ -6,6 +6,29 @@ import (
 	"github.com/google/uuid"
 )
 
+// --- Invitation DTOs -----------------------------------------------------
+
+// CreateInvitationRequest is the payload for creating an invitation.
+type CreateInvitationRequest struct {
+	InviteeEmail string `json:"inviteeEmail" binding:"required"`
+}
+
+// InvitationResponse represents an invitation in API responses.
+type InvitationResponse struct {
+	ID             uuid.UUID `json:"id"`
+	OrganizationID uuid.UUID `json:"organizationId"`
+	InviteeEmail   string    `json:"inviteeEmail"`
+	Token          string    `json:"token"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"createdAt"`
+	ExpiresAt      time.Time `json:"expiresAt"`
+}
+
+// ListInvitationsResponse wraps a list of invitations.
+type ListInvitationsResponse struct {
+	Invitations []InvitationResponse `json:"invitations"`
+}
+
 type OrganizationResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
@@ -14,7 +37,7 @@ type OrganizationResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required"`
 }
 
 type CreateOrganizationResponse struct {
@@ -28,7 +51,7 @@ type GetOrganizationResponse struct {
 }
 
 type UpdateOrganizationRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required"`
 }
 
 type UpdateOrganizationResponse struct {

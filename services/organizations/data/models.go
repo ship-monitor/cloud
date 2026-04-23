@@ -2,26 +2,29 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"charm.land/log/v2"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
 type Organization struct {
-	*bun.BaseModel `bun:"table:organization"`
+	*bun.BaseModel `bun:"table:organizations"`
 
-	ID        uuid.UUID `bun:",pk,type:uuid,default:gen_random_uuid()" json:"id"`
+	ID        uuid.UUID `bun:",pk,type:varchar" json:"id"`
 	Name      string    `bun:",notnull" json:"name"`
-	CreatedAt time.Time `bun:",nullzero,notnull,default:current_timestamp" json:"createdAt"`
-	UpdatedAt time.Time `bun:",nullzero,notnull,default:current_timestamp" json:"updatedAt"`
-	CreatorID uuid.UUID `bun:",notnull,type:uuid" json:"creatorId"`
+	CreatedAt time.Time `bun:",nullzero,notnull" json:"createdAt"`
+	UpdatedAt time.Time `bun:",nullzero,notnull" json:"updatedAt"`
+	CreatorID uuid.UUID `bun:",notnull,type:varchar" json:"creatorId"`
 }
 type OrganizationMember struct {
-	*bun.BaseModel `bun:"table:organization_member"`
-	MemberID       uuid.UUID `bun:",notnull,type:uuid" json:"memberId"`
-	OrganizationID uuid.UUID `bun:",notnull,type:uuid" json:"organizationId"`
+	*bun.BaseModel `bun:"table:organization_members"`
+	MemberID       uuid.UUID `bun:",notnull,type:varchar" json:"memberId"`
+	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
 }
 
 func GetOrganization(id uuid.UUID) (*Organization, error) {
@@ -34,16 +37,24 @@ func GetOrganization(id uuid.UUID) (*Organization, error) {
 }
 
 type CreateOrganizationInput struct {
-	Name      string    `json:"name"`
-	CreatorID uuid.UUID `json:"creatorId"`
+	Name      string    `json:"name" validate:"required"`
+	CreatorID uuid.UUID `json:"creatorId" validate:"required"`
 }
 
 func CreateOrganization(in CreateOrganizationInput) (Organization, error) {
+	log.Debug("Creating organization", "name", in.Name, "creatorId", in.CreatorID)
+	err := validator.New().Struct(in)
+	if err != nil {
+		return Organization{}, fmt.Errorf("failed validate input: %s", err)
+	}
+
 	org := Organization{
+		ID:        uuid.New(),
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 		Name:      in.Name,
 		CreatorID: in.CreatorID,
 	}
-	_, err := db.DB.NewInsert().Model(&org).Exec(context.Background())
+	_, err = db.DB.NewInsert().Model(&org).Exec(context.Background())
 	return org, err
 }

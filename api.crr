@@ -1,0 +1,276 @@
+{
+  "id": "ac21b946-b929-4e57-89df-7369dbea059d",
+  "version": 2,
+  "type": "notebook",
+  "cells": [
+    {
+      "id": "84043ff7-fd8d-42d5-8afd-494925a6af82",
+      "name": "",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 201 Created",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:20:27 GMT",
+            "Content-Length": "238"
+          },
+          "status": 201,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"user\":{\"id\":\"992a5e02-bfba-4936-b80d-3c4d3153bbfb\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-04-23T15:20:27.922843+03:00\",\"updatedAt\":\"2026-04-23T15:20:27.922843+03:00\"}}"
+          ],
+          "responseDate": 1776946827943
+        }
+      ],
+      "source": [
+        "curl -X POST $host/api/auth/register -d '{",
+        "  \"email\": \"petrovanton247@gmail.com\",",
+        "  \"password\": \"pa$$w0rd\",",
+        "  \"name\": \"katy248\"",
+        "}'"
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "c324269e-913d-4c09-8cf9-3c46f043dc26",
+      "name": "Login",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 200 OK",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:25:49 GMT",
+            "Content-Length": "848"
+          },
+          "status": 200,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"refreshToken\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzcwMzM1NDksImp0aSI6IjY3YmU3YzU4LTQ2YWYtNGVhMS1hNmIxLTc3N2ExNzQ1YjY3NyIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiJ9.h4b7wL_ezgkeOS_IMSK0CSJM_qEqLj89uff73LOZkQ3hTpHo0MpH76pRZdH7IrOIH_E2WKVcgUC9YRgLC7PetA\",\"token\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzY5NDc0NDksImp0aSI6ImVhMGZkNGJmLWYzZGYtNDYxNi04Y2U2LTMzYzM1YzIzYWY4YSIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.IjBZAE_Ow4ggEuRDpHkEZ03e7c94Syf-iNOk3-SyVB-iIn6zxPhcloPK1AmhsoloOErpYBkkaOBjC1lQEvRTnQ\",\"user\":{\"id\":\"992a5e02-bfba-4936-b80d-3c4d3153bbfb\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-04-23T12:20:27.922843Z\",\"updatedAt\":\"2026-04-23T12:20:27.922843Z\"}}"
+          ],
+          "responseDate": 1776947149782
+        }
+      ],
+      "source": [
+        "curl -X POST $host/api/auth/login -d '{",
+        "  \"email\": \"petrovanton247@gmail.com\", ",
+        "  \"password\": \"pa$$w0rd\"",
+        "}'"
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "20c3f131-7e12-426f-a4c9-d18510ca297f",
+      "name": "Get organizations",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 200 OK",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:26:09 GMT",
+            "Content-Length": "319"
+          },
+          "status": 200,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"organizations\":[{\"id\":\"fd6d5d36-a012-4427-a78a-ae780a37e3b4\",\"name\":\"Cool org\",\"createdAt\":\"2026-04-23T12:21:31.691046Z\",\"updatedAt\":\"2026-04-23T12:21:31.691046Z\"},{\"id\":\"10e7a067-1327-45fb-a9aa-d9b29129b5ed\",\"name\":\"Cooler org 3\",\"createdAt\":\"2026-04-23T12:21:25.223423Z\",\"updatedAt\":\"2026-04-23T12:26:07.705682Z\"}]}"
+          ],
+          "responseDate": 1776947169020
+        }
+      ],
+      "source": [
+        "curl $host/api/organizations/my -H \"Authorization: $token\""
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "218aa371-1ca9-4f63-b450-274b646523b1",
+      "name": "Get org by id",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 200 OK",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:25:18 GMT",
+            "Content-Length": "149"
+          },
+          "status": 200,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"id\":\"10e7a067-1327-45fb-a9aa-d9b29129b5ed\",\"name\":\"Cooler org\",\"createdAt\":\"2026-04-23T12:21:25.223423Z\",\"updatedAt\":\"2026-04-23T12:23:21.559484Z\"}"
+          ],
+          "responseDate": 1776947118857
+        }
+      ],
+      "source": [
+        "curl $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed -H \"Authorization: $token\""
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "e36f571c-4a7b-4998-ac04-da83cfda66f3",
+      "name": "Update organization",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 200 OK",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:26:07 GMT",
+            "Content-Length": "151"
+          },
+          "status": 200,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"id\":\"10e7a067-1327-45fb-a9aa-d9b29129b5ed\",\"name\":\"Cooler org 3\",\"createdAt\":\"2026-04-23T12:21:25.223423Z\",\"updatedAt\":\"2026-04-23T12:26:07.705682Z\"}"
+          ],
+          "responseDate": 1776947167723
+        }
+      ],
+      "source": [
+        "curl -X PATCH $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed -H \"Authorization: $token\" -d '{",
+        "  \"name\": \"Cooler org 3\"",
+        "}'"
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "42cea115-097b-447f-8f00-8fe5449a4471",
+      "name": "Create organization",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 201 Created",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Thu, 23 Apr 2026 12:21:31 GMT",
+            "Content-Length": "157"
+          },
+          "status": 201,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"id\":\"fd6d5d36-a012-4427-a78a-ae780a37e3b4\",\"name\":\"Cool org\",\"createdAt\":\"2026-04-23T15:21:31.691046+03:00\",\"updatedAt\":\"2026-04-23T15:21:31.691046+03:00\"}"
+          ],
+          "responseDate": 1776946891708
+        }
+      ],
+      "source": [
+        "curl -X POST $host/api/organizations/ -H \"Authorization: $token\" -d '{",
+        "  \"name\": \"Cool org\"",
+        "}'"
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": false,
+      "post_scripts": [
+        ""
+      ],
+      "send_status": "success"
+    }
+  ],
+  "globalVariables": [
+    {
+      "key": "host",
+      "value": "http://localhost:8080",
+      "source": "manual"
+    },
+    {
+      "key": "token",
+      "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzY5NDc0NDksImp0aSI6ImVhMGZkNGJmLWYzZGYtNDYxNi04Y2U2LTMzYzM1YzIzYWY4YSIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.IjBZAE_Ow4ggEuRDpHkEZ03e7c94Syf-iNOk3-SyVB-iIn6zxPhcloPK1AmhsoloOErpYBkkaOBjC1lQEvRTnQ",
+      "source": "manual"
+    }
+  ]
+}

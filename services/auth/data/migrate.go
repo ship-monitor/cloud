@@ -2,7 +2,9 @@ package data
 
 import (
 	"context"
+	"fmt"
 
+	"charm.land/log/v2"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
@@ -14,15 +16,16 @@ func panicIfErr(err error) {
 
 func Migrate() {
 	ctx := context.TODO()
-	models := []interface{}{
-		(*User)(nil),
-	}
 
-	for _, model := range models {
-		_, err := db.DB.NewCreateTable().
-			Model(model).
-			IfNotExists().
-			Exec(ctx)
-		panicIfErr(err)
+	query := db.DB.NewCreateTable().
+		Model((*User)(nil)).
+		IfNotExists()
+
+	_, err := query.Exec(ctx)
+
+	if err != nil {
+		fmt.Println(query.String())
+		log.Error("Failed create table", "table", query.GetTableName(), "query", query.String(), "error", err)
 	}
+	panicIfErr(err)
 }

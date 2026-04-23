@@ -15,17 +15,19 @@ func AddMember(member OrganizationMember) error {
 }
 
 // UpdateOrganization обновляет название организации
-func UpdateOrganization(id uuid.UUID, name string) (*Organization, error) {
-	org := &Organization{ID: id, Name: name, UpdatedAt: time.Now()}
+func UpdateOrganization(org *Organization, name string) (*Organization, error) {
+	org.Name = name
+	org.UpdatedAt = time.Now()
+
 	_, err := db.DB.NewUpdate().
 		Model(org).
 		Column("name", "updated_at").
-		Where("id = ?", id).
+		Where("id = ?", org.ID).
 		Exec(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	return GetOrganization(id)
+	return GetOrganization(org.ID)
 }
 
 // DeleteOrganization удаляет организацию
@@ -38,7 +40,7 @@ func DeleteOrganization(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Потом удаляем организацию
 	_, err = db.DB.NewDelete().
 		Model((*Organization)(nil)).
@@ -52,7 +54,7 @@ func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 	var orgs []Organization
 	err := db.DB.NewSelect().
 		Model(&orgs).
-		Join("JOIN organization_member AS om ON om.organization_id = organization.id").
+		Join("JOIN organization_members AS om ON om.organization_id = organization.id").
 		Where("om.member_id = ?", userID).
 		Order("organization.created_at DESC").
 		Scan(context.Background())

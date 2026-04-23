@@ -3,6 +3,7 @@ package main
 import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/keyval"
@@ -16,9 +17,18 @@ func main() {
 	keyval.Setup()
 	defer keyval.Close()
 
+	if viper.GetBool("debug") {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
 	config.Config.RegisterAlias("jwt-security-key", "security-key")
 	server := gin.Default()
-	
+	if viper.GetBool("debug") {
+		gin.SetMode(gin.DebugMode)
+	}
+
 	auth.SetupRoutes(server)
 	organizations.SetupRoutes(server)
 
