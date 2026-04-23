@@ -8,6 +8,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/keyval"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
 )
 
@@ -31,6 +32,12 @@ func main() {
 
 	auth.SetupRoutes(server)
 	organizations.SetupRoutes(server)
+	if viper.GetBool("services.connector.enable") {
+		log.Info("Connector service enabled")
+		connector.Setup(server)
+	} else {
+		log.Warn("Connector service disabled")
+	}
 
 	if err := server.Run(":8080"); err != nil {
 		log.Fatal("failed to start server", "error", err)

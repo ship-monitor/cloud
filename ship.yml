@@ -1,0 +1,5 @@
+services:
+  connector:
+    enable: true
+    rabbitmq-url: ""
+    ws-port: 8071
