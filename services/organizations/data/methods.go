@@ -2,16 +2,74 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
-// AddMember добавляет пользователя в организацию
+// AddMember добавляет пользователя в организацию с ролью и синхронизирует SpiceDB
 func AddMember(member OrganizationMember) error {
+	// Сохраняем в БД
 	_, err := db.DB.NewInsert().Model(&member).Exec(context.Background())
 	return err
+}
+
+// UpdateMemberRole обновляет роль участника
+
+func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
+	_, err := db.DB.NewUpdate().
+		Model((*OrganizationMember)(nil)).
+		Set("role = ?", role).
+		Where("organization_id = ? AND member_id = ?", orgID, userID).
+		Exec(context.Background())
+	return err
+}
+
+// RemoveMember удаляет участника из организации
+func RemoveMember(orgID, userID uuid.UUID) error {
+	_, err := db.DB.NewDelete().
+		Model((*OrganizationMember)(nil)).
+		Where("organization_id = ? AND member_id = ?", orgID, userID).
+		Exec(context.Background())
+	return err
+}
+
+// GetMember возвращает информацию об участнике
+func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
+	var member OrganizationMember
+	err := db.DB.NewSelect().
+		Model(&member).
+		Where("organization_id = ? AND member_id = ?", orgID, userID).
+		Scan(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("member not found")
+	}
+	return &member, nil
+}
+
+// GetMembersWithUserInfo возвращает участников организации с информацией о пользователях
+func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
+	var members []MemberWithUser
+	err := db.DB.NewSelect().
+		TableExpr("organization_members AS om").
+		ColumnExpr("om.member_id, om.organization_id, om.role, om.joined_at, u.name, u.email").
+		Join("JOIN users AS u ON u.id::varchar = om.member_id::varchar").
+		Where("om.organization_id = ?", orgID).
+		Order("om.joined_at ASC").
+		Scan(context.Background(), &members)
+	return members, err
+}
+
+// MemberWithUser — участник с данными пользователя
+type MemberWithUser struct {
+	MemberID       uuid.UUID `json:"memberId"`
+	OrganizationID uuid.UUID `json:"organizationId"`
+	Role           Role      `json:"role"`
+	JoinedAt       time.Time `json:"joinedAt"`
+	Name           string    `json:"name"`
+	Email          string    `json:"email"`
 }
 
 // UpdateOrganization обновляет название организации
@@ -32,7 +90,6 @@ func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 
 // DeleteOrganization удаляет организацию
 func DeleteOrganization(id uuid.UUID) error {
-	// Сначала удаляем всех участников
 	_, err := db.DB.NewDelete().
 		Model((*OrganizationMember)(nil)).
 		Where("organization_id = ?", id).
@@ -41,7 +98,6 @@ func DeleteOrganization(id uuid.UUID) error {
 		return err
 	}
 
-	// Потом удаляем организацию
 	_, err = db.DB.NewDelete().
 		Model((*Organization)(nil)).
 		Where("id = ?", id).

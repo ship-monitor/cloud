@@ -21,6 +21,7 @@ relationships: |-
   organization:org1#member@user:katy
   organization:org1#member@user:oleg
   organization:org2#owner@user:jay
+  
 assertions:
   assertTrue:
     - organization:org2#view@user:jay

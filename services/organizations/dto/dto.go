@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data" 
 )
 
 // --- Invitation DTOs -----------------------------------------------------
@@ -58,4 +59,16 @@ type UpdateOrganizationResponse struct {
 	Success      bool                  `json:"success"`
 	Error        string                `json:"error,omitempty"`
 	Organization *OrganizationResponse `json:"organization,omitempty"`
+}
+// --- Member management DTOs -----------------------------------------------
+
+// AddMemberRequest — запрос на добавление участника
+type AddMemberRequest struct {
+	UserID uuid.UUID `json:"userId" binding:"required"`
+	Role   data.Role `json:"role" binding:"required"`
+}
+
+// UpdateMemberRoleRequest — запрос на изменение роли
+type UpdateMemberRoleRequest struct {
+	Role data.Role `json:"role" binding:"required"`
 }

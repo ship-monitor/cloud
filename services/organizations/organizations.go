@@ -20,6 +20,14 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.GET("/:id", HandleGetOrganization)
 	orgs.PATCH("/:id", HandleUpdateOrganization)
 	orgs.DELETE("/:id", HandleDeleteOrganization)
+
+	// Роуты участников организации
+	orgs.GET("/:id/members", HandleGetMembers)
+	orgs.POST("/:id/members", HandleAddMember)
+	orgs.PATCH("/:id/members/:userId", HandleUpdateMemberRole)
+	orgs.DELETE("/:id/members/:userId", HandleRemoveMember)
+
+	// Роуты приглашений
 	orgRouter := router.Group("/organizations/:id")
 	{
 		orgRouter.POST("/invitations", HandleCreateInvitation)
@@ -27,5 +35,4 @@ func SetupRoutes(router gin.IRouter) {
 		orgRouter.POST("/invitations/:token/accept", HandleAcceptInvitation)
 		orgRouter.POST("/invitations/:token/decline", HandleDeclineInvitation)
 	}
-
 }

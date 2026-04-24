@@ -21,10 +21,24 @@ type Organization struct {
 	UpdatedAt time.Time `bun:",nullzero,notnull" json:"updatedAt"`
 	CreatorID uuid.UUID `bun:",notnull,type:varchar" json:"creatorId"`
 }
+
+// Role участника в организации
+type Role string
+
+const (
+	RoleOwner         Role = "owner"
+	RoleAdministrator Role = "administrator"
+	RoleMember        Role = "member"
+)
+
+// OrganizationMember — связь пользователя с организацией
 type OrganizationMember struct {
 	*bun.BaseModel `bun:"table:organization_members"`
+
 	MemberID       uuid.UUID `bun:",notnull,type:varchar" json:"memberId"`
 	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
+	Role           Role      `bun:",notnull" json:"role"`
+	JoinedAt       time.Time `bun:",nullzero,notnull" json:"joinedAt"`
 }
 
 func GetOrganization(id uuid.UUID) (*Organization, error) {
