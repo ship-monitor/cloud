@@ -70,11 +70,11 @@ func GetInvitationByToken(token string) (*OrganizationInvitation, error) {
 }
 
 // ListPendingInvitations returns all pending invitations for an organization.
-func ListPendingInvitations(orgID uuid.UUID) ([]OrganizationInvitation, error) {
+func ListPendingInvitations(userEmail string) ([]OrganizationInvitation, error) {
 	var invs []OrganizationInvitation
 	err := db.DB.NewSelect().
 		Model(&invs).
-		Where("organization_id = ? AND status = ?", orgID, StatusPending).
+		Where("invitee_email = ? AND status = ?", userEmail, StatusPending).
 		Scan(context.Background())
 	return invs, err
 }

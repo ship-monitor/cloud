@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
@@ -166,25 +167,28 @@ func HandleDeleteOrganization(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		log.Error("Bad UUID specified", "error", err, "id", idStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
 		return
 	}
 
 	session := auth.GetSession(c)
 
-	// Только owner может удалить
-	member, err := data.GetMember(id, session.UserID)
+	org, err := data.GetOrganization(id)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		log.Error("Failed to get organization", "error", err, "id", idStr, "user", session.UserID)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	if member.Role != data.RoleOwner {
+	if org.CreatorID != session.UserID {
+		log.Error("Only owner can delete organization", "id", idStr, "user", session.UserID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "only owner can delete organization"})
 		return
 	}
 
 	err = data.DeleteOrganization(id)
 	if err != nil {
+		log.Error("Failed to delete organization", "error", err, "id", idStr, "user", session.UserID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

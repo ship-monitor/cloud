@@ -13,8 +13,10 @@ func SetupRoutes(router gin.IRouter) {
 
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
-	// Роуты с проверкой аутентификации
-	orgs := router.Group("/api/organizations", middleware.WithAuthenticationRequired)
+	api := router.Group("/api", middleware.WithAuthenticationRequired)
+
+	// Роуты с проверкой аутентификаци
+	orgs := api.Group("/organizations")
 	orgs.POST("/", HandleCreateOrganization)
 	orgs.GET("/my", HandleGetMyOrganizations)
 	orgs.GET("/:id", HandleGetOrganization)
@@ -28,11 +30,8 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.DELETE("/:id/members/:userId", HandleRemoveMember)
 
 	// Роуты приглашений
-	orgRouter := router.Group("/organizations/:id")
-	{
-		orgRouter.POST("/invitations", HandleCreateInvitation)
-		orgRouter.GET("/invitations", HandleListInvitations)
-		orgRouter.POST("/invitations/:token/accept", HandleAcceptInvitation)
-		orgRouter.POST("/invitations/:token/decline", HandleDeclineInvitation)
-	}
+	api.POST("/:id/invitations", HandleCreateInvitation)
+	api.GET("/invitations", HandleListInvitations)
+	api.POST("/invitations/:token/accept", HandleAcceptInvitation)
+	api.POST("/invitations/:token/decline", HandleDeclineInvitation)
 }

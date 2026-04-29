@@ -43,6 +43,7 @@ func bindJSON(ctx *gin.Context, data any) {
 			log.Error("Validation fails", "error", err)
 
 		}
+		log.Error("Failed to bind JSON", "error", err)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "failed get JSON body: " + err.Error()})
 		return
 	}
@@ -61,6 +62,7 @@ func HandleRegister(c *gin.Context) {
 	)
 	if err != nil {
 		if errors.Is(err, data.ErrEmailAlreadyTaken) {
+			log.Error("Email already taken", "email", request.Email)
 			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"details": "email already taken",
 			})

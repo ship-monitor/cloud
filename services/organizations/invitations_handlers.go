@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
@@ -65,23 +66,12 @@ func HandleCreateInvitation(c *gin.Context) {
 
 // HandleListInvitations returns all pending invitations for an organization.
 func HandleListInvitations(c *gin.Context) {
-	orgIDStr := c.Param("id")
-	orgID, err := uuid.Parse(orgIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
-		return
-	}
 
 	session := auth.GetSession(c)
-	// Only members can view invites – check membership
-	isMember, err := data.IsMember(session.UserID, orgID)
-	if err != nil || !isMember {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-		return
-	}
 
-	invs, err := data.ListPendingInvitations(orgID)
+	invs, err := data.ListPendingInvitations(session.Email)
 	if err != nil {
+		log.Error("Failed to list invitations", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
