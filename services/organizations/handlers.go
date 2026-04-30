@@ -80,7 +80,8 @@ func HandleGetOrganization(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
+		log.Error("Invalid organization id", "error", err, "id", idStr)
+		c.JSON(http.StatusBadRequest, gin.H{"details": "invalid organization id"})
 		return
 	}
 
@@ -88,17 +89,19 @@ func HandleGetOrganization(c *gin.Context) {
 
 	isMember, err := data.IsMember(session.UserID, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Error("Failed check is user a member of organization", "error", err, "organization", id, "user", session)
+		c.JSON(http.StatusInternalServerError, gin.H{"details": "internal server error"})
 		return
 	}
 	if !isMember {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		log.Error("User is not member of organization, access restricted")
+		c.JSON(http.StatusForbidden, gin.H{"details": "user has no access to this organization"})
 		return
 	}
 
 	org, err := data.GetOrganization(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
+		c.JSON(http.StatusNotFound, gin.H{"details": "organization not found"})
 		return
 	}
 
