@@ -9,7 +9,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
-// InvitationStatus represents the state of an invitation.
 type InvitationStatus string
 
 const (
@@ -18,25 +17,28 @@ const (
 	StatusDeclined InvitationStatus = "declined"
 )
 
-// OrganizationInvitation holds the invitation record.
 type OrganizationInvitation struct {
 	*bun.BaseModel `bun:"table:organization_invitations"`
 
 	ID             uuid.UUID        `bun:",pk,type:varchar" json:"id"`
 	OrganizationID uuid.UUID        `bun:",notnull,type:varchar" json:"organizationId"`
 	InviteeEmail   string           `bun:",notnull" json:"inviteeEmail"`
-	Token          string           `bun:",notnull,unique" json:"token"`
 	Status         InvitationStatus `bun:",notnull" json:"status"`
 	CreatedAt      time.Time        `bun:",nullzero,notnull" json:"createdAt"`
 	ExpiresAt      time.Time        `bun:",nullzero,notnull" json:"expiresAt"`
 }
 
-// CreateInvitation inserts a new invitation record.
+type OrgInvitationInput struct {
+	OrganizationID uuid.UUID
+	InviteeEmail   string
+	ExpiresAt      time.Time
+}
+
 func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 	invitation := OrganizationInvitation{
+		ID:             uuid.New(),
 		OrganizationID: inv.OrganizationID,
 		InviteeEmail:   inv.InviteeEmail,
-		Token:          inv.Token,
 		Status:         StatusPending,
 		CreatedAt:      time.Now(),
 		ExpiresAt:      inv.ExpiresAt,
@@ -48,20 +50,11 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 	return &invitation, nil
 }
 
-// OrgInvitationInput is the minimal data needed to create an invitation.
-type OrgInvitationInput struct {
-	OrganizationID uuid.UUID
-	InviteeEmail   string
-	Token          string
-	ExpiresAt      time.Time
-}
-
-// GetInvitationByToken retrieves an invitation by its token.
-func GetInvitationByToken(token string) (*OrganizationInvitation, error) {
+func GetInvitationByID(id uuid.UUID) (*OrganizationInvitation, error) {
 	var inv OrganizationInvitation
 	err := db.DB.NewSelect().
 		Model(&inv).
-		Where("token = ?", token).
+		Where("id = ?", id).
 		Scan(context.Background())
 	if err != nil {
 		return nil, err
@@ -69,22 +62,38 @@ func GetInvitationByToken(token string) (*OrganizationInvitation, error) {
 	return &inv, nil
 }
 
-// ListPendingInvitations returns all pending invitations for an organization.
-func ListPendingInvitations(userEmail string) ([]OrganizationInvitation, error) {
+func HasPendingInvitation(orgID uuid.UUID, email string) (bool, error) {
+	return db.DB.NewSelect().
+		Model((*OrganizationInvitation)(nil)).
+		Where("organization_id = ? AND invitee_email = ? AND status = ?", orgID, email, StatusPending).
+		Exists(context.Background())
+}
+
+func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
 	var invs []OrganizationInvitation
 	err := db.DB.NewSelect().
 		Model(&invs).
-		Where("invitee_email = ? AND status = ?", userEmail, StatusPending).
+		Where("invitee_email = ? AND status = ?", email, StatusPending).
+		Order("created_at DESC").
 		Scan(context.Background())
 	return invs, err
 }
 
-// UpdateInvitationStatus changes the status of an invitation.
-func UpdateInvitationStatus(token string, status InvitationStatus) error {
+func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
+	var invs []OrganizationInvitation
+	err := db.DB.NewSelect().
+		Model(&invs).
+		Where("organization_id = ?", orgID).
+		Order("created_at DESC").
+		Scan(context.Background())
+	return invs, err
+}
+
+func UpdateInvitationStatus(id uuid.UUID, status InvitationStatus) error {
 	_, err := db.DB.NewUpdate().
 		Model((*OrganizationInvitation)(nil)).
 		Set("status = ?", status).
-		Where("token = ?", token).
+		Where("id = ?", id).
 		Exec(context.Background())
 	return err
 }

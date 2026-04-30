@@ -19,7 +19,6 @@ type InvitationResponse struct {
 	ID             uuid.UUID `json:"id"`
 	OrganizationID uuid.UUID `json:"organizationId"`
 	InviteeEmail   string    `json:"inviteeEmail"`
-	Token          string    `json:"token"`
 	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"createdAt"`
 	ExpiresAt      time.Time `json:"expiresAt"`

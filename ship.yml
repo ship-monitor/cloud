@@ -3,3 +3,4 @@ services:
     enable: false
     rabbitmq-url: ""
     ws-port: 8071
+debug: true

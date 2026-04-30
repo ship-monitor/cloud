@@ -29,9 +29,10 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.PATCH("/:id/members/:userId", HandleUpdateMemberRole)
 	orgs.DELETE("/:id/members/:userId", HandleRemoveMember)
 
-	// Роуты приглашений
-	api.POST("/:id/invitations", HandleCreateInvitation)
-	api.GET("/invitations", HandleListInvitations)
-	api.POST("/invitations/:token/accept", HandleAcceptInvitation)
-	api.POST("/invitations/:token/decline", HandleDeclineInvitation)
+	// Invitation routes
+	orgs.POST("/:id/invitations", HandleCreateInvitation)
+	orgs.GET("/:id/invitations", HandleListOrgInvitations)
+	api.GET("/invitations", HandleListMyInvitations)
+	api.POST("/invitations/:id/accept", HandleAcceptInvitation)
+	api.POST("/invitations/:id/decline", HandleDeclineInvitation)
 }
