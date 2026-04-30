@@ -39,6 +39,7 @@ func AddHandler(h MessageHandlerFunc) {
 
 func Serve() {
 	url := getRabbitMQUrl()
+	log.Info("Connecting to RabbitMQ", "url", url)
 	if connection, err := amqp.Dial(url); err != nil {
 		log.Fatal("Failed to connect to RabbitMQ", "error", err)
 	} else {
@@ -116,12 +117,12 @@ func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Que
 		"requests", // name
 		false,      // durable
 		false,      // delete when unused
-		false,      // exclusive
+		true,       // exclusive
 		false,      // no-wait
 		nil,        // arguments
 	)
 	if err != nil {
-		log.Fatal("Failed to declare a queue", "error", err)
+		log.Fatal("Failed to declare a queue", "queue", "requests", "error", err)
 		return requests, responses, err
 	}
 
@@ -129,12 +130,12 @@ func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Que
 		"responses", // name
 		false,       // durable
 		false,       // delete when unused
-		false,       // exclusive
+		true,        // exclusive
 		false,       // no-wait
 		nil,         // arguments
 	)
 	if err != nil {
-		log.Fatal("Failed to declare a queue", "error", err)
+		log.Fatal("Failed to declare a queue", "queue", "responses", "error", err)
 		return requests, responses, err
 	}
 

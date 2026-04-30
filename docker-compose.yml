@@ -2,6 +2,7 @@ volumes:
   auth_data:
   redis_data:
   orgs_data:
+  rabbitmq_data:
 
 networks:
   auth-net:
@@ -44,6 +45,20 @@ services:
       - auth_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+  # RABBITMQ
+  rabbitmq:
+    image: rabbitmq:4-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - auth-net
+
   # SPICE for permissions
   spice:
     image: quay.io/authzed/spicedb:latest

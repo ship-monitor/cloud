@@ -1,6 +1,7 @@
 services:
   connector:
-    enable: false
-    rabbitmq-url: ""
+    enable: true
+    # rabbitmq-url: "amqp://guest:guest@rabbitmq:5672/"
+    rabbitmq-url: "amqp://guest:guest@localhost:5672/"
     ws-port: 8071
 debug: true
