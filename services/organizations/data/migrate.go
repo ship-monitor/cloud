@@ -15,6 +15,7 @@ func Migrate() {
 		(*Organization)(nil),
 		(*OrganizationInvitation)(nil),
 		(*OrganizationMember)(nil),
+		(*OrganizationDevice)(nil),
 	}
 
 	for _, model := range models {

@@ -4,8 +4,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data" 
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
+
+type ErrorResponse struct {
+	Details string `json:"details"`
+}
+
+func Error(err error) ErrorResponse {
+	return ErrorResponse{Details: err.Error()}
+}
 
 // --- Invitation DTOs -----------------------------------------------------
 
@@ -59,6 +67,30 @@ type UpdateOrganizationResponse struct {
 	Error        string                `json:"error,omitempty"`
 	Organization *OrganizationResponse `json:"organization,omitempty"`
 }
+
+// --- Device DTOs ----------------------------------------------------------
+
+type ConnectDeviceRequest struct {
+	DeviceID uuid.UUID `json:"deviceId" binding:"required"`
+}
+
+type DeviceResponse struct {
+	ID             uuid.UUID `json:"id"`
+	OrganizationID uuid.UUID `json:"organizationId"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type SendCommandRequest struct {
+	Command string         `json:"command" binding:"required"`
+	Args    map[string]any `json:"args"`
+}
+
+type SendCommandResponse struct {
+	RequestError string         `json:"requestError,omitempty"`
+	CommandError string         `json:"commandError,omitempty"`
+	Data         map[string]any `json:"data,omitempty"`
+}
+
 // --- Member management DTOs -----------------------------------------------
 
 // AddMemberRequest — запрос на добавление участника
