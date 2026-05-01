@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	NodeIDHeader = "X-Router-ID"
+	NodeIDHeader = "X-Node-ID"
 )
 
 var (
