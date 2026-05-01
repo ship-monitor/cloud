@@ -1,7 +1,9 @@
 package organizations
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -32,34 +34,65 @@ func HandleCreateInvitation(c *gin.Context) {
 		return
 	}
 
-	var req dto.CreateInvitationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+	// Читаем сырой JSON
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.Error(errors.New("failed to read request body")))
 		return
 	}
 
-	exists, err := data.HasPendingInvitation(orgID, req.InviteeEmail)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+	// Пробуем распарсить как одиночное приглашение
+	var singleReq struct {
+		InviteeEmail string `json:"inviteeEmail"`
+	}
+	if err := json.Unmarshal(body, &singleReq); err == nil && singleReq.InviteeEmail != "" {
+		inv, err := createInvitation(orgID, singleReq.InviteeEmail)
+		if err != nil {
+			c.JSON(http.StatusConflict, dto.Error(err))
+			return
+		}
+		c.JSON(http.StatusCreated, invitationToDTO(inv))
 		return
+	}
+
+	// Пробуем распарсить как массовое приглашение
+	var bulkReq struct {
+		InviteeEmails []string `json:"inviteeEmails"`
+	}
+	if err := json.Unmarshal(body, &bulkReq); err == nil && len(bulkReq.InviteeEmails) > 0 {
+		var created []dto.InvitationResponse
+		var errs []string
+
+		for _, email := range bulkReq.InviteeEmails {
+			inv, err := createInvitation(orgID, email)
+			if err != nil {
+				errs = append(errs, email+": "+err.Error())
+			} else {
+				created = append(created, invitationToDTO(inv))
+			}
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"invitations": created, "errors": errs})
+		return
+	}
+
+	c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: expected inviteeEmail or inviteeEmails")))
+}
+
+func createInvitation(orgID uuid.UUID, email string) (*data.OrganizationInvitation, error) {
+	exists, err := data.HasPendingInvitation(orgID, email)
+	if err != nil {
+		return nil, err
 	}
 	if exists {
-		c.JSON(http.StatusConflict, dto.Error(errors.New("pending invitation already exists for this email")))
-		return
+		return nil, errors.New("pending invitation already exists for " + email)
 	}
 
-	inv, err := data.CreateInvitation(data.OrgInvitationInput{
+	return data.CreateInvitation(data.OrgInvitationInput{
 		OrganizationID: orgID,
-		InviteeEmail:   req.InviteeEmail,
+		InviteeEmail:   email,
 		ExpiresAt:      time.Now().Add(48 * time.Hour),
 	})
-	if err != nil {
-		log.Error("Failed to create invitation", "error", err)
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
-		return
-	}
-
-	c.JSON(http.StatusCreated, invitationToDTO(inv))
 }
 
 func HandleListMyInvitations(c *gin.Context) {
@@ -153,8 +186,6 @@ func HandleAcceptInvitation(c *gin.Context) {
 		return
 	}
 
-	// Mark accepted first — if AddMember fails the invitation can be retried;
-	// the reverse order would leave a dangling member with a still-pending invitation.
 	if err := data.UpdateInvitationStatus(invID, data.StatusAccepted); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 		return
@@ -206,12 +237,19 @@ func HandleDeclineInvitation(c *gin.Context) {
 }
 
 func invitationToDTO(inv *data.OrganizationInvitation) dto.InvitationResponse {
+	org, err := data.GetOrganization(inv.OrganizationID)
+	orgName := ""
+	if err == nil {
+		orgName = org.Name
+	}
+
 	return dto.InvitationResponse{
-		ID:             inv.ID,
-		OrganizationID: inv.OrganizationID,
-		InviteeEmail:   inv.InviteeEmail,
-		Status:         string(inv.Status),
-		CreatedAt:      inv.CreatedAt,
-		ExpiresAt:      inv.ExpiresAt,
+		ID:               inv.ID,
+		OrganizationID:   inv.OrganizationID,
+		OrganizationName: orgName,
+		InviteeEmail:     inv.InviteeEmail,
+		Status:           string(inv.Status),
+		CreatedAt:        inv.CreatedAt,
+		ExpiresAt:        inv.ExpiresAt,
 	}
 }

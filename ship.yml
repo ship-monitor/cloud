@@ -1,9 +1,10 @@
 services:
   connector:
-    enable: true
-    # rabbitmq-url: "amqp://guest:guest@rabbitmq:5672/"
+    enable: false
     rabbitmq-url: "amqp://guest:guest@localhost:5672/"
     ws-port: 8071
   organizations:
     response-command-timeout: 50s
-debug: true
+debug: false
+database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
+jwt-security-key: "your_jwt_security_key_here"
