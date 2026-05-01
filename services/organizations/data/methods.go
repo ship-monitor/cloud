@@ -55,7 +55,7 @@ func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 	err := db.DB.NewSelect().
 		TableExpr("organization_members AS om").
 		ColumnExpr("om.member_id, om.organization_id, om.role, om.joined_at, u.name, u.email").
-		Join("JOIN users AS u ON u.id::varchar = om.member_id::varchar").
+		Join("JOIN users AS u ON u.id = om.member_id").
 		Where("om.organization_id = ?", orgID).
 		Order("om.joined_at ASC").
 		Scan(context.Background(), &members)

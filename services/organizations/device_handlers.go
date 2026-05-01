@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
@@ -15,6 +16,7 @@ import (
 func HandleConnectDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		log.Warn("Invalid organization id in connect device request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
 		return
 	}
@@ -23,27 +25,32 @@ func HandleConnectDevice(c *gin.Context) {
 
 	member, err := data.GetMember(orgID, session.UserID)
 	if err != nil {
+		log.Warn("Access denied for connect device — not a member", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+		log.Warn("Insufficient role for connect device", "organization", orgID, "user", session.UserID, "role", member.Role)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("only owner or administrator can connect devices")))
 		return
 	}
 
 	var req dto.ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Warn("Invalid connect device request", "error", err, "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
 		return
 	}
 
 	if err := data.ConnectDevice(req.DeviceID, orgID); err != nil {
+		log.Warn("Failed to connect device", "error", err, "organization", orgID, "device", req.DeviceID)
 		c.JSON(http.StatusBadRequest, dto.Error(err))
 		return
 	}
 
 	device, err := data.GetDevice(req.DeviceID)
 	if err != nil {
+		log.Error("Failed to get device after connect", "error", err, "organization", orgID, "device", req.DeviceID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 		return
 	}
@@ -54,6 +61,7 @@ func HandleConnectDevice(c *gin.Context) {
 func HandleListDevices(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		log.Warn("Invalid organization id in list devices request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
 		return
 	}
@@ -61,13 +69,20 @@ func HandleListDevices(c *gin.Context) {
 	session := auth.GetSession(c)
 
 	isMember, err := data.IsMember(session.UserID, orgID)
-	if err != nil || !isMember {
+	if err != nil {
+		log.Error("Failed to check membership for list devices", "error", err, "organization", orgID, "user", session.UserID)
+		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		return
+	}
+	if !isMember {
+		log.Warn("Access denied for list devices", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 		return
 	}
 
 	devices, err := data.ListDevices(orgID)
 	if err != nil {
+		log.Error("Failed to list devices", "error", err, "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 		return
 	}
@@ -83,12 +98,14 @@ func HandleListDevices(c *gin.Context) {
 func HandleGetDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		log.Warn("Invalid organization id in get device request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
 		return
 	}
 
 	deviceID, err := uuid.Parse(c.Param("deviceId"))
 	if err != nil {
+		log.Warn("Invalid device id in get device request", "deviceId", c.Param("deviceId"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid device id")))
 		return
 	}
@@ -96,13 +113,20 @@ func HandleGetDevice(c *gin.Context) {
 	session := auth.GetSession(c)
 
 	isMember, err := data.IsMember(session.UserID, orgID)
-	if err != nil || !isMember {
+	if err != nil {
+		log.Error("Failed to check membership for get device", "error", err, "organization", orgID, "user", session.UserID)
+		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		return
+	}
+	if !isMember {
+		log.Warn("Access denied for get device", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 		return
 	}
 
 	device, err := data.GetDevice(deviceID)
 	if err != nil || device.OrganizationID != orgID {
+		log.Warn("Device not found", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
 		return
 	}
@@ -113,12 +137,14 @@ func HandleGetDevice(c *gin.Context) {
 func HandleDisconnectDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		log.Warn("Invalid organization id in disconnect device request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
 		return
 	}
 
 	deviceID, err := uuid.Parse(c.Param("deviceId"))
 	if err != nil {
+		log.Warn("Invalid device id in disconnect device request", "deviceId", c.Param("deviceId"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid device id")))
 		return
 	}
@@ -127,21 +153,25 @@ func HandleDisconnectDevice(c *gin.Context) {
 
 	member, err := data.GetMember(orgID, session.UserID)
 	if err != nil {
+		log.Warn("Access denied for disconnect device — not a member", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+		log.Warn("Insufficient role for disconnect device", "organization", orgID, "user", session.UserID, "role", member.Role)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("only owner or administrator can disconnect devices")))
 		return
 	}
 
 	device, err := data.GetDevice(deviceID)
 	if err != nil || device.OrganizationID != orgID {
+		log.Warn("Device not found for disconnect", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
 		return
 	}
 
 	if err := data.DisconnectDevice(deviceID); err != nil {
+		log.Error("Failed to disconnect device", "error", err, "organization", orgID, "device", deviceID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 		return
 	}
@@ -152,12 +182,14 @@ func HandleDisconnectDevice(c *gin.Context) {
 func HandleSendCommand(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		log.Warn("Invalid organization id in send command request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
 		return
 	}
 
 	deviceID, err := uuid.Parse(c.Param("deviceId"))
 	if err != nil {
+		log.Warn("Invalid device id in send command request", "deviceId", c.Param("deviceId"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid device id")))
 		return
 	}
@@ -166,22 +198,26 @@ func HandleSendCommand(c *gin.Context) {
 
 	member, err := data.GetMember(orgID, session.UserID)
 	if err != nil {
+		log.Warn("Access denied for send command — not a member", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+		log.Warn("Insufficient role for send command", "organization", orgID, "user", session.UserID, "role", member.Role)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("only owner or administrator can send commands")))
 		return
 	}
 
 	device, err := data.GetDevice(deviceID)
 	if err != nil || device.OrganizationID != orgID {
+		log.Warn("Device not found for send command", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
 		return
 	}
 
 	var req dto.SendCommandRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Warn("Invalid send command request", "error", err, "organization", orgID, "device", deviceID)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
 		return
 	}
@@ -189,6 +225,7 @@ func HandleSendCommand(c *gin.Context) {
 	result := commands.SendCommand(deviceID, req.Command, req.Args)
 
 	if result.RequestError != "" {
+		log.Warn("Command delivery failed", "organization", orgID, "device", deviceID, "command", req.Command, "error", result.RequestError)
 		c.JSON(http.StatusBadGateway, dto.SendCommandResponse{
 			RequestError: result.RequestError,
 		})
