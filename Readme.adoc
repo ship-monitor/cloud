@@ -1,1 +1,19 @@
 = Ship monitor auth microservice
+
+== Run
+
+=== Development
+
+Use `--devel` flag or set environment variable `DEVEL=true`
+
+[source,console]
+----
+$ go run cmd/api/main.go --devel
+----
+
+Start RabbitMQ:
+
+[source,console]
+----
+$ docker compose up rabbitmq --detach
+----

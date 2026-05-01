@@ -26,7 +26,7 @@ func setupDebugDB() {
 }
 
 func Setup() {
-	if viper.GetBool("DEBUG") {
+	if viper.GetBool("devel") {
 		setupDebugDB()
 		return
 	}

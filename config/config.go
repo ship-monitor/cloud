@@ -5,14 +5,16 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/joho/godotenv"
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 var Config *viper.Viper
 
+var developmentMode = flag.Bool("devel", false, "Enable development mode")
+
 func Setup() {
 	_ = godotenv.Load()
-
 	viper.SetConfigName("ship")
 	viper.AddConfigPath(".")
 	if err := viper.ReadInConfig(); err != nil {
@@ -21,6 +23,9 @@ func Setup() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
 	Config = viper.GetViper()
+
+	flag.Parse()
+	viper.BindPFlags(flag.CommandLine)
 }
 
 func SecurityKey() []byte {

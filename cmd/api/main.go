@@ -14,11 +14,12 @@ import (
 
 func main() {
 	config.Setup()
+
 	db.Setup()
 	keyval.Setup()
 	defer keyval.Close()
 
-	if viper.GetBool("debug") {
+	if viper.GetBool("devel") {
 		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
@@ -26,7 +27,7 @@ func main() {
 
 	config.Config.RegisterAlias("jwt-security-key", "security-key")
 	server := gin.Default()
-	if viper.GetBool("debug") {
+	if viper.GetBool("devel") {
 		gin.SetMode(gin.DebugMode)
 	}
 
