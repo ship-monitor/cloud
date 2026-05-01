@@ -1,15 +1,11 @@
 package connections
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"charm.land/log/v2"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
@@ -17,9 +13,7 @@ import (
 )
 
 const (
-	AuthorizationHeader = "Authorization"
-	RouterIDHeader      = "X-Router-ID"
-	GroupIDHeader       = "X-Group-ID"
+	NodeIDHeader = "X-Router-ID"
 )
 
 var (
@@ -28,19 +22,19 @@ var (
 		WriteBufferSize: 1024,
 	}
 	connections = map[UUID]*websocket.Conn{}
-
-	ctx = context.Background()
 )
 
 func AppendConnection(node *AuthData, conn *websocket.Conn) {
 
 	if existingNode, _ := repository.GetNode(node.NodeID); existingNode != nil {
 		log.Warn("Connection with that node already exists, closing it", "nodeId", node.NodeID)
-		if _, err := repository.ReconnectNode(node.NodeID, existingNode.OrganizationID); err != nil {
+		if _, err := repository.ReconnectNode(node.NodeID); err != nil {
 			log.Error("Failed to reconnect node", "error", err)
 		}
 	} else {
-		repository.NewNode(node.NodeID, node.OrganizationID, GenNodeName())
+		if _, err := repository.NewNode(node.NodeID, GenNodeName()); err != nil {
+			log.Error("Failed to create node", "error", err)
+		}
 	}
 
 	connections[node.NodeID] = conn
@@ -49,7 +43,9 @@ func AppendConnection(node *AuthData, conn *websocket.Conn) {
 func closeConn(nodeID UUID, conn *websocket.Conn) {
 	addr := fmt.Sprintf("%s %s", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
 
-	repository.UpdateLastConnection(nodeID)
+	if _, err := repository.UpdateLastConnection(nodeID); err != nil {
+		log.Error("Failed to update last connection", "error", err)
+	}
 
 	log.Warn("Connection closed", "address", addr)
 }
@@ -74,16 +70,18 @@ func Serve() {
 
 		go serveConnection(auth.NodeID, conn)
 
-		log.Info("Connection established", "nodeId", auth.NodeID, "groupId", auth.OrganizationID)
+		log.Info("Connection established", "nodeId", auth.NodeID)
 	})
 
 	log.Info("Starting connections server", "address", getAddress())
-	http.ListenAndServe(getAddress(), srv)
+	if err := http.ListenAndServe(getAddress(), srv); err != nil {
+		log.Error("Failed to start connections server", "error", err)
+		panic(err)
+	}
 }
 
 type AuthData struct {
-	NodeID         UUID
-	OrganizationID UUID
+	NodeID UUID
 }
 type MessageHandlerFunc func(message []byte) error
 
@@ -127,33 +125,15 @@ func serveConnection(nodeId UUID, conn *websocket.Conn) {
 
 func checkAuth(r *http.Request) (*AuthData, error) {
 
-	tokenStr := r.Header.Get(AuthorizationHeader)
-	if tokenStr == "" {
-		log.Error("Failed to authenticate, token is empty")
-		return nil, fmt.Errorf("missing token")
-	}
+	nodeID, err := uuid.Parse(r.Header.Get(NodeIDHeader))
 
-	token, err := jwt.Parse(tokenStr, getJwtKey())
-	if err != nil || !token.Valid {
-		log.Error("Failed to parse token", "error", err)
-		return nil, err
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		log.Error("Failed to get claims", "error", err)
-		return nil, err
-	}
-	routerId, idParseErr := uuid.Parse(claims["id"].(string))
-	groupId, groupParseErr := uuid.Parse(claims["groupId"].(string))
-
-	if err := errors.Join(idParseErr, groupParseErr); err != nil {
+	if err != nil {
 		log.Error("Bad UUID specifications", "error", err)
 		return nil, err
 	}
 
 	return &AuthData{
-		NodeID:         routerId,
-		OrganizationID: groupId,
+		NodeID: nodeID,
 	}, nil
 }
 
@@ -181,16 +161,6 @@ func SendRequest(nodeId string, r *ToNodeRequest) error {
 	}
 
 	return conn.WriteMessage(websocket.TextMessage, message)
-}
-
-func getJwtKey() jwt.Keyfunc {
-	return func(t *jwt.Token) (any, error) {
-		key := os.Getenv("JWT_SECURITY_KEY")
-		if key == "" {
-			return nil, fmt.Errorf("JWT_SECURITY_KEY not specified")
-		}
-		return []byte(key), nil
-	}
 }
 
 func IsConnected(nodeId UUID) bool {

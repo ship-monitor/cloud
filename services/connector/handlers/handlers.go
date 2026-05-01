@@ -16,7 +16,6 @@ type ResponseNode struct {
 	Name            string     `json:"name"`
 	LastConnection  *time.Time `json:"lastConnection"`
 	FirstConnection time.Time  `json:"firstConnection"`
-	OrganizationID  uuid.UUID  `json:"organizationId"`
 	Connected       bool       `json:"connected"`
 }
 
@@ -27,17 +26,8 @@ func toResponse(in *repository.Node) ResponseNode {
 		Name:            in.Name,
 		LastConnection:  in.LastConnection,
 		FirstConnection: in.FirstConnection,
-		OrganizationID:  in.OrganizationID,
 		Connected:       connected,
 	}
-}
-
-func mapToResponse(in []repository.Node) []ResponseNode {
-	var out []ResponseNode
-	for _, node := range in {
-		out = append(out, toResponse(&node))
-	}
-	return out
 }
 
 type Node struct {

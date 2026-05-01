@@ -28,7 +28,6 @@ func Migrate() {
 type Node struct {
 	*bun.BaseModel  `bun:"table:nodes"`
 	ID              uuid.UUID  `bun:",pk,type:varchar" json:"id"`
-	OrganizationID  uuid.UUID  `bun:",notnull,type:varchar" json:"organizationId"`
 	Name            string     `bun:",notnull" json:"name"`
 	FirstConnection time.Time  `bun:",notnull,type:varchar" json:"firstConnection"`
 	LastConnection  *time.Time `bun:",notnull,type:varchar" json:"lastConnection"`
@@ -51,11 +50,10 @@ func GetNodes(organizationID uuid.UUID) ([]Node, error) {
 	return nodes, nil
 }
 
-func NewNode(id uuid.UUID, organizationID uuid.UUID, name string) (*Node, error) {
+func NewNode(id uuid.UUID, name string) (*Node, error) {
 	now := time.Now()
 	model := &Node{
 		ID:              id,
-		OrganizationID:  organizationID,
 		Name:            name,
 		LastConnection:  &now,
 		FirstConnection: now,
@@ -67,9 +65,9 @@ func NewNode(id uuid.UUID, organizationID uuid.UUID, name string) (*Node, error)
 	return model, nil
 }
 
-func ReconnectNode(id uuid.UUID, organizationID uuid.UUID) (*Node, error) {
+func ReconnectNode(id uuid.UUID) (*Node, error) {
 	var node Node
-	_, err := db.DB.NewUpdate().Model(&node).Where("id = ?", id).Set("organization_id = ?", organizationID).Set("last_connection = ?", time.Now()).Exec(context.TODO())
+	_, err := db.DB.NewUpdate().Model(&node).Where("id = ?", id).Set("last_connection = ?", time.Now()).Exec(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to reconnect node %s: %s", id, err)
 	}

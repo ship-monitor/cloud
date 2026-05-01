@@ -37,6 +37,16 @@ func AddHandler(h MessageHandlerFunc) {
 	messageHandlers = append(messageHandlers, h)
 }
 
+func closeConnection() {
+	if conn == nil {
+		return
+	}
+	err := conn.Close()
+	if err != nil {
+		log.Error("Failed to close connection", "error", err)
+	}
+}
+
 func Serve() {
 	url := getRabbitMQUrl()
 	log.Info("Connecting to RabbitMQ", "url", url)
@@ -46,7 +56,7 @@ func Serve() {
 		conn = connection
 	}
 	log.Info("Connected to RabbitMQ")
-	defer conn.Close()
+	defer closeConnection()
 
 	if ch, err := conn.Channel(); err != nil {
 		log.Fatal("Failed to open a channel", "error", err)
@@ -80,8 +90,7 @@ func Serve() {
 	}
 }
 
-func handleMessage(msg *amqp.Delivery) error {
-
+func handleMessage(msg *amqp.Delivery) {
 	wg := sync.WaitGroup{}
 
 	for _, handler := range messageHandlers {
@@ -90,12 +99,14 @@ func handleMessage(msg *amqp.Delivery) error {
 			defer wg.Done()
 			if err := handler(msg); err != nil {
 				log.Error("Error while handling message, sending internal error back", "correlationId", msg.CorrelationId, "error", err)
-				sendError(msg.CorrelationId, err)
+
+				if err2 := sendError(msg.CorrelationId, err); err2 != nil {
+					log.Error("Failed to send error response", "error", err2)
+				}
 			}
 		}()
 	}
-
-	return nil
+	wg.Wait()
 }
 
 func BadRequestBodyErr(err error) error {
