@@ -1,15 +1,21 @@
 package organizations
 
 import (
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
 func SetupRoutes(router gin.IRouter) {
 	// Запускаем миграции
 	data.Migrate()
+
+	if err := commands.Connect(); err != nil {
+		log.Fatal("Failed connect to commands queue", "error", err)
+	}
 
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
