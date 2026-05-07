@@ -125,12 +125,12 @@ func sendError(requestId string, err error) error {
 func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Queue, err error) {
 
 	requests, err = channel.QueueDeclare(
-		"requests", // name
-		false,      // durable
-		false,      // delete when unused
-		true,       // exclusive
-		false,      // no-wait
-		nil,        // arguments
+		"requests-1", // name
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // arguments
 	)
 	if err != nil {
 		log.Fatal("Failed to declare a queue", "queue", "requests", "error", err)
@@ -138,12 +138,12 @@ func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Que
 	}
 
 	responses, err = channel.QueueDeclare(
-		"responses", // name
-		false,       // durable
-		false,       // delete when unused
-		true,        // exclusive
-		false,       // no-wait
-		nil,         // arguments
+		"responses-1", // name
+		true,          // durable
+		false,         // delete when unused
+		false,         // exclusive
+		false,         // no-wait
+		nil,           // arguments
 	)
 	if err != nil {
 		log.Fatal("Failed to declare a queue", "queue", "responses", "error", err)
