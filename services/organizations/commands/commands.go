@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-const requestsQueueName = "requests"
-const responsesQueueName = "responses"
+const requestsQueueName = "requests-1"
+const responsesQueueName = "responses-1"
 
 var (
 	conn           *amqp.Connection
@@ -51,7 +51,7 @@ func Connect() error {
 		requestsQueueName,
 		true,  // durable
 		false, // auto-delete
-		true,  // exclusive
+		false, // exclusive
 		false, // no-wait
 		nil,
 	)
@@ -62,7 +62,7 @@ func Connect() error {
 		responsesQueueName,
 		true,  // durable
 		false, // auto-delete
-		true,  // exclusive
+		false, // exclusive
 		false, // no-wait
 		nil,
 	)
