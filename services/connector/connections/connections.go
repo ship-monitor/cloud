@@ -128,8 +128,8 @@ func checkAuth(r *http.Request) (*AuthData, error) {
 	nodeID, err := uuid.Parse(r.Header.Get(NodeIDHeader))
 
 	if err != nil {
-		log.Error("Bad UUID specifications", "error", err)
-		return nil, err
+		log.Error("Bad UUID specifications for node id header", "header", NodeIDHeader, "error", err)
+		return nil, fmt.Errorf("bad node id header %q specified: %s", NodeIDHeader, err)
 	}
 
 	return &AuthData{
