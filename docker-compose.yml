@@ -1,5 +1,5 @@
 volumes:
-  orgs_data:
+  auth_data:
   rabbitmq_data:
 
 networks:
