@@ -22,7 +22,7 @@ services:
       SECURITY_KEY: "your_jwt_security_key_here"
     depends_on:
       - auth-db
-      - spice
+      - rabbitmq
     networks:
       - auth-net
   # AUTH SERVICE DATABASE
