@@ -15,6 +15,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+      - "8071:8071"
     environment:
       PORT: 8080
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
