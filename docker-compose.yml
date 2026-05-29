@@ -20,6 +20,7 @@ services:
       PORT: 8080
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
       SECURITY_KEY: "your_jwt_security_key_here"
+      SERVICES_CONNECTOR_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
     depends_on:
       - auth-db
       - rabbitmq
@@ -35,7 +36,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-      PGDATA: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/dataa
     volumes:
       - auth_data:/var/lib/postgresql/data
     ports:
