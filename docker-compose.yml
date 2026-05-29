@@ -1,13 +1,9 @@
 volumes:
-  auth_data:
-  redis_data:
   orgs_data:
   rabbitmq_data:
 
 networks:
   auth-net:
-    driver: bridge
-  orgs-net:
     driver: bridge
 
 services:
@@ -23,8 +19,6 @@ services:
       PORT: 8080
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
       SECURITY_KEY: "your_jwt_security_key_here"
-      SPICEDB_ADDRESS: spice:50051
-      SPICEDB_API_KEY: somerandomkey
     depends_on:
       - auth-db
       - spice
@@ -56,36 +50,5 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - auth-net
-
-  # SPICE for permissions
-  spice:
-    image: quay.io/authzed/spicedb:latest
-    depends_on:
-      - auth-db
-      - spice-migrate
-    restart: unless-stopped
-    command: serve
-    ports:
-      - "50051:50051"
-    environment:
-      SPICEDB_GRPC_PRESHARED_KEY: somerandomkey
-      SPICEDB_LOG_LEVEL: debug
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
-    networks:
-      - auth-net
-  # SPICE MIGRATION
-  spice-migrate:
-    image: quay.io/authzed/spicedb:latest
-    depends_on:
-      - auth-db
-    command: migrate head
-    environment:
-      SPICEDB_GRPC_PRESHARED_KEY: somerandomkey
-      SPICEDB_LOG_LEVEL: debug
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
     networks:
       - auth-net
