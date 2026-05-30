@@ -5,6 +5,9 @@ services:
     ws-port: 8071
   organizations:
     response-command-timeout: 50s
+cors:
+  allow-origins:
+    - "*"
 debug: false
 database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
 jwt-security-key: "your_jwt_security_key_here"
