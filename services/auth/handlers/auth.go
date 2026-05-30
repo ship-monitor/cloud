@@ -85,12 +85,13 @@ func HandleLogin(c *gin.Context) {
 
 	user, err := data.GetUserByEmail(request.Email)
 	if err != nil {
-		log.Error("Failed get user by email", "error", err)
+		log.Error("Failed get user by email", "error", err, "email", request.Email)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "invalid credentials"})
 		return
 	}
 
 	if !user.ComparePassword(request.Password) {
+		log.Error("Invalid password", "email", request.Email)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"details": "invalid credentials",
 		})
