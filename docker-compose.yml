@@ -18,7 +18,7 @@ services:
       - "8071:8071"
     environment:
       PORT: 8080
-      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
+      DATABASE_URL: postgres://katy:postgres@auth-db:5432/auth-db?sslmode=disable
       SECURITY_KEY: "your_jwt_security_key_here"
       SERVICES_CONNECTOR_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
     depends_on:
@@ -30,13 +30,13 @@ services:
   auth-db:
     networks:
       - auth-net
-    image: postgres:18
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: katy
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-      PGDATA: /var/lib/postgresql/dataa
+      POSTGRES_DB: auth-db
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - auth_data:/var/lib/postgresql/data
     ports:
