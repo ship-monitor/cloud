@@ -101,6 +101,13 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		}
 	}
 
+	messages, err := channel.Consume(responsesQueue.Name, "", false, false, false, false, nil)
+	if err != nil {
+		return CommandResponse{
+			RequestError: fmt.Errorf("failed to consume response: %s", err).Error(),
+		}
+	}
+
 	if err := channel.PublishWithContext(
 		context.Background(),
 		"",                 // default exchange
@@ -118,12 +125,6 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		}
 	}
 
-	messages, err := channel.Consume(responsesQueue.Name, "", false, false, false, false, nil)
-	if err != nil {
-		return CommandResponse{
-			RequestError: fmt.Errorf("failed to consume response: %s", err).Error(),
-		}
-	}
 	for {
 
 		select {
@@ -146,7 +147,7 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
 			log.Error("Timeout reached", "requestID", requestID)
 			return CommandResponse{
-				RequestError: "timeout",
+				RequestError: fmt.Sprintf("timeout %v reached", viper.GetDuration("services.organizations.response-command-timeout")),
 			}
 		}
 	}
