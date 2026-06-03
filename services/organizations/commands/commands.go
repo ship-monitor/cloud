@@ -129,6 +129,7 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		select {
 		case response := <-messages:
 			if response.CorrelationId != requestID {
+				log.Info("Received response with wrong requestID", "requestID", requestID, "response", response)
 				continue
 			}
 			var commandResponse CommandResponse
