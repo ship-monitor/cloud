@@ -88,6 +88,7 @@ type CommandResponse struct {
 func SendCommand(deviceID uuid.UUID, command string, args map[string]any) CommandResponse {
 
 	requestID := uuid.New().String()
+	log.Info("Sending command", "requestID", requestID, "deviceID", deviceID, "command", command, "args", args)
 
 	body, err := json.Marshal(Command{
 		NodeID:  deviceID.String(),
@@ -132,13 +133,17 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 			}
 			var commandResponse CommandResponse
 			if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
-				response.Ack(false)
+				log.Error("Failed to unmarshal response", "error", err)
+
 				return CommandResponse{
 					RequestError: fmt.Errorf("failed to unmarshal response: %s", err).Error(),
 				}
 			}
+			defer response.Ack(false)
+			log.Info("Received response", "requestID", requestID, "response", response)
 			return commandResponse
 		case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
+			log.Error("Timeout reached", "requestID", requestID)
 			return CommandResponse{
 				RequestError: "timeout",
 			}
