@@ -65,7 +65,7 @@ func websocketHandler(body []byte) error {
 		return err
 	}
 
-	wsLog.Info("New message", "requestId", response.RequestID)
+	wsLog.Info("New message", "requestId", response.RequestID, "body", string(body))
 
 	if err := queue.SendResponse(response.RequestID, response.ToCloud()); err != nil {
 		wsLog.Error("Failed to send response", "error", err)
