@@ -86,6 +86,9 @@ type CommandResponse struct {
 
 // SendCommand sends an event to the org-events queue.
 func SendCommand(deviceID uuid.UUID, command string, args map[string]any) CommandResponse {
+
+	requestID := uuid.New().String()
+
 	body, err := json.Marshal(Command{
 		NodeID:  deviceID.String(),
 		Command: command,
@@ -104,8 +107,9 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		false,              // mandatory
 		false,              // immediate
 		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
+			ContentType:   "application/json",
+			Body:          body,
+			CorrelationId: requestID,
 		},
 	); err != nil {
 		return CommandResponse{
@@ -113,24 +117,31 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 		}
 	}
 
-	messages, err := channel.Consume(responsesQueue.Name, "", true, false, false, false, nil)
+	messages, err := channel.Consume(responsesQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return CommandResponse{
 			RequestError: fmt.Errorf("failed to consume response: %s", err).Error(),
 		}
 	}
-	select {
-	case response := <-messages:
-		var commandResponse CommandResponse
-		if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
-			return CommandResponse{
-				RequestError: fmt.Errorf("failed to unmarshal response: %s", err).Error(),
+	for {
+
+		select {
+		case response := <-messages:
+			if response.CorrelationId != requestID {
+				continue
 			}
-		}
-		return commandResponse
-	case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
-		return CommandResponse{
-			RequestError: "timeout",
+			var commandResponse CommandResponse
+			if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
+				response.Ack(false)
+				return CommandResponse{
+					RequestError: fmt.Errorf("failed to unmarshal response: %s", err).Error(),
+				}
+			}
+			return commandResponse
+		case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
+			return CommandResponse{
+				RequestError: "timeout",
+			}
 		}
 	}
 }
