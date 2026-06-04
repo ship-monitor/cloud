@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
 type OrganizationDevice struct {
@@ -46,7 +47,7 @@ func createDevice(id, orgID uuid.UUID) (*OrganizationDevice, error) {
 	return &device, nil
 }
 
-func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
+func GetDevice(id uuid.UUID) (*dto.DeviceResponse, error) {
 	var device OrganizationDevice
 	err := db.DB.NewSelect().
 		Model(&device).
@@ -55,7 +56,12 @@ func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &device, nil
+	return &dto.DeviceResponse{
+		ID:             device.ID,
+		OrganizationID: device.OrganizationID,
+		CreatedAt:      device.CreatedAt,
+		IsConnected:    connections.IsConnected(id),
+	}, nil
 }
 
 func ListDevices(orgID uuid.UUID) ([]OrganizationDevice, error) {

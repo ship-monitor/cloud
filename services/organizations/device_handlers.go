@@ -55,7 +55,7 @@ func HandleConnectDevice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, deviceToDTO(device))
+	c.JSON(http.StatusCreated, device)
 }
 
 func HandleListDevices(c *gin.Context) {
@@ -131,7 +131,7 @@ func HandleGetDevice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, deviceToDTO(device))
+	c.JSON(http.StatusOK, device)
 }
 
 func HandleDisconnectDevice(c *gin.Context) {
