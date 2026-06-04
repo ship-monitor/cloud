@@ -1,8 +1,10 @@
-package connections
+package data
 
 import (
 	"fmt"
 	"math/rand/v2"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -16,8 +18,17 @@ var (
 	}
 )
 
-func GenNodeName() string {
-	adj := rand.IntN(len(Adjectives))
-	noun := rand.IntN(len(Nouns))
+type source struct {
+	seed uuid.UUID
+}
+
+func (s *source) Uint64() uint64 {
+	return uint64(s.seed.ID())
+}
+
+func GenNodeName(id uuid.UUID) string {
+	generator := rand.New(&source{seed: id})
+	adj := generator.IntN(len(Adjectives))
+	noun := generator.IntN(len(Nouns))
 	return fmt.Sprintf("%s %s", Adjectives[adj], Nouns[noun])
 }

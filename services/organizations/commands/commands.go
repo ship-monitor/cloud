@@ -124,7 +124,11 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 			RequestError: fmt.Errorf("failed to consume response: %s", err).Error(),
 		}
 	}
-	defer channel.Cancel(requestID, false)
+	defer func() {
+		if err := channel.Cancel(requestID, false); err != nil {
+			log.Error("Failed to cancel consumer", "requestID", requestID, "error", err)
+		}
+	}()
 	for {
 
 		select {
@@ -141,7 +145,7 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 					RequestError: fmt.Errorf("failed to unmarshal response: %s", err).Error(),
 				}
 			}
-			defer response.Ack(false)
+			defer acknowledge(response)
 			log.Info("Received response", "requestID", requestID, "response", response)
 			return commandResponse
 		case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
@@ -150,5 +154,11 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 				RequestError: fmt.Sprintf("timeout %v reached", viper.GetDuration("services.organizations.response-command-timeout")),
 			}
 		}
+	}
+}
+
+func acknowledge(d amqp.Delivery) {
+	if err := d.Ack(false); err != nil {
+		log.Error("Failed to acknowledge message", "requestID", d.CorrelationId, "error", err)
 	}
 }

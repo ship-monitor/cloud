@@ -79,6 +79,7 @@ type ListInvitationsResponse struct {
 
 type ConnectDeviceRequest struct {
 	DeviceID uuid.UUID `json:"deviceId" binding:"required"`
+	Name     string    `json:"name"`
 }
 
 type SendCommandRequest struct {
@@ -91,6 +92,7 @@ type DeviceResponse struct {
 	ID             uuid.UUID `json:"id"`
 	OrganizationID uuid.UUID `json:"organizationId"`
 	CreatedAt      time.Time `json:"createdAt"`
+	Name           string    `json:"name"`
 	IsConnected    bool      `json:"isConnected"`
 }
 

@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 
 	"charm.land/log/v2"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
@@ -32,6 +33,7 @@ func Migrate() {
 	// Добавляем колонки, если таблица уже существовала без них
 	addColumnIfNotExists(ctx, "organization_members", "role", "VARCHAR NOT NULL DEFAULT 'member'")
 	addColumnIfNotExists(ctx, "organization_members", "joined_at", "TIMESTAMP NOT NULL DEFAULT NOW()")
+	addColumnIfNotExists(ctx, "organization_devices", "name", fmt.Sprintf("VARCHAR NOT NULL DEFAULT '%s'", DefaultDeviceName))
 }
 
 // addColumnIfNotExists добавляет колонку, если её ещё нет

@@ -32,7 +32,7 @@ func AppendConnection(node *AuthData, conn *websocket.Conn) {
 			log.Error("Failed to reconnect node", "error", err)
 		}
 	} else {
-		if _, err := repository.NewNode(node.NodeID, GenNodeName()); err != nil {
+		if _, err := repository.NewNode(node.NodeID, "DUMMY NAME"); err != nil {
 			log.Error("Failed to create node", "error", err)
 		}
 	}

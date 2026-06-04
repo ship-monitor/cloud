@@ -42,7 +42,7 @@ func HandleConnectDevice(c *gin.Context) {
 		return
 	}
 
-	if err := data.ConnectDevice(req.DeviceID, orgID); err != nil {
+	if err := data.ConnectDevice(req.DeviceID, orgID, req.Name); err != nil {
 		log.Warn("Failed to connect device", "error", err, "organization", orgID, "device", req.DeviceID)
 		c.JSON(http.StatusBadRequest, dto.Error(err))
 		return
@@ -242,6 +242,7 @@ func deviceToDTO(d *data.OrganizationDevice) dto.DeviceResponse {
 	return dto.DeviceResponse{
 		ID:             d.ID,
 		OrganizationID: d.OrganizationID,
+		Name:           d.Name,
 		CreatedAt:      d.CreatedAt,
 	}
 }

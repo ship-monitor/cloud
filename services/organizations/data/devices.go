@@ -12,39 +12,57 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
+const DefaultDeviceName = "Unknown Device"
+
 type OrganizationDevice struct {
 	*bun.BaseModel `bun:"table:organization_devices"`
 
 	ID             uuid.UUID `bun:",pk,type:varchar" json:"id"`
 	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
 	CreatedAt      time.Time `bun:",nullzero,notnull" json:"createdAt"`
+	Name           string    `bun:",notnull,default" json:"name"`
 }
 
-func ConnectDevice(id, organizationID uuid.UUID) error {
+func ConnectDevice(id, organizationID uuid.UUID, name string) error {
 	if device, _ := GetDevice(id); device != nil {
 		if device.OrganizationID != organizationID {
 			return fmt.Errorf("device %q is already connected to another organization", id)
 		}
 		return nil
 	}
+
+	if name == "" {
+		name = GenNodeName(id)
+	}
 	if connections.IsConnected(id) {
-		_, err := createDevice(id, organizationID)
+		_, err := createDevice(id, organizationID, name)
 		return err
 	}
 	return fmt.Errorf("device %q is not connected connected to server", id)
 }
 
-func createDevice(id, orgID uuid.UUID) (*OrganizationDevice, error) {
+func createDevice(id, orgID uuid.UUID, name string) (*OrganizationDevice, error) {
 	device := OrganizationDevice{
 		ID:             id,
 		OrganizationID: orgID,
 		CreatedAt:      time.Now(),
+		Name:           name,
 	}
 	_, err := db.DB.NewInsert().Model(&device).Exec(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	return &device, nil
+}
+
+func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
+	return &dto.DeviceResponse{
+		ID:             device.ID,
+		OrganizationID: device.OrganizationID,
+		CreatedAt:      device.CreatedAt,
+		IsConnected:    connections.IsConnected(device.ID),
+		Name:           device.Name,
+	}
 }
 
 func GetDevice(id uuid.UUID) (*dto.DeviceResponse, error) {
@@ -56,12 +74,7 @@ func GetDevice(id uuid.UUID) (*dto.DeviceResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &dto.DeviceResponse{
-		ID:             device.ID,
-		OrganizationID: device.OrganizationID,
-		CreatedAt:      device.CreatedAt,
-		IsConnected:    connections.IsConnected(id),
-	}, nil
+	return device.toDTO(), nil
 }
 
 func ListDevices(orgID uuid.UUID) ([]OrganizationDevice, error) {
