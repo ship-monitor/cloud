@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
@@ -22,9 +23,12 @@ var (
 		WriteBufferSize: 1024,
 	}
 	connections = map[UUID]*websocket.Conn{}
+	connMu      sync.RWMutex
 )
 
 func AppendConnection(node *AuthData, conn *websocket.Conn) {
+	connMu.Lock()
+	defer connMu.Unlock()
 
 	if existingNode, _ := repository.GetNode(node.NodeID); existingNode != nil {
 		log.Warn("Connection with that node already exists, closing it", "nodeId", node.NodeID)
@@ -41,7 +45,12 @@ func AppendConnection(node *AuthData, conn *websocket.Conn) {
 }
 
 func closeConn(nodeID UUID, conn *websocket.Conn) {
+	connMu.Lock()
+	defer connMu.Unlock()
+
 	addr := fmt.Sprintf("%s %s", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
+
+	delete(connections, nodeID)
 
 	if _, err := repository.UpdateLastConnection(nodeID); err != nil {
 		log.Error("Failed to update last connection", "error", err)
@@ -164,6 +173,9 @@ func SendRequest(nodeId string, r *ToNodeRequest) error {
 }
 
 func IsConnected(nodeId UUID) bool {
+	connMu.RLock()
+	defer connMu.RUnlock()
+
 	_, ok := connections[nodeId]
 	return ok
 }
