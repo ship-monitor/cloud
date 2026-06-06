@@ -54,11 +54,10 @@ func HandlePatchDevice(c *gin.Context) {
 		return
 	}
 
-
-	if err:= device.SetName(c.Request.Context(), req.Name);err != nil {
+	if err := device.SetName(c.Request.Context(), req.Name); err != nil {
 		log.Error("Failed update device", "error", err)
-		c.JSON(http.StatusInternalServerError, dto.Error(fmt.Errorf("failed set device name: %s",err)))
-		return 
+		c.JSON(http.StatusInternalServerError, dto.Error(fmt.Errorf("failed set device name: %s", err)))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -100,7 +99,7 @@ func HandleConnectDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GeGetDeviceDTOeq.DeviceID)
+	device, err := data.GetDeviceDTO(req.DeviceID)
 	if err != nil {
 		log.Error("Failed to get device after connect", "error", err, "organization", orgID, "device", req.DeviceID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
@@ -176,7 +175,7 @@ func HandleGetDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GeGetDeviceDTOeviceID)
+	device, err := data.GetDeviceDTO(deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
@@ -215,7 +214,7 @@ func HandleDisconnectDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GeGetDeviceDTOeviceID)
+	device, err := data.GetDeviceDTO(deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found for disconnect", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
@@ -260,7 +259,7 @@ func HandleSendCommand(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GeGetDeviceDTOeviceID)
+	device, err := data.GetDeviceDTO(deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found for send command", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
