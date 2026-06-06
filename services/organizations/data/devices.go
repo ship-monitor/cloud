@@ -24,7 +24,7 @@ type OrganizationDevice struct {
 }
 
 func ConnectDevice(id, organizationID uuid.UUID, name string) error {
-	if device, _ := GetDevice(id); device != nil {
+	if device, _ := GetDeviceDTO(id); device != nil {
 		if device.OrganizationID != organizationID {
 			return fmt.Errorf("device %q is already connected to another organization", id)
 		}
@@ -55,6 +55,12 @@ func createDevice(id, orgID uuid.UUID, name string) (*OrganizationDevice, error)
 	return &device, nil
 }
 
+func (device *OrganizationDevice) SetName(ctx context.Context, name string) error {
+	device.Name = name
+	_, err := db.DB.NewUpdate().Model(device).Column("name").WherePK().Exec(ctx)
+	return err
+}
+
 func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
 	return &dto.DeviceResponse{
 		ID:             device.ID,
@@ -64,13 +70,20 @@ func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
 		Name:           device.Name,
 	}
 }
+func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
 
-func GetDevice(id uuid.UUID) (*dto.DeviceResponse, error) {
 	var device OrganizationDevice
 	err := db.DB.NewSelect().
 		Model(&device).
 		Where("id = ?", id).
 		Scan(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return &device, nil
+}
+func GetDeviceDTO(id uuid.UUID) (*dto.DeviceResponse, error) {
+	device, err := GetDevice(id)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +101,7 @@ func ListDevices(orgID uuid.UUID) ([]OrganizationDevice, error) {
 }
 
 func DisconnectDevice(id uuid.UUID) error {
-	if device, _ := GetDevice(id); device != nil {
+	if device, _ := GetDeviceDTO(id); device != nil {
 		return deleteDevice(id)
 	}
 	return nil

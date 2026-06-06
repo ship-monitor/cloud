@@ -39,6 +39,7 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.POST("/:id/devices", HandleConnectDevice)
 	orgs.GET("/:id/devices", HandleListDevices)
 	orgs.GET("/:id/devices/:deviceId", HandleGetDevice)
+	orgs.PATCH("/:id/devices/:deviceId", HandlePatchDevice)
 	orgs.DELETE("/:id/devices/:deviceId", HandleDisconnectDevice)
 	orgs.POST("/:id/devices/:deviceId/command", HandleSendCommand)
 

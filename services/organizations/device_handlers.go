@@ -2,6 +2,7 @@ package organizations
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"charm.land/log/v2"
@@ -13,6 +14,57 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
+func HandlePatchDevice(c *gin.Context) {
+	orgID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		log.Warn("Invalid organization id in connect device request", "id", c.Param("id"))
+		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+		return
+	}
+	session := auth.GetSession(c)
+
+	member, err := data.GetMember(orgID, session.UserID)
+	if err != nil {
+		log.Warn("Access denied for connect device — not a member", "organization", orgID, "user", session.UserID)
+		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		return
+	}
+	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+		log.Warn("Insufficient role for connect device", "organization", orgID, "user", session.UserID, "role", member.Role)
+		c.JSON(http.StatusForbidden, dto.Error(errors.New("only owner or administrator can connect devices")))
+		return
+	}
+	var req dto.UpdateDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Warn("Invalid connect device request", "error", err, "organization", orgID, "user", session.UserID)
+		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+		return
+	}
+
+	deviceID, err := uuid.Parse(c.Param("deviceId"))
+	if err != nil {
+		log.Warn("Invalid organization id in connect device request", "id", c.Param("id"))
+		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+		return
+	}
+	device, err := data.GetDevice(deviceID)
+	if err != nil {
+		log.Error("No such device", "error", err)
+		c.JSON(http.StatusNotFound, dto.Error(fmt.Errorf("no device")))
+		return
+	}
+
+
+	if err:= device.SetName(c.Request.Context(), req.Name);err != nil {
+		log.Error("Failed update device", "error", err)
+		c.JSON(http.StatusInternalServerError, dto.Error(fmt.Errorf("failed set device name: %s",err)))
+		return 
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"device": device,
+	})
+}
 func HandleConnectDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -48,7 +100,7 @@ func HandleConnectDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDevice(req.DeviceID)
+	device, err := data.GeGetDeviceDTOeq.DeviceID)
 	if err != nil {
 		log.Error("Failed to get device after connect", "error", err, "organization", orgID, "device", req.DeviceID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
@@ -124,7 +176,7 @@ func HandleGetDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDevice(deviceID)
+	device, err := data.GeGetDeviceDTOeviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
@@ -163,7 +215,7 @@ func HandleDisconnectDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDevice(deviceID)
+	device, err := data.GeGetDeviceDTOeviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found for disconnect", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
@@ -208,7 +260,7 @@ func HandleSendCommand(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDevice(deviceID)
+	device, err := data.GeGetDeviceDTOeviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn("Device not found for send command", "organization", orgID, "device", deviceID, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))

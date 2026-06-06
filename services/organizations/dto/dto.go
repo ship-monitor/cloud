@@ -77,6 +77,10 @@ type ListInvitationsResponse struct {
 
 // --- Device DTOs ---
 
+type UpdateDeviceRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type ConnectDeviceRequest struct {
 	DeviceID uuid.UUID `json:"deviceId" binding:"required"`
 	Name     string    `json:"name"`
