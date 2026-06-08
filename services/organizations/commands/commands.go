@@ -129,6 +129,8 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 			log.Error("Failed to cancel consumer", "requestID", requestID, "error", err)
 		}
 	}()
+
+	timeout := time.After(viper.GetDuration("services.organizations.response-command-timeout"))
 	for {
 
 		select {
@@ -148,7 +150,7 @@ func SendCommand(deviceID uuid.UUID, command string, args map[string]any) Comman
 			defer acknowledge(response)
 			log.Info("Received response", "requestID", requestID, "response", response)
 			return commandResponse
-		case <-time.After(viper.GetDuration("services.organizations.response-command-timeout")):
+		case <-timeout:
 			log.Error("Timeout reached", "requestID", requestID)
 			return CommandResponse{
 				RequestError: fmt.Sprintf("timeout %v reached", viper.GetDuration("services.organizations.response-command-timeout")),
