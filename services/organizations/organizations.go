@@ -47,7 +47,7 @@ func SetupRoutes(router gin.IRouter) {
 	orgs := api.Group("/organizations")
 	orgs.POST("/", webHandler.HandleCreateOrganization)
 	orgs.GET("/my", handlers.HandleGetMyOrganizations)
-	orgs.GET("/:id", handlers.HandleGetOrganization)
+	orgs.GET("/:id", webHandler.HandleGetOrganization)
 	orgs.PATCH("/:id", handlers.HandleUpdateOrganization)
 	orgs.DELETE("/:id", handlers.HandleDeleteOrganization)
 
