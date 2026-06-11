@@ -87,9 +87,9 @@ type ConnectDeviceRequest struct {
 }
 
 type SendCommandRequest struct {
-	Command string                 `json:"command" binding:"required"`
-	Args    map[string]interface{} `json:"args,omitempty"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+	Command string         `json:"command" binding:"required"`
+	Args    map[string]any `json:"args,omitempty"`
+	Payload map[string]any `json:"payload,omitempty"`
 }
 
 type DeviceResponse struct {
