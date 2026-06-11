@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
@@ -12,8 +11,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-const requestsQueueName = "requests-1"
-const responsesQueueName = "responses-1"
+const (
+	requestsQueueName  = "requests-1"
+	responsesQueueName = "responses-1"
+)
 
 var (
 	conn           *amqp.Connection
@@ -26,6 +27,25 @@ type Command struct {
 	NodeID  string         `json:"nodeId"`
 	Command string         `json:"command"`
 	Args    map[string]any `json:"args"`
+}
+
+func NewCommand(nodeID, command string, args map[string]any) Command {
+	return Command{
+		NodeID:  nodeID,
+		Command: command,
+		Args:    args,
+	}
+}
+
+func (cmd Command) valid() (bool, error) {
+	if cmd.Command == "" {
+		return false, fmt.Errorf("command not specified")
+	}
+	if cmd.NodeID == "" {
+		return false, fmt.Errorf("node ID not specified")
+	}
+
+	return true, nil
 }
 
 // Connect establishes the RabbitMQ connection and declares the queue.
@@ -69,12 +89,16 @@ func Connect() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func Close() {
-	if conn != nil {
-		_ = conn.Close()
+	if conn == nil {
+		return
+	}
+	if err := conn.Close(); err != nil {
+		log.Error("Something went wrong while closing amqp connection", "error", err)
 	}
 }
 
@@ -84,79 +108,117 @@ type CommandResponse struct {
 	Data         map[string]any `json:"data"`
 }
 
-// SendCommand sends an event to the org-events queue.
-func SendCommand(deviceID uuid.UUID, command string, args map[string]any) CommandResponse {
+func badResponse(format string, args ...any) CommandResponse {
+	return CommandResponse{
+		RequestError: fmt.Sprintf(format, args...),
+	}
+}
 
-	requestID := uuid.New().String()
-	log.Info("Sending command", "requestID", requestID, "deviceID", deviceID, "command", command, "args", args)
-
-	body, err := json.Marshal(Command{
-		NodeID:  deviceID.String(),
-		Command: command,
-		Args:    args,
-	})
+// Publish content to channel as JSON and returns correlation ID.
+func publishJSON(
+	ctx context.Context,
+	ch *amqp.Channel,
+	queue amqp.Queue,
+	message any,
+) (string, error) {
+	body, err := json.Marshal(message)
 	if err != nil {
-		return CommandResponse{
-			RequestError: fmt.Errorf("bad payload: %s", err).Error(),
-		}
+		return "", fmt.Errorf("publish JSON: %w", err)
 	}
 
-	if err := channel.PublishWithContext(
-		context.Background(),
-		"",                 // default exchange
-		requestsQueue.Name, // routing key
-		false,              // mandatory
-		false,              // immediate
+	correlationID := uuid.New().String()
+
+	if err := ch.PublishWithContext(
+		ctx,
+		"",         // default exchange
+		queue.Name, // routing key
+		false,      // mandatory
+		false,      // immediate
 		amqp.Publishing{
 			ContentType:   "application/json",
 			Body:          body,
-			CorrelationId: requestID,
+			CorrelationId: correlationID,
 		},
 	); err != nil {
-		return CommandResponse{
-			RequestError: fmt.Errorf("failed to publish command: %s", err).Error(),
-		}
+		return "", fmt.Errorf("publish JSON %w", err)
 	}
 
-	messages, err := channel.Consume(responsesQueue.Name, requestID, false, false, false, false, nil)
+	return correlationID, nil
+}
+
+// SendCommand sends an event to the org-events queue.
+func SendCommand(ctx context.Context, cmd Command) CommandResponse {
+	if valid, err := cmd.valid(); !valid {
+		return badResponse("invalid command: %s", err)
+	}
+
+	requestID, err := publishJSON(context.TODO(), channel, requestsQueue, cmd)
 	if err != nil {
-		return CommandResponse{
-			RequestError: fmt.Errorf("failed to consume response: %s", err).Error(),
-		}
+		return badResponse("failed publish command: %s", err)
 	}
-	defer func() {
-		if err := channel.Cancel(requestID, false); err != nil {
-			log.Error("Failed to cancel consumer", "requestID", requestID, "error", err)
-		}
-	}()
 
-	timeout := time.After(viper.GetDuration("services.organizations.response-command-timeout"))
+	messages, cancel, err := consumeMessages(channel, responsesQueue)
+	if err != nil {
+		return badResponse("failed to consume response: %s", err)
+	}
+	defer cancel()
+
+	ctx, cancelCtx := context.WithTimeout(
+		ctx,
+		viper.GetDuration("services.organizations.response-command-timeout"),
+	)
+	defer cancelCtx()
+
 	for {
-
 		select {
 		case response := <-messages:
 			if response.CorrelationId != requestID {
-				log.Info("Received response with wrong requestID", "requestID", requestID, "response", response)
 				continue
 			}
 			var commandResponse CommandResponse
 			if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
 				log.Error("Failed to unmarshal response", "error", err)
 
-				return CommandResponse{
-					RequestError: fmt.Errorf("failed to unmarshal response: %s", err).Error(),
-				}
+				return badResponse("failed to unmarshal response: %s", err)
 			}
 			defer acknowledge(response)
 			log.Info("Received response", "requestID", requestID, "response", response)
+
 			return commandResponse
-		case <-timeout:
-			log.Error("Timeout reached", "requestID", requestID)
-			return CommandResponse{
-				RequestError: fmt.Sprintf("timeout %v reached", viper.GetDuration("services.organizations.response-command-timeout")),
-			}
+		case <-ctx.Done():
+			return badResponse("context done: %s", ctx.Err())
 		}
 	}
+}
+
+type CancelConsumerFunc = func()
+
+func consumeMessages(
+	ch *amqp.Channel,
+	queue amqp.Queue,
+) (<-chan amqp.Delivery, CancelConsumerFunc, error) {
+	consumerID := uuid.New().String()
+
+	messages, err := ch.Consume(
+		queue.Name,
+		consumerID,
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("consume messages: %w", err)
+	}
+
+	cancel := func() {
+		if err := ch.Cancel(consumerID, false); err != nil {
+			log.Error("Failed to cancel consumer", "consumerID", consumerID, "error", err)
+		}
+	}
+
+	return messages, cancel, nil
 }
 
 func acknowledge(d amqp.Delivery) {

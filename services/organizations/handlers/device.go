@@ -440,8 +440,8 @@ func HandleSendCommand(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
 		return
 	}
-
-	result := commands.SendCommand(deviceID, req.Command, req.Args)
+	cmd := commands.NewCommand(deviceID.String(), req.Command, req.Args)
+	result := commands.SendCommand(c.Request.Context(), cmd)
 
 	if result.RequestError != "" {
 		log.Warn(
