@@ -1,14 +1,22 @@
 package organizations
 
 import (
+	"database/sql"
+
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"github.com/uptrace/bun/driver/sqliteshim"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services/organization"
 )
+
+var _ handlers.OrganizationService = (*organization.Service)(nil)
+var _ organization.Repository = (*repository.OrganizationsRepo)(nil)
 
 func SetupRoutes(router gin.IRouter) {
 	// Запускаем миграции
@@ -20,11 +28,22 @@ func SetupRoutes(router gin.IRouter) {
 
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
+	db, err := sql.Open(sqliteshim.ShimName, "file:test.db?cache=shared&mode=rwc")
+	if err != nil {
+		panic(err)
+	}
+
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
+
+	webHandler := handlers.New(
+		organization.New(
+			repository.New(db),
+		),
+	)
 
 	// Роуты с проверкой аутентификаци
 	orgs := api.Group("/organizations")
-	orgs.POST("/", handlers.HandleCreateOrganization)
+	orgs.POST("/", webHandler.HandleCreateOrganization)
 	orgs.GET("/my", handlers.HandleGetMyOrganizations)
 	orgs.GET("/:id", handlers.HandleGetOrganization)
 	orgs.PATCH("/:id", handlers.HandleUpdateOrganization)

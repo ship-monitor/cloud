@@ -25,6 +25,10 @@ func Error(err error) ErrorResponse {
 
 // --- Organization DTOs ---
 
+type CreateOrganizationResponse struct {
+	OrganizationID uuid.UUID `json:"organizationId"`
+}
+
 type OrganizationResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`

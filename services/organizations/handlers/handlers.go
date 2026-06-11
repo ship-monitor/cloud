@@ -13,7 +13,23 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
-func HandleCreateOrganization(c *gin.Context) {
+type OrganizationID = uuid.UUID
+
+type OrganizationService interface {
+	CreateOrganization(name string, creatorID uuid.UUID) (OrganizationID, error)
+}
+
+type HTTPHandler struct {
+	orgs OrganizationService
+}
+
+func New(orgs OrganizationService) *HTTPHandler {
+	return &HTTPHandler{
+		orgs: orgs,
+	}
+}
+
+func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid create organization request", "error", err)
@@ -23,33 +39,15 @@ func HandleCreateOrganization(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	org, err := data.CreateOrganization(data.CreateOrganizationInput{
-		Name:      req.Name,
-		CreatorID: session.UserID,
-	})
+	id, err := h.orgs.CreateOrganization(req.Name, session.UserID)
 	if err != nil {
-		log.Error("Failed to create organization", "error", err, "user", session.UserID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
-		return
+	} else {
+		c.JSON(http.StatusCreated, dto.CreateOrganizationResponse{
+			OrganizationID: id,
+		})
 	}
 
-	if err := data.AddMember(data.OrganizationMember{
-		MemberID:       session.UserID,
-		OrganizationID: org.ID,
-		Role:           data.RoleOwner,
-		JoinedAt:       time.Now(),
-	}); err != nil {
-		log.Error("Failed to add creator as member", "error", err, "organization", org.ID, "user", session.UserID)
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
-		return
-	}
-
-	c.JSON(http.StatusCreated, dto.OrganizationResponse{
-		ID:        org.ID,
-		Name:      org.Name,
-		CreatedAt: org.CreatedAt,
-		UpdatedAt: org.UpdatedAt,
-	})
 }
 
 func HandleGetMyOrganizations(c *gin.Context) {
