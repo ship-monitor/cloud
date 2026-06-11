@@ -9,7 +9,6 @@ import (
 )
 
 func SetupRoutes(router gin.IRouter) {
-
 	data.Migrate()
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 	auth := router.Group("/api/auth")

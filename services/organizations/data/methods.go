@@ -9,15 +9,14 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
-// AddMember добавляет пользователя в организацию с ролью и синхронизирует SpiceDB
+// AddMember добавляет пользователя в организацию с ролью и синхронизирует SpiceDB.
 func AddMember(member OrganizationMember) error {
 	// Сохраняем в БД
 	_, err := db.DB.NewInsert().Model(&member).Exec(context.Background())
 	return err
 }
 
-// UpdateMemberRole обновляет роль участника
-
+// UpdateMemberRole обновляет роль участника.
 func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
 	_, err := db.DB.NewUpdate().
 		Model((*OrganizationMember)(nil)).
@@ -27,7 +26,7 @@ func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
 	return err
 }
 
-// RemoveMember удаляет участника из организации
+// RemoveMember удаляет участника из организации.
 func RemoveMember(orgID, userID uuid.UUID) error {
 	_, err := db.DB.NewDelete().
 		Model((*OrganizationMember)(nil)).
@@ -36,7 +35,7 @@ func RemoveMember(orgID, userID uuid.UUID) error {
 	return err
 }
 
-// GetMember возвращает информацию об участнике
+// GetMember возвращает информацию об участнике.
 func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
 	var member OrganizationMember
 	err := db.DB.NewSelect().
@@ -49,7 +48,7 @@ func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
 	return &member, nil
 }
 
-// GetMembersWithUserInfo возвращает участников организации с информацией о пользователях
+// GetMembersWithUserInfo возвращает участников организации с информацией о пользователях.
 func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 	var members []MemberWithUser
 	err := db.DB.NewSelect().
@@ -62,7 +61,7 @@ func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 	return members, err
 }
 
-// MemberWithUser — участник с данными пользователя
+// MemberWithUser — участник с данными пользователя.
 type MemberWithUser struct {
 	MemberID       uuid.UUID `json:"memberId"`
 	OrganizationID uuid.UUID `json:"organizationId"`
@@ -72,7 +71,7 @@ type MemberWithUser struct {
 	Email          string    `json:"email"`
 }
 
-// UpdateOrganization обновляет название организации
+// UpdateOrganization обновляет название организации.
 func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 	org.Name = name
 	org.UpdatedAt = time.Now()
@@ -88,7 +87,7 @@ func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 	return GetOrganization(org.ID)
 }
 
-// DeleteOrganization удаляет организацию
+// DeleteOrganization удаляет организацию.
 func DeleteOrganization(id uuid.UUID) error {
 	_, err := db.DB.NewDelete().
 		Model((*OrganizationMember)(nil)).
@@ -105,7 +104,7 @@ func DeleteOrganization(id uuid.UUID) error {
 	return err
 }
 
-// GetOrganizationsByMember возвращает все организации пользователя
+// GetOrganizationsByMember возвращает все организации пользователя.
 func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 	var orgs []Organization
 	err := db.DB.NewSelect().

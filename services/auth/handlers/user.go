@@ -14,12 +14,14 @@ func HandleGetUser(ctx *gin.Context) {
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
+
 		return
 	}
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 
 	}
@@ -27,6 +29,7 @@ func HandleGetUser(ctx *gin.Context) {
 	user, err := data.GetUser(id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
@@ -41,7 +44,11 @@ func HandleGetUsersList(ctx *gin.Context) {
 		var err error
 		page, err = strconv.Atoi(pageStr)
 		if err != nil || page < 0 {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid page query parameter"})
+			ctx.AbortWithStatusJSON(
+				http.StatusBadRequest,
+				gin.H{"details": "invalid page query parameter"},
+			)
+
 			return
 		}
 	}
@@ -49,52 +56,59 @@ func HandleGetUsersList(ctx *gin.Context) {
 	users, err := data.GetUsersList(page)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"users": users})
-
 }
+
 func HandleUserSetPassword(ctx *gin.Context) {
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
+
 		return
 	}
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
 	var request struct {
-		Password string `json:"password" binding:"required"`
+		Password string `binding:"required" json:"password"`
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": err.Error()})
+
 		return
 	}
 
 	user, err := data.GetUser(id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
 	err = user.SetPassword(request.Password)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{})
-
 }
+
 func HandleUserSetEmail(ctx *gin.Context) {
 	id, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
+
 		return
 	}
 
@@ -105,7 +119,7 @@ func HandleUserSetEmail(ctx *gin.Context) {
 	}
 
 	var request struct {
-		Email string `json:"email" binding:"required"`
+		Email string `binding:"required" json:"email"`
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {

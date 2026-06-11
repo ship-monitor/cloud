@@ -20,6 +20,11 @@ func TestGen(t *testing.T) {
 	}
 
 	if name1 != name2 {
-		t.Errorf("GenNodeName() returned different names for same id %q: %q != %q", id, name1, name2)
+		t.Errorf(
+			"GenNodeName() returned different names for same id %q: %q != %q",
+			id,
+			name1,
+			name2,
+		)
 	}
 }

@@ -13,6 +13,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
+type OrganizationID = uuid.UUID
+
 type OrganizationsRepo struct {
 	db *bun.DB
 }
@@ -23,8 +25,11 @@ func New(db *sql.DB) *OrganizationsRepo {
 	}
 }
 
-func (r *OrganizationsRepo) CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error) {
-
+func (r *OrganizationsRepo) CreateOrganization(
+	ctx context.Context,
+	name string,
+	creatorID uuid.UUID,
+) (OrganizationID, error) {
 	orgID := uuid.New()
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		return errors.Join(
@@ -53,12 +58,45 @@ func insertOrganization(ctx context.Context, db bun.IDB, org *data.Organization)
 	if err != nil {
 		return fmt.Errorf("insert organization: %w", err)
 	}
+
 	return nil
 }
+
 func insertMember(ctx context.Context, db bun.IDB, member *data.OrganizationMember) error {
 	_, err := db.NewInsert().Model(member).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert member: %w", err)
 	}
+
 	return nil
+}
+
+func (r *OrganizationsRepo) GetOrganizationByID(
+	ctx context.Context,
+	id OrganizationID,
+) (*data.Organization, error) {
+	org := data.Organization{}
+	err := r.db.NewSelect().Model(&org).Where("id = ?", id).Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get org by id: %w", err)
+	}
+
+	return &org, nil
+}
+
+func (r *OrganizationsRepo) UserIsMember(
+	ctx context.Context,
+	userID uuid.UUID,
+	orgID OrganizationID,
+) (bool, error) {
+	exists, err := r.db.NewSelect().
+		Model((*data.OrganizationMember)(nil)).
+		Where("member_id = ?", userID).
+		Where("organization_id = ?", orgID).
+		Exists(ctx)
+	if err != nil {
+		return false, fmt.Errorf("exist organization_member: %w", err)
+	}
+
+	return exists, nil
 }

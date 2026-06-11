@@ -32,8 +32,18 @@ func Migrate() {
 
 	// Добавляем колонки, если таблица уже существовала без них
 	addColumnIfNotExists(ctx, "organization_members", "role", "VARCHAR NOT NULL DEFAULT 'member'")
-	addColumnIfNotExists(ctx, "organization_members", "joined_at", "TIMESTAMP NOT NULL DEFAULT NOW()")
-	addColumnIfNotExists(ctx, "organization_devices", "name", fmt.Sprintf("VARCHAR NOT NULL DEFAULT '%s'", DefaultDeviceName))
+	addColumnIfNotExists(
+		ctx,
+		"organization_members",
+		"joined_at",
+		"TIMESTAMP NOT NULL DEFAULT NOW()",
+	)
+	addColumnIfNotExists(
+		ctx,
+		"organization_devices",
+		"name",
+		fmt.Sprintf("VARCHAR NOT NULL DEFAULT '%s'", DefaultDeviceName),
+	)
 }
 
 // addColumnIfNotExists добавляет колонку, если её ещё нет
@@ -45,7 +55,6 @@ func addColumnIfNotExists(ctx context.Context, table, column, columnType string)
 		 WHERE table_name = ? AND column_name = ?`,
 		table, column,
 	).Scan(ctx, &count)
-
 	if err != nil {
 		log.Error("Failed check column existence", "table", table, "column", column, "error", err)
 		return

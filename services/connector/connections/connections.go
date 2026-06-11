@@ -133,11 +133,15 @@ func serveConnection(nodeId UUID, conn *websocket.Conn) {
 }
 
 func checkAuth(r *http.Request) (*AuthData, error) {
-
 	nodeID, err := uuid.Parse(r.Header.Get(NodeIDHeader))
-
 	if err != nil {
-		log.Error("Bad UUID specifications for node id header", "header", NodeIDHeader, "error", err)
+		log.Error(
+			"Bad UUID specifications for node id header",
+			"header",
+			NodeIDHeader,
+			"error",
+			err,
+		)
 		return nil, fmt.Errorf("bad node id header %q specified: %s", NodeIDHeader, err)
 	}
 
@@ -149,7 +153,13 @@ func checkAuth(r *http.Request) (*AuthData, error) {
 func getAddress() string {
 	port := viper.GetInt("services.connector.ws-port")
 	if port <= 0 {
-		log.Error("Invalid or not set websocket port", "port", port, "key", "services.connector.ws-port")
+		log.Error(
+			"Invalid or not set websocket port",
+			"port",
+			port,
+			"key",
+			"services.connector.ws-port",
+		)
 	}
 	return fmt.Sprintf(":%d", port)
 }

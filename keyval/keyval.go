@@ -15,8 +15,8 @@ func Setup() {
 		DB:       0,
 	})
 }
-func Close() {
 
+func Close() {
 	if err := RDB.Close(); err != nil {
 		log.Error("failed to close redis", "error", err)
 	}

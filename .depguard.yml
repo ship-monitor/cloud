@@ -1,0 +1,17 @@
+Main:
+  files:
+  - $all
+  - "!$test"
+  allow:
+  - $gostd
+  - charm.land/log/v2
+  - github.com/google/uuid
+  deny:
+    reflect: Please don't use reflect package
+Test:
+  files:
+  - $test
+  allow:
+  - $gostd
+  deny:
+    reflect: Please don't use reflect package

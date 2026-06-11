@@ -15,8 +15,10 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services/organization"
 )
 
-var _ handlers.OrganizationService = (*organization.Service)(nil)
-var _ organization.Repository = (*repository.OrganizationsRepo)(nil)
+var (
+	_ handlers.OrganizationService = (*organization.Service)(nil)
+	_ organization.Repository      = (*repository.OrganizationsRepo)(nil)
+)
 
 func SetupRoutes(router gin.IRouter) {
 	// Запускаем миграции
@@ -41,7 +43,7 @@ func SetupRoutes(router gin.IRouter) {
 		),
 	)
 
-	// Роуты с проверкой аутентификаци
+	// Роуты с проверкой аутентификации
 	orgs := api.Group("/organizations")
 	orgs.POST("/", webHandler.HandleCreateOrganization)
 	orgs.GET("/my", handlers.HandleGetMyOrganizations)

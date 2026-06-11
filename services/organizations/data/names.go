@@ -9,8 +9,23 @@ import (
 
 var (
 	Adjectives = []string{
-		"Cool", "Splendid", "Awesome", "Different", "Soft",
-		"Good", "Happy", "Old", "Great", "New", "Big", "Small", "Tall", "Short", "Long", "Wide", "High",
+		"Cool",
+		"Splendid",
+		"Awesome",
+		"Different",
+		"Soft",
+		"Good",
+		"Happy",
+		"Old",
+		"Great",
+		"New",
+		"Big",
+		"Small",
+		"Tall",
+		"Short",
+		"Long",
+		"Wide",
+		"High",
 	}
 	Nouns = []string{
 		"Node", "Thing", "Box", "Service", "Child", "Line", "Statement",

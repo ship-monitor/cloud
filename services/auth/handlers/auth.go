@@ -28,11 +28,11 @@ func mapErrors(vErrors validator.ValidationErrors) []gin.H {
 			"structField": err.StructField(),
 		})
 	}
+
 	return res
 }
 
 func bindJSON(ctx *gin.Context, data any) {
-
 	if err := ctx.ShouldBindJSON(data); err != nil {
 		if vErrors, ok := err.(validator.ValidationErrors); ok {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -44,7 +44,11 @@ func bindJSON(ctx *gin.Context, data any) {
 
 		}
 		log.Error("Failed to bind JSON", "error", err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "failed get JSON body: " + err.Error()})
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			gin.H{"details": "failed get JSON body: " + err.Error()},
+		)
+
 		return
 	}
 }
@@ -87,6 +91,7 @@ func HandleLogin(c *gin.Context) {
 	if err != nil {
 		log.Error("Failed get user by email", "error", err, "email", request.Email)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "invalid credentials"})
+
 		return
 	}
 
@@ -95,6 +100,7 @@ func HandleLogin(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"details": "invalid credentials",
 		})
+
 		return
 	}
 
@@ -117,13 +123,21 @@ func HandleRefresh(c *gin.Context) {
 
 	claims, err := middleware.ParseToken(request.RefreshToken)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "invalid refresh token: " + err.Error()})
+		c.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			gin.H{"details": "invalid refresh token: " + err.Error()},
+		)
+
 		return
 	}
 
 	user, err := data.GetUser(claims.UserID)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "user specified in token not found"})
+		c.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			gin.H{"details": "user specified in token not found"},
+		)
+
 		return
 	}
 
@@ -133,15 +147,17 @@ func HandleRefresh(c *gin.Context) {
 		"token":        token,
 		"refreshToken": refreshToken,
 	})
-
 }
 
-const tokenTTL = time.Minute * 5
-const refreshTokenTTL = time.Hour * 24
+const (
+	tokenTTL        = time.Minute * 5
+	refreshTokenTTL = time.Hour * 24
+)
 
 func createTokens(userID uuid.UUID, email string) (token string, refreshToken string) {
 	token = createJWT(userID, email)
 	refreshToken = createRefreshJWT(userID)
+
 	return token, refreshToken
 }
 
@@ -151,11 +167,11 @@ func newJWT(claims auth.Claims) string {
 	if err != nil {
 		panic(fmt.Errorf("failed sign JWT: %s", err))
 	}
+
 	return signed
 }
 
 func createJWT(userID uuid.UUID, email string) (token string) {
-
 	claims := auth.Claims{
 		UserID: userID,
 		Email:  email,
@@ -164,8 +180,10 @@ func createJWT(userID uuid.UUID, email string) (token string) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenTTL)),
 		},
 	}
+
 	return newJWT(claims)
 }
+
 func createRefreshJWT(userID uuid.UUID) string {
 	claims := auth.Claims{
 		UserID: userID,

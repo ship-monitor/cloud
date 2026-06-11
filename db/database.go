@@ -28,6 +28,7 @@ func setupDebugDB() {
 func Setup() {
 	if viper.GetBool("devel") {
 		setupDebugDB()
+
 		return
 	}
 	dsn := config.Config.GetString("database-url")
