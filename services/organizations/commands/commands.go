@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"charm.land/log/v2"
-	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/amqputils"
 )
 
 const (
@@ -114,50 +114,18 @@ func badResponse(format string, args ...any) CommandResponse {
 	}
 }
 
-// Publish content to channel as JSON and returns correlation ID.
-func publishJSON(
-	ctx context.Context,
-	ch *amqp.Channel,
-	queue amqp.Queue,
-	message any,
-) (string, error) {
-	body, err := json.Marshal(message)
-	if err != nil {
-		return "", fmt.Errorf("publish JSON: %w", err)
-	}
-
-	correlationID := uuid.New().String()
-
-	if err := ch.PublishWithContext(
-		ctx,
-		"",         // default exchange
-		queue.Name, // routing key
-		false,      // mandatory
-		false,      // immediate
-		amqp.Publishing{
-			ContentType:   "application/json",
-			Body:          body,
-			CorrelationId: correlationID,
-		},
-	); err != nil {
-		return "", fmt.Errorf("publish JSON %w", err)
-	}
-
-	return correlationID, nil
-}
-
 // SendCommand sends an event to the org-events queue.
 func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 	if valid, err := cmd.valid(); !valid {
 		return badResponse("invalid command: %s", err)
 	}
 
-	requestID, err := publishJSON(context.TODO(), channel, requestsQueue, cmd)
+	requestID, err := amqputils.PublishJSON(context.TODO(), channel, requestsQueue, cmd)
 	if err != nil {
 		return badResponse("failed publish command: %s", err)
 	}
 
-	messages, cancel, err := consumeMessages(channel, responsesQueue)
+	messages, cancel, err := amqputils.ConsumeMessages(ctx, channel, responsesQueue)
 	if err != nil {
 		return badResponse("failed to consume response: %s", err)
 	}
@@ -189,36 +157,6 @@ func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 			return badResponse("context done: %s", ctx.Err())
 		}
 	}
-}
-
-type CancelConsumerFunc = func()
-
-func consumeMessages(
-	ch *amqp.Channel,
-	queue amqp.Queue,
-) (<-chan amqp.Delivery, CancelConsumerFunc, error) {
-	consumerID := uuid.New().String()
-
-	messages, err := ch.Consume(
-		queue.Name,
-		consumerID,
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("consume messages: %w", err)
-	}
-
-	cancel := func() {
-		if err := ch.Cancel(consumerID, false); err != nil {
-			log.Error("Failed to cancel consumer", "consumerID", consumerID, "error", err)
-		}
-	}
-
-	return messages, cancel, nil
 }
 
 func acknowledge(d amqp.Delivery) {

@@ -37,7 +37,6 @@ type Node struct {
 
 func GetSingleClientHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		var uri struct {
 			Id string `uri:"id" binding:"required"`
 		}

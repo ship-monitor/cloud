@@ -27,8 +27,8 @@ func Migrate() {
 
 type Node struct {
 	*bun.BaseModel  `bun:"table:nodes"`
-	ID              uuid.UUID  `bun:",pk,type:varchar" json:"id"`
-	Name            string     `bun:",notnull" json:"name"`
+	ID              uuid.UUID  `bun:",pk,type:varchar"      json:"id"`
+	Name            string     `bun:",notnull"              json:"name"`
 	FirstConnection time.Time  `bun:",notnull,type:varchar" json:"firstConnection"`
 	LastConnection  *time.Time `bun:",notnull,type:varchar" json:"lastConnection"`
 }
@@ -41,9 +41,13 @@ func GetNode(id uuid.UUID) (*Node, error) {
 	}
 	return &node, nil
 }
+
 func GetNodes(organizationID uuid.UUID) ([]Node, error) {
 	var nodes []Node
-	err := db.DB.NewSelect().Model(&nodes).Where("organization_id = ?", organizationID).Scan(context.TODO())
+	err := db.DB.NewSelect().
+		Model(&nodes).
+		Where("organization_id = ?", organizationID).
+		Scan(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nodes for organization %s: %s", organizationID, err)
 	}
@@ -67,7 +71,11 @@ func NewNode(id uuid.UUID, name string) (*Node, error) {
 
 func ReconnectNode(id uuid.UUID) (*Node, error) {
 	var node Node
-	_, err := db.DB.NewUpdate().Model(&node).Where("id = ?", id).Set("last_connection = ?", time.Now()).Exec(context.TODO())
+	_, err := db.DB.NewUpdate().
+		Model(&node).
+		Where("id = ?", id).
+		Set("last_connection = ?", time.Now()).
+		Exec(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to reconnect node %s: %s", id, err)
 	}
@@ -76,7 +84,11 @@ func ReconnectNode(id uuid.UUID) (*Node, error) {
 
 func UpdateLastConnection(id uuid.UUID) (*Node, error) {
 	var node Node
-	_, err := db.DB.NewUpdate().Model(&node).Where("id = ?", id).Set("last_connection = ?", time.Now()).Exec(context.TODO())
+	_, err := db.DB.NewUpdate().
+		Model(&node).
+		Where("id = ?", id).
+		Set("last_connection = ?", time.Now()).
+		Exec(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last connection for node %s: %s", id, err)
 	}

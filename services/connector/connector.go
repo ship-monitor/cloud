@@ -22,7 +22,14 @@ func Setup(r gin.IRouter) {
 	}()
 
 	go func() {
-		queue.Serve()
+		conn, err := queue.Connect(queue.GetRabbitMQUrl())
+		if err != nil {
+			log.Fatal("Failed connect to rabbitmq", "error", err)
+		}
+		defer queue.Close(conn)
+		if err := queue.Serve(conn); err != nil {
+			log.Fatal("failed serve queue", "error", err)
+		}
 	}()
 
 	queue.AddHandler(queueHandler)
@@ -51,13 +58,17 @@ func queueHandler(m *amqp.Delivery) error {
 		return fmt.Errorf("failed validate request from cloud: %s", err)
 	}
 
-	if err := connections.SendRequest(cloudRequest.NodeID, cloudRequest.ToNode(requestId)); err != nil {
+	if err := connections.SendRequest(
+		cloudRequest.NodeID,
+		cloudRequest.ToNode(requestId),
+	); err != nil {
 		qlog.Error("Failed to send request", "error", err)
 		return err
 	}
 	qlog.Info("Message handled", "requestId", requestId)
 	return nil
 }
+
 func websocketHandler(body []byte) error {
 	var response connections.FromNodeResponse
 	if err := json.Unmarshal(body, &response); err != nil {

@@ -67,11 +67,13 @@ func Serve() {
 		auth, err := checkAuth(r)
 		if err != nil {
 			log.Error("Failed authenticate connection", "error", err)
+
 			return
 		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Error("Failed to upgrade connection", "error", err)
+
 			return
 		}
 

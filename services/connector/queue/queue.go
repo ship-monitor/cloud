@@ -1,13 +1,14 @@
 package queue
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"sync"
 
 	"charm.land/log/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/amqputils"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 )
 
@@ -18,7 +19,7 @@ var (
 	responses amqp.Queue
 )
 
-func getRabbitMQUrl() string {
+func GetRabbitMQUrl() string {
 	url := viper.GetString("services.connector.rabbitmq-url")
 	if url == "" {
 		log.Error("RabbitMQ URL is not set", "key", "services.connector.rabbitmq-url")
@@ -29,9 +30,7 @@ func getRabbitMQUrl() string {
 
 type MessageHandlerFunc func(*amqp.Delivery) error
 
-var (
-	messageHandlers = []MessageHandlerFunc{}
-)
+var messageHandlers = []MessageHandlerFunc{}
 
 func AddHandler(h MessageHandlerFunc) {
 	messageHandlers = append(messageHandlers, h)
@@ -47,70 +46,72 @@ func closeConnection() {
 	}
 }
 
-func Serve() {
-	url := getRabbitMQUrl()
-	log.Info("Connecting to RabbitMQ", "url", url)
+func Connect(url string) (*amqp.Connection, error) {
 	if connection, err := amqp.Dial(url); err != nil {
-		log.Fatal("Failed to connect to RabbitMQ", "error", err)
+		return nil, fmt.Errorf("connect to rabbitmq: %w", err)
 	} else {
-		conn = connection
+		return connection, nil
 	}
-	log.Info("Connected to RabbitMQ")
-	defer closeConnection()
+}
+
+func Close(c *amqp.Connection) {
+	if c == nil {
+		return
+	}
+	if err := c.Close(); err != nil {
+		log.Error("Failed to close connection", "error", err)
+	}
+}
+
+func Serve(connection *amqp.Connection) error {
+	conn = connection
 
 	if ch, err := conn.Channel(); err != nil {
-		log.Fatal("Failed to open a channel", "error", err)
+		return fmt.Errorf("open channel: %w", err)
 	} else {
 		channel = ch
 	}
 
 	if req, res, err := setupQueues(channel); err != nil {
-		log.Fatal("Failed to setup queues", "error", err)
+		return fmt.Errorf("setup queues: %w", err)
 	} else {
 		requests = req
 		responses = res
 	}
-
-	messages, err := channel.Consume(
-		requests.Name, // queue
-		"",            // consumer
-		true,          // auto-ack
-		false,         // exclusive
-		false,         // no-local
-		false,         // no-wait
-		nil,           // args
-	)
-
+	messages, cancel, err := amqputils.ConsumeMessages(context.TODO(), channel, requests)
 	if err != nil {
-		log.Fatal("Failed to register a consumer", "error", err)
+		return fmt.Errorf("register consumer: %w", err)
 	}
+	defer cancel()
 
 	for m := range messages {
 		go handleMessage(&m)
 	}
+
+	return nil
 }
 
 func handleMessage(msg *amqp.Delivery) {
 	wg := sync.WaitGroup{}
 
 	for _, handler := range messageHandlers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := handler(msg); err != nil {
-				log.Error("Error while handling message, sending internal error back", "correlationId", msg.CorrelationId, "error", err)
+				log.Error(
+					"Error while handling message, sending internal error back",
+					"correlationId",
+					msg.CorrelationId,
+					"error",
+					err,
+				)
 
 				if err2 := sendError(msg.CorrelationId, err); err2 != nil {
 					log.Error("Failed to send error response", "error", err2)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
-}
-
-func BadRequestBodyErr(err error) error {
-	return fmt.Errorf("bad request body: %s", err)
 }
 
 func sendError(requestId string, err error) error {
@@ -122,51 +123,48 @@ func sendError(requestId string, err error) error {
 	return SendResponse(requestId, response)
 }
 
-func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Queue, err error) {
+const (
+	QueueDurable          = true
+	QueueDeleteWhenUnused = false
+	QueueExclusive        = false
+	QueueNoWait           = false
+)
 
-	requests, err = channel.QueueDeclare(
-		"requests-1", // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
+func declareQueue(ch *amqp.Channel, name string) (amqp.Queue, error) {
+	queue, err := ch.QueueDeclare(
+		name,
+		QueueDurable,
+		QueueDeleteWhenUnused,
+		QueueExclusive,
+		QueueNoWait,
+		nil,
 	)
 	if err != nil {
-		log.Fatal("Failed to declare a queue", "queue", "requests", "error", err)
-		return requests, responses, err
+		return queue, fmt.Errorf("declare queue: %w", err)
 	}
 
-	responses, err = channel.QueueDeclare(
-		"responses-1", // name
-		true,          // durable
-		false,         // delete when unused
-		false,         // exclusive
-		false,         // no-wait
-		nil,           // arguments
-	)
+	return queue, nil
+}
+
+func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Queue, err error) {
+	requests, err = declareQueue(channel, "requests-1")
 	if err != nil {
-		log.Fatal("Failed to declare a queue", "queue", "responses", "error", err)
-		return requests, responses, err
+		return requests, responses, fmt.Errorf("declare %q queue: %w", "requests-1", err)
+	}
+
+	responses, err = declareQueue(channel, "responses-1")
+	if err != nil {
+		return requests, responses, fmt.Errorf("declare %q queue: %w", "responses-1", err)
 	}
 
 	return requests, responses, nil
 }
 
 func SendResponse(requestId string, response *connections.ToCloudResponse) error {
-	body, err := json.Marshal(response)
+	err := amqputils.PublishAnswerJSON(context.TODO(), channel, responses, response, requestId)
 	if err != nil {
-		return err
+		return fmt.Errorf("send response: %w", err)
 	}
-	return channel.Publish(
-		"",             // exchange
-		responses.Name, // routing key
-		false,          // mandatory
-		false,          // immediate
-		amqp.Publishing{
-			ContentType:   "application/json",
-			CorrelationId: requestId,
-			Body:          body,
-		},
-	)
+
+	return nil
 }
