@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
 	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*data.Organization, error)
-	UserIsMember(ctx context.Context, userID uuid.UUID, orgID uuid.UUID) (bool, error)
+	UserIsMember(ctx context.Context, userID, orgID uuid.UUID) (bool, error)
 }
 
 type Service struct {

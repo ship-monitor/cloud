@@ -143,6 +143,7 @@ func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 			if response.CorrelationId != requestID {
 				continue
 			}
+
 			var commandResponse CommandResponse
 			if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
 				log.Error("Failed to unmarshal response", "error", err)

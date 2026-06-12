@@ -139,9 +139,11 @@ func createInvitation(orgID uuid.UUID, email string) (*data.OrganizationInvitati
 	return data.CreateInvitation(data.OrgInvitationInput{
 		OrganizationID: orgID,
 		InviteeEmail:   email,
-		ExpiresAt:      time.Now().Add(48 * time.Hour),
+		ExpiresAt:      time.Now().Add(InvitationsTTL),
 	})
 }
+
+const InvitationsTTL = 48 * time.Hour
 
 func HandleListMyInvitations(c *gin.Context) {
 	session := auth.GetSession(c)

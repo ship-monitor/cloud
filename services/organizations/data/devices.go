@@ -17,10 +17,10 @@ const DefaultDeviceName = "Unknown Device"
 type OrganizationDevice struct {
 	*bun.BaseModel `bun:"table:organization_devices"`
 
-	ID             uuid.UUID `bun:",pk,type:varchar" json:"id"`
+	ID             uuid.UUID `bun:",pk,type:varchar"      json:"id"`
 	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
-	CreatedAt      time.Time `bun:",nullzero,notnull" json:"createdAt"`
-	Name           string    `bun:",notnull,default" json:"name"`
+	CreatedAt      time.Time `bun:",nullzero,notnull"     json:"createdAt"`
+	Name           string    `bun:",notnull,default"      json:"name"`
 }
 
 func ConnectDevice(id, organizationID uuid.UUID, name string) error {
@@ -28,6 +28,7 @@ func ConnectDevice(id, organizationID uuid.UUID, name string) error {
 		if device.OrganizationID != organizationID {
 			return fmt.Errorf("device %q is already connected to another organization", id)
 		}
+
 		return nil
 	}
 
@@ -36,9 +37,14 @@ func ConnectDevice(id, organizationID uuid.UUID, name string) error {
 	}
 	if connections.IsConnected(id) {
 		_, err := createDevice(id, organizationID, name)
-		return err
+		if err != nil {
+			return fmt.Errorf("create device: %w", err)
+		} else {
+			return nil
+		}
 	}
-	return fmt.Errorf("device %q is not connected connected to server", id)
+
+	return fmt.Errorf("device %q is not connected to server", id)
 }
 
 func createDevice(id, orgID uuid.UUID, name string) (*OrganizationDevice, error) {
@@ -52,12 +58,14 @@ func createDevice(id, orgID uuid.UUID, name string) (*OrganizationDevice, error)
 	if err != nil {
 		return nil, err
 	}
+
 	return &device, nil
 }
 
 func (device *OrganizationDevice) SetName(ctx context.Context, name string) error {
 	device.Name = name
 	_, err := db.DB.NewUpdate().Model(device).Column("name").WherePK().Exec(ctx)
+
 	return err
 }
 
@@ -70,8 +78,8 @@ func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
 		Name:           device.Name,
 	}
 }
-func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
 
+func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
 	var device OrganizationDevice
 	err := db.DB.NewSelect().
 		Model(&device).
@@ -80,13 +88,16 @@ func GetDevice(id uuid.UUID) (*OrganizationDevice, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &device, nil
 }
+
 func GetDeviceDTO(id uuid.UUID) (*dto.DeviceResponse, error) {
 	device, err := GetDevice(id)
 	if err != nil {
 		return nil, err
 	}
+
 	return device.toDTO(), nil
 }
 
@@ -97,6 +108,7 @@ func ListDevices(orgID uuid.UUID) ([]OrganizationDevice, error) {
 		Where("organization_id = ?", orgID).
 		Order("created_at ASC").
 		Scan(context.Background())
+
 	return devices, err
 }
 
@@ -104,6 +116,7 @@ func DisconnectDevice(id uuid.UUID) error {
 	if device, _ := GetDeviceDTO(id); device != nil {
 		return deleteDevice(id)
 	}
+
 	return nil
 }
 
@@ -112,5 +125,6 @@ func deleteDevice(id uuid.UUID) error {
 		Model((*OrganizationDevice)(nil)).
 		Where("id = ?", id).
 		Exec(context.Background())
+
 	return err
 }

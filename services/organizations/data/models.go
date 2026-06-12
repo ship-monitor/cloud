@@ -15,14 +15,14 @@ import (
 type Organization struct {
 	*bun.BaseModel `bun:"table:organizations"`
 
-	ID        uuid.UUID `bun:",pk,type:varchar" json:"id"`
-	Name      string    `bun:",notnull" json:"name"`
-	CreatedAt time.Time `bun:",nullzero,notnull" json:"createdAt"`
-	UpdatedAt time.Time `bun:",nullzero,notnull" json:"updatedAt"`
+	ID        uuid.UUID `bun:",pk,type:varchar"      json:"id"`
+	Name      string    `bun:",notnull"              json:"name"`
+	CreatedAt time.Time `bun:",nullzero,notnull"     json:"createdAt"`
+	UpdatedAt time.Time `bun:",nullzero,notnull"     json:"updatedAt"`
 	CreatorID uuid.UUID `bun:",notnull,type:varchar" json:"creatorId"`
 }
 
-// Role участника в организации
+// Role участника в организации.
 type Role string
 
 const (
@@ -31,14 +31,14 @@ const (
 	RoleMember        Role = "member"
 )
 
-// OrganizationMember — связь пользователя с организацией
+// OrganizationMember — связь пользователя с организацией.
 type OrganizationMember struct {
 	*bun.BaseModel `bun:"table:organization_members"`
 
 	MemberID       uuid.UUID `bun:",notnull,type:varchar" json:"memberId"`
 	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
-	Role           Role      `bun:",notnull" json:"role"`
-	JoinedAt       time.Time `bun:",nullzero,notnull" json:"joinedAt"`
+	Role           Role      `bun:",notnull"              json:"role"`
+	JoinedAt       time.Time `bun:",nullzero,notnull"     json:"joinedAt"`
 }
 
 func GetOrganization(id uuid.UUID) (*Organization, error) {
@@ -47,11 +47,12 @@ func GetOrganization(id uuid.UUID) (*Organization, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &org, nil
 }
 
 type CreateOrganizationInput struct {
-	Name      string    `json:"name" validate:"required"`
+	Name      string    `json:"name"      validate:"required"`
 	CreatorID uuid.UUID `json:"creatorId" validate:"required"`
 }
 
@@ -70,5 +71,6 @@ func CreateOrganization(in CreateOrganizationInput) (Organization, error) {
 		CreatorID: in.CreatorID,
 	}
 	_, err = db.DB.NewInsert().Model(&org).Exec(context.Background())
+
 	return org, err
 }

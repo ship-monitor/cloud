@@ -146,7 +146,7 @@ func declareQueue(ch *amqp.Channel, name string) (amqp.Queue, error) {
 	return queue, nil
 }
 
-func setupQueues(channel *amqp.Channel) (requests amqp.Queue, responses amqp.Queue, err error) {
+func setupQueues(channel *amqp.Channel) (requests, responses amqp.Queue, err error) {
 	requests, err = declareQueue(channel, "requests-1")
 	if err != nil {
 		return requests, responses, fmt.Errorf("declare %q queue: %w", "requests-1", err)

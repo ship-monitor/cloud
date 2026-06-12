@@ -46,7 +46,7 @@ func Migrate() {
 	)
 }
 
-// addColumnIfNotExists добавляет колонку, если её ещё нет
+// addColumnIfNotExists добавляет колонку, если её ещё нет.
 func addColumnIfNotExists(ctx context.Context, table, column, columnType string) {
 	// Проверяем существование колонки
 	var count int
@@ -57,6 +57,7 @@ func addColumnIfNotExists(ctx context.Context, table, column, columnType string)
 	).Scan(ctx, &count)
 	if err != nil {
 		log.Error("Failed check column existence", "table", table, "column", column, "error", err)
+
 		return
 	}
 

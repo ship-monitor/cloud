@@ -37,32 +37,32 @@ type OrganizationResponse struct {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `binding:"required" json:"name"`
 }
 
 type UpdateOrganizationRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `binding:"required" json:"name"`
 }
 
 // --- Member DTOs ---
 
 type AddMemberRequest struct {
-	UserID uuid.UUID `json:"userId" binding:"required"`
-	Role   string    `json:"role" binding:"required"`
+	UserID uuid.UUID `binding:"required" json:"userId"`
+	Role   string    `binding:"required" json:"role"`
 }
 
 type UpdateMemberRoleRequest struct {
-	Role string `json:"role" binding:"required"`
+	Role string `binding:"required" json:"role"`
 }
 
 // --- Invitation DTOs ---
 
 type CreateInvitationRequest struct {
-	InviteeEmail string `json:"inviteeEmail" binding:"required"`
+	InviteeEmail string `binding:"required" json:"inviteeEmail"`
 }
 
 type CreateInvitationBulkRequest struct {
-	InviteeEmails []string `json:"inviteeEmails" binding:"required"`
+	InviteeEmails []string `binding:"required" json:"inviteeEmails"`
 }
 
 type InvitationResponse struct {
@@ -82,16 +82,16 @@ type ListInvitationsResponse struct {
 // --- Device DTOs ---
 
 type UpdateDeviceRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `binding:"required" json:"name"`
 }
 
 type ConnectDeviceRequest struct {
-	DeviceID uuid.UUID `json:"deviceId" binding:"required"`
+	DeviceID uuid.UUID `binding:"required" json:"deviceId"`
 	Name     string    `json:"name"`
 }
 
 type SendCommandRequest struct {
-	Command string         `json:"command" binding:"required"`
+	Command string         `binding:"required" json:"command"`
 	Args    map[string]any `json:"args,omitempty"`
 	Payload map[string]any `json:"payload,omitempty"`
 }

@@ -154,7 +154,7 @@ const (
 	refreshTokenTTL = time.Hour * 24
 )
 
-func createTokens(userID uuid.UUID, email string) (token string, refreshToken string) {
+func createTokens(userID uuid.UUID, email string) (token, refreshToken string) {
 	token = createJWT(userID, email)
 	refreshToken = createRefreshJWT(userID)
 

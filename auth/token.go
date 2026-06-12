@@ -8,16 +8,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Returns error if token is invalid or expired
+// ParseToken returns error if token is invalid or expired.
 func (m *Middleware) ParseToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, m.keyFunc)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			log.Error("JWT expired", "error", err)
-			return nil, fmt.Errorf("token expired")
+
+			return nil, fmt.Errorf("parse token: %w", err)
 		}
 		log.Error("Failed parse JWT", "error", err)
-		return nil, fmt.Errorf("failed parse token: %s", err)
+
+		return nil, fmt.Errorf("parse token: %w", err)
 	}
 	if !token.Valid {
 		return nil, fmt.Errorf("token invalid")
@@ -26,5 +28,6 @@ func (m *Middleware) ParseToken(tokenStr string) (*Claims, error) {
 	if !ok {
 		return nil, fmt.Errorf("invalid claims type")
 	}
+
 	return claims, nil
 }

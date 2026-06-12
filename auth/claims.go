@@ -7,6 +7,7 @@ import (
 
 type Claims struct {
 	*jwt.RegisteredClaims
+
 	UserID uuid.UUID `json:"userId"`
 	Email  string    `json:"email,omitempty"`
 }

@@ -20,12 +20,12 @@ const (
 type OrganizationInvitation struct {
 	*bun.BaseModel `bun:"table:organization_invitations"`
 
-	ID             uuid.UUID        `bun:",pk,type:varchar" json:"id"`
+	ID             uuid.UUID        `bun:",pk,type:varchar"      json:"id"`
 	OrganizationID uuid.UUID        `bun:",notnull,type:varchar" json:"organizationId"`
-	InviteeEmail   string           `bun:",notnull" json:"inviteeEmail"`
-	Status         InvitationStatus `bun:",notnull" json:"status"`
-	CreatedAt      time.Time        `bun:",nullzero,notnull" json:"createdAt"`
-	ExpiresAt      time.Time        `bun:",nullzero,notnull" json:"expiresAt"`
+	InviteeEmail   string           `bun:",notnull"              json:"inviteeEmail"`
+	Status         InvitationStatus `bun:",notnull"              json:"status"`
+	CreatedAt      time.Time        `bun:",nullzero,notnull"     json:"createdAt"`
+	ExpiresAt      time.Time        `bun:",nullzero,notnull"     json:"expiresAt"`
 }
 
 type OrgInvitationInput struct {
@@ -47,6 +47,7 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &invitation, nil
 }
 
@@ -59,6 +60,7 @@ func GetInvitationByID(id uuid.UUID) (*OrganizationInvitation, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &inv, nil
 }
 
@@ -76,6 +78,7 @@ func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
 		Where("invitee_email = ? AND status = ?", email, StatusPending).
 		Order("created_at DESC").
 		Scan(context.Background())
+
 	return invs, err
 }
 
@@ -86,6 +89,7 @@ func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
 		Where("organization_id = ?", orgID).
 		Order("created_at DESC").
 		Scan(context.Background())
+
 	return invs, err
 }
 
@@ -95,5 +99,6 @@ func UpdateInvitationStatus(id uuid.UUID, status InvitationStatus) error {
 		Set("status = ?", status).
 		Where("id = ?", id).
 		Exec(context.Background())
+
 	return err
 }

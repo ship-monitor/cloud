@@ -19,6 +19,7 @@ func HandlePatchDevice(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in connect device request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 	session := auth.GetSession(c)
@@ -33,6 +34,7 @@ func HandlePatchDevice(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
@@ -49,6 +51,7 @@ func HandlePatchDevice(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can connect devices")),
 		)
+
 		return
 	}
 	var req dto.UpdateDeviceRequest
@@ -63,6 +66,7 @@ func HandlePatchDevice(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+
 		return
 	}
 
@@ -70,12 +74,14 @@ func HandlePatchDevice(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in connect device request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 	device, err := data.GetDevice(deviceID)
 	if err != nil {
 		log.Error("No such device", "error", err)
 		c.JSON(http.StatusNotFound, dto.Error(fmt.Errorf("no device")))
+
 		return
 	}
 
@@ -85,6 +91,7 @@ func HandlePatchDevice(c *gin.Context) {
 			http.StatusInternalServerError,
 			dto.Error(fmt.Errorf("failed set device name: %s", err)),
 		)
+
 		return
 	}
 

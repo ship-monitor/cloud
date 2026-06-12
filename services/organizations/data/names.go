@@ -45,5 +45,6 @@ func GenNodeName(id uuid.UUID) string {
 	generator := rand.New(&source{seed: id})
 	adj := generator.IntN(len(Adjectives))
 	noun := generator.IntN(len(Nouns))
+
 	return fmt.Sprintf("%s %s", Adjectives[adj], Nouns[noun])
 }

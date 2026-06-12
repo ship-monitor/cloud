@@ -15,14 +15,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-var sessionKey = "session-" + uuid.New().String()
-var middlewareKey = "middleware-" + uuid.New().String()
+var (
+	sessionKey    = "session-" + uuid.New().String()
+	middlewareKey = "middleware-" + uuid.New().String()
+)
 
 const AuthorizationHeader = "Authorization"
 
 var (
 	ErrArmenUsedBearer = errors.New("someone (Armen) included 'Bearer ' in token header")
-	ErrNoAuthheader    = fmt.Errorf("header %q not specified", AuthorizationHeader)
+	ErrNoAuthHeader    = fmt.Errorf("header %q not specified", AuthorizationHeader)
 )
 
 // DefaultMiddleware returns a new Middleware with the default Redis configuration from viper.
@@ -35,9 +37,8 @@ var (
 //
 // For quickest setup use:
 //
-// ```
 // DefaultMiddleware(viper.Sub("auth"))
-// ```
+// .
 func DefaultMiddleware(config *viper.Viper) *Middleware {
 	return MustNewMiddleware(&MiddlewareConfig{
 		&SpiceDBOptions{
@@ -47,8 +48,8 @@ func DefaultMiddleware(config *viper.Viper) *Middleware {
 		tokenKeyFunc(config),
 	})
 }
-func tokenKeyFunc(config *viper.Viper) jwt.Keyfunc {
 
+func tokenKeyFunc(config *viper.Viper) jwt.Keyfunc {
 	return func(token *jwt.Token) (any, error) {
 		switch token.Method {
 		case jwt.SigningMethodHS256:
@@ -73,15 +74,25 @@ type MiddlewareConfig struct {
 	SecurityKeyFunc jwt.Keyfunc
 }
 
+type Middleware struct {
+	spice   *authzed.Client
+	keyFunc jwt.Keyfunc
+}
+
 func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
 	systemCerts, err := grpcutil.WithSystemCerts(grpcutil.VerifyCA)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load system CA certificates: %s", err)
 	}
-	spiceClient, err := authzed.NewClient(config.SpiceDB.Address, systemCerts, grpcutil.WithBearerToken(config.SpiceDB.APIKey))
+	spiceClient, err := authzed.NewClient(
+		config.SpiceDB.Address,
+		systemCerts,
+		grpcutil.WithBearerToken(config.SpiceDB.APIKey),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed connect to SpiceDB: %s", err)
 	}
+
 	return &Middleware{spiceClient, config.SecurityKeyFunc}, nil
 }
 
@@ -90,12 +101,8 @@ func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
 	if err != nil {
 		panic(fmt.Errorf("failed create auth middleware: %s", err))
 	}
-	return middleware
-}
 
-type Middleware struct {
-	spice   *authzed.Client
-	keyFunc jwt.Keyfunc
+	return middleware
 }
 
 func GetMiddleware(ctx *gin.Context) *Middleware {
@@ -104,10 +111,6 @@ func GetMiddleware(ctx *gin.Context) *Middleware {
 	} else {
 		panic("there is no middleware")
 	}
-}
-
-func (m *Middleware) addToContext(ctx *gin.Context) {
-	ctx.Set(middlewareKey, m)
 }
 
 func (m *Middleware) WithMiddleware(ctx *gin.Context) {
@@ -120,23 +123,32 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	header := ctx.GetHeader(AuthorizationHeader)
 
 	if header == "" {
-		err := fmt.Errorf("bad token specified: %s", ErrNoAuthheader)
+		err := fmt.Errorf("bad token specified: %s", ErrNoAuthHeader)
 		log.Error("No authorization header", "error", err)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": err.Error()})
+
 		return
 	}
 
 	if strings.Contains(header, "Bearer") {
 		err := fmt.Errorf("bad token specified: %s", ErrArmenUsedBearer)
 		log.Error("Армен, заебал, пиши авторизацию сам, а не ИИшкой", "error", ErrArmenUsedBearer)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": err.Error(), "armensMessage": "stop it"})
+		ctx.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			gin.H{"details": err.Error(), "armensMessage": "stop it"},
+		)
+
 		return
 	}
 
 	claims, err := m.ParseToken(header)
 	if err != nil {
 		log.Error("Failed parse JWT", "error", err)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "bad credentials: " + err.Error()})
+		ctx.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			gin.H{"details": "bad credentials: " + err.Error()},
+		)
+
 		return
 	}
 
@@ -148,7 +160,10 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	}
 
 	ctx.Set(sessionKey, session)
+}
 
+func (m *Middleware) addToContext(ctx *gin.Context) {
+	ctx.Set(middlewareKey, m)
 }
 
 func GetSession(ctx *gin.Context) *Session {

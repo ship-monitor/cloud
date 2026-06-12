@@ -13,6 +13,7 @@ import (
 func AddMember(member OrganizationMember) error {
 	// Сохраняем в БД
 	_, err := db.DB.NewInsert().Model(&member).Exec(context.Background())
+
 	return err
 }
 
@@ -23,6 +24,7 @@ func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
 		Set("role = ?", role).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
+
 	return err
 }
 
@@ -32,6 +34,7 @@ func RemoveMember(orgID, userID uuid.UUID) error {
 		Model((*OrganizationMember)(nil)).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
+
 	return err
 }
 
@@ -45,6 +48,7 @@ func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
 	if err != nil {
 		return nil, fmt.Errorf("member not found")
 	}
+
 	return &member, nil
 }
 
@@ -58,6 +62,7 @@ func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 		Where("om.organization_id = ?", orgID).
 		Order("om.joined_at ASC").
 		Scan(context.Background(), &members)
+
 	return members, err
 }
 
@@ -84,6 +89,7 @@ func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return GetOrganization(org.ID)
 }
 
@@ -94,14 +100,18 @@ func DeleteOrganization(id uuid.UUID) error {
 		Where("organization_id = ?", id).
 		Exec(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("delete organization members: %w", err)
 	}
 
 	_, err = db.DB.NewDelete().
 		Model((*Organization)(nil)).
 		Where("id = ?", id).
 		Exec(context.Background())
-	return err
+	if err != nil {
+		return fmt.Errorf("delete organization: %w", err)
+	}
+
+	return nil
 }
 
 // GetOrganizationsByMember возвращает все организации пользователя.
@@ -113,14 +123,16 @@ func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 		Where("om.member_id = ?", userID).
 		Order("organization.created_at DESC").
 		Scan(context.Background())
+
 	return orgs, err
 }
 
-// IsMember проверяет, является ли пользователь участником организации
+// IsMember проверяет, является ли пользователь участником организации.
 func IsMember(userID, orgID uuid.UUID) (bool, error) {
 	exists, err := db.DB.NewSelect().
 		Model((*OrganizationMember)(nil)).
 		Where("member_id = ? AND organization_id = ?", userID, orgID).
 		Exists(context.Background())
+
 	return exists, err
 }

@@ -23,4 +23,16 @@ formatters:
     - gofumpt
     - goimports
     - golines
-# golangci-lint config
+  settings:
+    gofmt:
+      simplify: true
+    gofumpt:
+      extra-rules: true
+    golines:
+      max-len: 100
+      tab-len: 4
+      shorten-comments: true
+      reformat-tags: false
+      chain-split-dots: true
+      
+      

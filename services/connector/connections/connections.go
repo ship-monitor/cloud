@@ -15,12 +15,15 @@ import (
 
 const (
 	NodeIDHeader = "X-Node-ID"
+
+	readBufferSize  = 1024
+	writeBufferSize = 1024
 )
 
 var (
 	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize:  readBufferSize,
+		WriteBufferSize: writeBufferSize,
 	}
 	connections = map[UUID]*websocket.Conn{}
 	connMu      sync.RWMutex
@@ -115,8 +118,10 @@ func serveConnection(nodeId UUID, conn *websocket.Conn) {
 			log.Error("Failed to read message", "error", err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Error("Unexpected closing connection", "error", err)
+
 				return
 			}
+
 			continue
 		}
 
@@ -144,6 +149,7 @@ func checkAuth(r *http.Request) (*AuthData, error) {
 			"error",
 			err,
 		)
+
 		return nil, fmt.Errorf("bad node id header %q specified: %s", NodeIDHeader, err)
 	}
 
@@ -163,6 +169,7 @@ func getAddress() string {
 			"services.connector.ws-port",
 		)
 	}
+
 	return fmt.Sprintf(":%d", port)
 }
 
@@ -189,5 +196,6 @@ func IsConnected(nodeId UUID) bool {
 	defer connMu.RUnlock()
 
 	_, ok := connections[nodeId]
+
 	return ok
 }

@@ -50,6 +50,7 @@ func GetUser(id uuid.UUID) (*User, error) {
 	}
 	return &user, nil
 }
+
 func GetUserByEmail(email string) (*User, error) {
 	email = normalizeEmail(email)
 	var user User
@@ -60,9 +61,7 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-var (
-	ErrEmailAlreadyTaken = errors.New("email already taken")
-)
+var ErrEmailAlreadyTaken = errors.New("email already taken")
 
 // Creates new user in database
 func NewUser(name, email, password string) (*User, error) {
@@ -134,6 +133,7 @@ func (u *User) SetEmail(email string) error {
 
 	return err
 }
+
 func (u *User) Block() error {
 	u.UpdatedAt = time.Now()
 	u.Blocked = true
@@ -153,7 +153,11 @@ func GetUsersList(page int) ([]User, error) {
 		return nil, fmt.Errorf("invalid page value '%d'", page)
 	}
 	var users []User
-	err := db.DB.NewSelect().Model(&users).Offset(page * PageLimit).Limit(PageLimit).Scan(context.TODO())
+	err := db.DB.NewSelect().
+		Model(&users).
+		Offset(page * PageLimit).
+		Limit(PageLimit).
+		Scan(context.TODO())
 	if err != nil {
 		return nil, err
 	}
