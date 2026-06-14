@@ -412,32 +412,10 @@ func HandleSendCommand(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	member, err := data.GetMember(orgID, session.UserID)
-	if err != nil {
-		log.Warn(
-			"Access denied for send command — not a member",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-		)
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
-	}
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
-		log.Warn(
-			"Insufficient role for send command",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-			"role",
-			member.Role,
-		)
+	if _, err := data.GetMember(orgID, session.UserID); err != nil {
 		c.JSON(
 			http.StatusForbidden,
-			dto.Error(errors.New("only owner or administrator can send commands")),
+			dto.Error(errors.New("access denied: not a member of organization")),
 		)
 
 		return
@@ -445,15 +423,6 @@ func HandleSendCommand(c *gin.Context) {
 
 	device, err := data.GetDeviceDTO(deviceID)
 	if err != nil || device.OrganizationID != orgID {
-		log.Warn(
-			"Device not found for send command",
-			"organization",
-			orgID,
-			"device",
-			deviceID,
-			"user",
-			session.UserID,
-		)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
 
 		return
@@ -461,16 +430,7 @@ func HandleSendCommand(c *gin.Context) {
 
 	var req dto.SendCommandRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Warn(
-			"Invalid send command request",
-			"error",
-			err,
-			"organization",
-			orgID,
-			"device",
-			deviceID,
-		)
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
 
 		return
 	}
@@ -478,17 +438,6 @@ func HandleSendCommand(c *gin.Context) {
 	result := commands.SendCommand(c.Request.Context(), cmd)
 
 	if result.RequestError != "" {
-		log.Warn(
-			"Command delivery failed",
-			"organization",
-			orgID,
-			"device",
-			deviceID,
-			"command",
-			req.Command,
-			"error",
-			result.RequestError,
-		)
 		c.JSON(http.StatusBadGateway, dto.SendCommandResponse{
 			RequestError: result.RequestError,
 		})
