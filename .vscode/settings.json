@@ -1,11 +1,16 @@
 {
     "cSpell.words": [
         "amqp",
+        "amqputils",
         "Armen",
+        "authzed",
         "gonic",
+        "grpcutil",
         "Keyfunc",
         "shipmonitor",
         "sourcecraft",
+        "spicedb",
+        "sqlitedialect",
         "uptrace"
     ]
 }

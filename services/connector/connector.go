@@ -50,11 +50,13 @@ func queueHandler(m *amqp.Delivery) error {
 	var cloudRequest connections.FromCloudRequest
 	if err := json.Unmarshal(m.Body, &cloudRequest); err != nil {
 		qlog.Error("Failed to unmarshal message", "error", err)
+
 		return err
 	}
 
 	if err := cloudRequest.Validate(); err != nil {
 		qlog.Error("Failed validate request from cloud", "error", err, "requestId", requestId)
+
 		return fmt.Errorf("failed validate request from cloud: %s", err)
 	}
 
@@ -63,9 +65,11 @@ func queueHandler(m *amqp.Delivery) error {
 		cloudRequest.ToNode(requestId),
 	); err != nil {
 		qlog.Error("Failed to send request", "error", err)
+
 		return err
 	}
 	qlog.Info("Message handled", "requestId", requestId)
+
 	return nil
 }
 
@@ -73,6 +77,7 @@ func websocketHandler(body []byte) error {
 	var response connections.FromNodeResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		wsLog.Error("Failed to unmarshal message", "error", err)
+
 		return err
 	}
 
@@ -80,8 +85,10 @@ func websocketHandler(body []byte) error {
 
 	if err := queue.SendResponse(response.RequestID, response.ToCloud()); err != nil {
 		wsLog.Error("Failed to send response", "error", err)
+
 		return err
 	}
 	wsLog.Info("Message handled", "requestId", response.RequestID)
+
 	return nil
 }

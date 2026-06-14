@@ -26,7 +26,8 @@ func Migrate() {
 }
 
 type Node struct {
-	*bun.BaseModel  `bun:"table:nodes"`
+	*bun.BaseModel `bun:"table:nodes"`
+
 	ID              uuid.UUID  `bun:",pk,type:varchar"      json:"id"`
 	Name            string     `bun:",notnull"              json:"name"`
 	FirstConnection time.Time  `bun:",notnull,type:varchar" json:"firstConnection"`
@@ -39,6 +40,7 @@ func GetNode(id uuid.UUID) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed select node with id %s: %s", id, err)
 	}
+
 	return &node, nil
 }
 
@@ -51,6 +53,7 @@ func GetNodes(organizationID uuid.UUID) ([]Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nodes for organization %s: %s", organizationID, err)
 	}
+
 	return nodes, nil
 }
 
@@ -66,6 +69,7 @@ func NewNode(id uuid.UUID, name string) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create node: %s", err)
 	}
+
 	return model, nil
 }
 
@@ -79,6 +83,7 @@ func ReconnectNode(id uuid.UUID) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to reconnect node %s: %s", id, err)
 	}
+
 	return &node, nil
 }
 
@@ -92,5 +97,6 @@ func UpdateLastConnection(id uuid.UUID) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last connection for node %s: %s", id, err)
 	}
+
 	return &node, nil
 }

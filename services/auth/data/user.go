@@ -26,53 +26,16 @@ type User struct {
 	UpdatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"updatedAt"`
 }
 
-func normalizeEmail(email string) string {
-	return strings.ToLower(email)
-}
-
-func hashPassword(password string) []byte {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		panic(fmt.Errorf("failed hash password: %s", err))
-	}
-	return hash
-}
-
-func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
-}
-
-func GetUser(id uuid.UUID) (*User, error) {
-	var user User
-	err := db.DB.NewSelect().Model(&user).Where("id = ?", id).Scan(context.TODO())
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func GetUserByEmail(email string) (*User, error) {
-	email = normalizeEmail(email)
-	var user User
-	err := db.DB.NewSelect().Model(&user).Where("email = ?", email).Scan(context.TODO())
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-var ErrEmailAlreadyTaken = errors.New("email already taken")
-
-// Creates new user in database
+// NewUser creates new user in database.
 func NewUser(name, email, password string) (*User, error) {
 	if name == "" || email == "" || password == "" {
 		return nil, fmt.Errorf("name, email and password are required")
 	}
 
 	if taken, err := checkEmailTaken(email); err != nil {
-		return nil, fmt.Errorf("failed check email availability: %s", err)
+		return nil, fmt.Errorf("failed check email availability: %w", err)
 	} else if taken {
-		return nil, ErrEmailAlreadyTaken
+		return nil, fmt.Errorf("new user: %w", err)
 	}
 
 	user := User{
@@ -87,10 +50,51 @@ func NewUser(name, email, password string) (*User, error) {
 	}
 
 	if _, err := db.DB.NewInsert().Model(&user).Exec(context.TODO()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new user: %w", err)
 	}
+
 	return &user, nil
 }
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(email)
+}
+
+func hashPassword(password string) []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(fmt.Errorf("failed hash password: %w", err))
+	}
+
+	return hash
+}
+
+func (u *User) ComparePassword(password string) bool {
+	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
+}
+
+func GetUser(id uuid.UUID) (*User, error) {
+	var user User
+	err := db.DB.NewSelect().Model(&user).Where("id = ?", id).Scan(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	return &user, nil
+}
+
+func GetUserByEmail(email string) (*User, error) {
+	email = normalizeEmail(email)
+	var user User
+	err := db.DB.NewSelect().Model(&user).Where("email = ?", email).Scan(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+var ErrEmailAlreadyTaken = errors.New("email already taken")
 
 func (u *User) CheckPassword(password string) bool {
 	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
@@ -104,6 +108,7 @@ func checkEmailTaken(email string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	return count > 0, nil
 }
 

@@ -15,6 +15,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
 )
 
+const maxAge = 12 * time.Hour
+
 func main() {
 	config.Setup()
 
@@ -46,7 +48,7 @@ func main() {
 		},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		MaxAge:           maxAge,
 	}))
 
 	auth.SetupRoutes(server)

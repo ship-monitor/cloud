@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
@@ -20,6 +21,7 @@ func HandleCreateInvitation(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in create invitation request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -35,6 +37,7 @@ func HandleCreateInvitation(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
@@ -51,6 +54,7 @@ func HandleCreateInvitation(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can invite members")),
 		)
+
 		return
 	}
 
@@ -66,6 +70,7 @@ func HandleCreateInvitation(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("failed to read request body")))
+
 		return
 	}
 
@@ -85,9 +90,11 @@ func HandleCreateInvitation(c *gin.Context) {
 				singleReq.InviteeEmail,
 			)
 			c.JSON(http.StatusConflict, dto.Error(err))
+
 			return
 		}
 		c.JSON(http.StatusCreated, invitationToDTO(inv))
+
 		return
 	}
 
@@ -117,6 +124,7 @@ func HandleCreateInvitation(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{"invitations": created, "errors": errs})
+
 		return
 	}
 
@@ -152,6 +160,7 @@ func HandleListMyInvitations(c *gin.Context) {
 	if err != nil {
 		log.Error("Failed to list invitations for user", "error", err, "user", session.UserID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -164,13 +173,7 @@ func HandleListMyInvitations(c *gin.Context) {
 }
 
 func HandleListOrgInvitations(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in list invitations request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-		return
-	}
-
+	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
 	member, err := data.GetMember(orgID, session.UserID)
@@ -183,6 +186,7 @@ func HandleListOrgInvitations(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
@@ -199,6 +203,7 @@ func HandleListOrgInvitations(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can view invitations")),
 		)
+
 		return
 	}
 
@@ -214,6 +219,7 @@ func HandleListOrgInvitations(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -226,17 +232,13 @@ func HandleListOrgInvitations(c *gin.Context) {
 }
 
 func HandleAcceptInvitation(c *gin.Context) {
-	invID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid invitation id in accept request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid invitation id")))
-		return
-	}
+	invID := requests.MustGetParamUUID(c, "id")
 
 	inv, err := data.GetInvitationByID(invID)
 	if err != nil {
 		log.Warn("Invitation not found for accept", "invitation", invID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
+
 		return
 	}
 
@@ -249,6 +251,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			inv.Status,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invitation already processed")))
+
 		return
 	}
 
@@ -261,6 +264,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			inv.ExpiresAt,
 		)
 		c.JSON(http.StatusGone, dto.Error(errors.New("invitation expired")))
+
 		return
 	}
 
@@ -276,6 +280,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			inv.InviteeEmail,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("you are not the invitee")))
+
 		return
 	}
 
@@ -291,6 +296,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 	if alreadyMember {
@@ -307,6 +313,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			http.StatusConflict,
 			dto.Error(errors.New("you are already a member of this organization")),
 		)
+
 		return
 	}
 
@@ -319,6 +326,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			invID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -340,6 +348,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 			inv.OrganizationID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -351,6 +360,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid invitation id in decline request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid invitation id")))
+
 		return
 	}
 
@@ -358,6 +368,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invitation not found for decline", "invitation", invID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
+
 		return
 	}
 
@@ -370,6 +381,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 			inv.Status,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invitation already processed")))
+
 		return
 	}
 
@@ -385,6 +397,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 			inv.InviteeEmail,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("you are not the invitee")))
+
 		return
 	}
 
@@ -397,6 +410,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 			invID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 

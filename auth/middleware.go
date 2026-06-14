@@ -132,10 +132,10 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 
 	if strings.Contains(header, "Bearer") {
 		err := fmt.Errorf("bad token specified: %s", ErrArmenUsedBearer)
-		log.Error("Армен, заебал, пиши авторизацию сам, а не ИИшкой", "error", ErrArmenUsedBearer)
+		log.Error("Армен, заебал, пиши авторизацию сам, а не через ИИ", "error", ErrArmenUsedBearer)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			gin.H{"details": err.Error(), "armensMessage": "stop it"},
+			gin.H{"details": err.Error(), "messageForArmen": "stop it"},
 		)
 
 		return
@@ -171,5 +171,6 @@ func GetSession(ctx *gin.Context) *Session {
 	if !ok {
 		panic(fmt.Errorf("session not found (key %q), probably not authenticated", sessionKey))
 	}
+
 	return session.(*Session)
 }

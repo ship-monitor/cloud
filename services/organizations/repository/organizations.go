@@ -100,3 +100,25 @@ func (r *OrganizationsRepo) UserIsMember(
 
 	return exists, nil
 }
+
+// GetUsersOrganizations implements [organization.Repository].
+//
+// TODO: implement pagination.
+func (r *OrganizationsRepo) GetUsersOrganizations(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]data.Organization, error) {
+	var orgs []data.Organization
+
+	err := r.db.NewSelect().
+		Model(orgs).
+		Join("organization_members om ON om.organization_id = organizations.id").
+		Where("om.member_id = ?", userID).
+		Distinct().
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("select users organization: %w", err)
+	}
+
+	return orgs, nil
+}

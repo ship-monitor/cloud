@@ -5,25 +5,19 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
 func HandleGetUser(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
-
-		return
-	}
+	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
 
 		return
-
 	}
 
 	user, err := data.GetUser(id)
@@ -64,12 +58,7 @@ func HandleGetUsersList(ctx *gin.Context) {
 }
 
 func HandleUserSetPassword(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
-
-		return
-	}
+	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
@@ -105,16 +94,12 @@ func HandleUserSetPassword(ctx *gin.Context) {
 }
 
 func HandleUserSetEmail(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
-
-		return
-	}
+	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
@@ -124,45 +109,47 @@ func HandleUserSetEmail(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": err.Error()})
+
 		return
 	}
 
 	user, err := data.GetUser(id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
 	err = user.SetEmail(request.Email)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func HandleUserBlock(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": "invalid id"})
-		return
-	}
+	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
 	user, err := data.GetUser(id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
+
 		return
 	}
 
 	err = user.Block()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
+
 		return
 	}
 

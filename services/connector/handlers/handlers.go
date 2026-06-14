@@ -21,6 +21,7 @@ type ResponseNode struct {
 
 func toResponse(in *repository.Node) ResponseNode {
 	connected := connections.IsConnected(in.ID)
+
 	return ResponseNode{
 		ID:              in.ID,
 		Name:            in.Name,
@@ -44,6 +45,7 @@ func GetSingleClientHandler() gin.HandlerFunc {
 		if err := c.BindUri(&uri); err != nil {
 			log.Error("Failed bind uri", "error", err)
 			c.AbortWithStatus(http.StatusBadRequest)
+
 			return
 		}
 
@@ -51,6 +53,7 @@ func GetSingleClientHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Error("Failed parse id", "error", err)
 			c.AbortWithStatus(http.StatusBadRequest)
+
 			return
 		}
 
@@ -58,6 +61,7 @@ func GetSingleClientHandler() gin.HandlerFunc {
 		if err != nil {
 			log.Error("Failed get nodes from repository", "error", err)
 			c.AbortWithStatus(http.StatusInternalServerError)
+
 			return
 		}
 

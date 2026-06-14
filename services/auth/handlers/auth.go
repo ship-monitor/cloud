@@ -41,7 +41,6 @@ func bindJSON(ctx *gin.Context, data any) {
 			})
 			// panic("validation fails")
 			log.Error("Validation fails", "error", err)
-
 		}
 		log.Error("Failed to bind JSON", "error", err)
 		ctx.AbortWithStatusJSON(
@@ -70,10 +69,12 @@ func HandleRegister(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"details": "email already taken",
 			})
+
 			return
 		}
 		log.Error("Failed create new user", "error", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{})
+
 		return
 	}
 

@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
@@ -28,6 +28,11 @@ type OrganizationService interface {
 		id OrganizationID,
 		userID uuid.UUID,
 	) (*data.Organization, error)
+	GetUsersOrganizations(
+		ctx context.Context,
+		userID uuid.UUID,
+		page int,
+	) ([]data.Organization, error)
 }
 
 type HTTPHandler struct {
@@ -40,24 +45,12 @@ func New(orgs OrganizationService) *HTTPHandler {
 	}
 }
 
-func getUUIDFromPath(c *gin.Context, key string) (uuid.UUID, error) {
-	idStr := c.Param(key)
-	if idStr == "" {
-		return uuid.Nil, fmt.Errorf("param %q not specified", key)
-	}
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed parse UUID from %q: %w", idStr, err)
-	}
-
-	return id, nil
-}
-
 func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid create organization request", "error", err)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+
 		return
 	}
 
@@ -74,16 +67,13 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 }
 
 func (h *HTTPHandler) HandleGetOrganization(c *gin.Context) {
-	organizationID, err := getUUIDFromPath(c, "id")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(err))
-		return
-	}
+	organizationID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
 	org, err := h.orgs.GetOrganization(c.Request.Context(), organizationID, session.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -102,6 +92,7 @@ func HandleGetMyOrganizations(c *gin.Context) {
 	if err != nil {
 		log.Error("Failed to get organizations for member", "error", err, "user", session.UserID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -124,6 +115,7 @@ func HandleGetOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in get request", "id", idStr)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -141,11 +133,13 @@ func HandleGetOrganization(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 	if !isMember {
 		log.Warn("Access denied for organization", "organization", id, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 
@@ -153,6 +147,7 @@ func HandleGetOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Organization not found", "organization", id, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("organization not found")))
+
 		return
 	}
 
@@ -170,6 +165,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in update request", "id", idStr)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -177,6 +173,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid update organization request", "error", err, "organization", id)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+
 		return
 	}
 
@@ -192,6 +189,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
@@ -208,6 +206,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can update organization")),
 		)
+
 		return
 	}
 
@@ -215,6 +214,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Organization not found for update", "organization", id, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("organization not found")))
+
 		return
 	}
 
@@ -230,6 +230,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -247,6 +248,7 @@ func HandleDeleteOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in delete request", "id", idStr)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -256,6 +258,7 @@ func HandleDeleteOrganization(c *gin.Context) {
 	if err != nil {
 		log.Warn("Organization not found for delete", "organization", id, "user", session.UserID)
 		c.JSON(http.StatusNotFound, dto.Error(err))
+
 		return
 	}
 	if org.CreatorID != session.UserID {
@@ -267,6 +270,7 @@ func HandleDeleteOrganization(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("only owner can delete organization")))
+
 		return
 	}
 
@@ -281,6 +285,7 @@ func HandleDeleteOrganization(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -293,6 +298,7 @@ func HandleGetMembers(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in get members request", "id", idStr)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -310,11 +316,13 @@ func HandleGetMembers(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 	if !isMember {
 		log.Warn("Access denied for members list", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 
@@ -330,6 +338,7 @@ func HandleGetMembers(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -342,6 +351,7 @@ func HandleAddMember(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in add member request", "id", idStr)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -349,6 +359,7 @@ func HandleAddMember(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid add member request", "error", err, "organization", orgID)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+
 		return
 	}
 
@@ -364,6 +375,7 @@ func HandleAddMember(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if currentMember.Role != data.RoleOwner && currentMember.Role != data.RoleAdministrator {
@@ -380,6 +392,7 @@ func HandleAddMember(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can add members")),
 		)
+
 		return
 	}
 
@@ -394,6 +407,7 @@ func HandleAddMember(c *gin.Context) {
 			req.UserID,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("cannot assign owner role")))
+
 		return
 	}
 
@@ -411,6 +425,7 @@ func HandleAddMember(c *gin.Context) {
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),
 		)
+
 		return
 	}
 
@@ -426,11 +441,13 @@ func HandleAddMember(c *gin.Context) {
 			req.UserID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 	if isMember {
 		log.Warn("Target user is already a member", "organization", orgID, "target", req.UserID)
 		c.JSON(http.StatusConflict, dto.Error(errors.New("user is already a member")))
+
 		return
 	}
 
@@ -444,6 +461,7 @@ func HandleAddMember(c *gin.Context) {
 	if err := data.AddMember(member); err != nil {
 		log.Error("Failed to add member", "error", err, "organization", orgID, "target", req.UserID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -456,32 +474,13 @@ func HandleAddMember(c *gin.Context) {
 }
 
 func HandleUpdateMemberRole(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in update role request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-		return
-	}
-
-	userID, err := uuid.Parse(c.Param("userId"))
-	if err != nil {
-		log.Warn("Invalid user id in update role request", "userId", c.Param("userId"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid user id")))
-		return
-	}
+	orgID := requests.MustGetParamUUID(c, "id")
+	userID := requests.MustGetParamUUID(c, "userId")
 
 	var req dto.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Warn(
-			"Invalid update role request",
-			"error",
-			err,
-			"organization",
-			orgID,
-			"target",
-			userID,
-		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+
 		return
 	}
 
@@ -497,6 +496,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if currentMember.Role != data.RoleOwner && currentMember.Role != data.RoleAdministrator {
@@ -513,6 +513,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can change roles")),
 		)
+
 		return
 	}
 
@@ -520,6 +521,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 	if err != nil {
 		log.Warn("Target member not found for role update", "organization", orgID, "target", userID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("member not found")))
+
 		return
 	}
 	if targetMember.Role == data.RoleOwner {
@@ -533,6 +535,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			userID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("cannot change owner role")))
+
 		return
 	}
 
@@ -547,6 +550,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			userID,
 		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("cannot assign owner role")))
+
 		return
 	}
 
@@ -564,6 +568,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),
 		)
+
 		return
 	}
 
@@ -578,6 +583,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 			userID,
 		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
@@ -589,6 +595,7 @@ func HandleRemoveMember(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid organization id in remove member request", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
+
 		return
 	}
 
@@ -596,6 +603,7 @@ func HandleRemoveMember(c *gin.Context) {
 	if err != nil {
 		log.Warn("Invalid user id in remove member request", "userId", c.Param("userId"))
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid user id")))
+
 		return
 	}
 
@@ -611,6 +619,7 @@ func HandleRemoveMember(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+
 		return
 	}
 	if currentMember.Role != data.RoleOwner && currentMember.Role != data.RoleAdministrator {
@@ -627,6 +636,7 @@ func HandleRemoveMember(c *gin.Context) {
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can remove members")),
 		)
+
 		return
 	}
 
@@ -634,6 +644,7 @@ func HandleRemoveMember(c *gin.Context) {
 	if err != nil {
 		log.Warn("Target member not found for removal", "organization", orgID, "target", userID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("member not found")))
+
 		return
 	}
 	if targetMember.Role == data.RoleOwner {
@@ -647,12 +658,14 @@ func HandleRemoveMember(c *gin.Context) {
 			userID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("cannot remove owner")))
+
 		return
 	}
 
 	if err := data.RemoveMember(orgID, userID); err != nil {
 		log.Error("Failed to remove member", "error", err, "organization", orgID, "target", userID)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
 		return
 	}
 
