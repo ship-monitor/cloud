@@ -61,6 +61,7 @@ func (r *OrganizationsRepo) CreateOrganization(
 			Name:      name,
 			CreatorID: creatorID,
 			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}); err != nil {
 			return err
 		}
