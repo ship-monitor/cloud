@@ -20,9 +20,34 @@ type OrganizationsRepo struct {
 }
 
 func New(db *sql.DB) *OrganizationsRepo {
+	if db == nil {
+		panic("db is nil")
+	}
+
 	return &OrganizationsRepo{
 		db: bun.NewDB(db, sqlitedialect.New()),
 	}
+}
+
+func (r *OrganizationsRepo) Migrate(ctx context.Context) error {
+	models := []any{
+		&data.Organization{},
+		&data.OrganizationInvitation{},
+		&data.OrganizationMember{},
+		&data.OrganizationDevice{},
+	}
+
+	for _, model := range models {
+		_, err := r.db.NewCreateTable().
+			Model(model).
+			IfNotExists().
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *OrganizationsRepo) CreateOrganization(
