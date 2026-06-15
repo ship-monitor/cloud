@@ -32,9 +32,6 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
-func TestUserIsMember(t *testing.T) {
-}
-
 func TestGetUsersOrganizations(t *testing.T) {
 	db := createDB(t)
 	defer db.Close()
@@ -118,7 +115,6 @@ func TestGetUsersOrganizations(t *testing.T) {
 	}
 
 	// User is in organization
-
 	isMember, err := repo.UserIsMember(ctx, userID, orgID1)
 	if err != nil {
 		t.Fatalf("failed check user membership: %s", err)

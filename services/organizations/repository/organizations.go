@@ -115,12 +115,12 @@ func (r *OrganizationsRepo) UserIsMember(
 	orgID OrganizationID,
 ) (bool, error) {
 	exists, err := r.db.NewSelect().
-		Model((*data.OrganizationMember)(nil)).
+		Model(&data.OrganizationMember{}).
 		Where("member_id = ?", userID).
 		Where("organization_id = ?", orgID).
 		Exists(ctx)
 	if err != nil {
-		return false, fmt.Errorf("exist organization_member: %w", err)
+		return false, fmt.Errorf("check member record exist: %w", err)
 	}
 
 	return exists, nil
