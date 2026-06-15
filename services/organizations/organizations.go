@@ -2,13 +2,12 @@ package organizations
 
 import (
 	"context"
-	"database/sql"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"github.com/uptrace/bun/driver/sqliteshim"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
@@ -32,14 +31,9 @@ func SetupRoutes(router gin.IRouter) {
 
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
-	db, err := sql.Open(sqliteshim.ShimName, "file:test.db?cache=shared&mode=rwc")
-	if err != nil {
-		panic(err)
-	}
-
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
-	orgsRepository := repository.New(db)
+	orgsRepository := repository.New(db.DB.DB)
 	if err := orgsRepository.Migrate(context.Background()); err != nil {
 		log.Fatal("Failed migrate organizations schema")
 	}

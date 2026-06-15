@@ -121,4 +121,10 @@ func TestGetUsersOrganizations(t *testing.T) {
 	} else if !isMember {
 		t.Fatal("user is not member, but should be")
 	}
+
+	// Create org
+
+	if _, err := repo.CreateOrganization(ctx, "name", userID); err != nil {
+		t.Fatalf("Failed create organization: %s", err)
+	}
 }
