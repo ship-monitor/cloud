@@ -1,6 +1,7 @@
 package organizations
 
 import (
+	"context"
 	"database/sql"
 
 	"charm.land/log/v2"
@@ -38,7 +39,12 @@ func SetupRoutes(router gin.IRouter) {
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
-	orgsService := services.NewOrganizations(repository.New(db))
+	orgsRepository := repository.New(db)
+	if err := orgsRepository.Migrate(context.Background()); err != nil {
+		log.Fatal("Failed migrate organizations schema")
+	}
+
+	orgsService := services.NewOrganizations(orgsRepository)
 	devicesService := services.NewDevices(orgsService)
 
 	webHandler := handlers.New(orgsService, devicesService)
