@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
@@ -111,7 +112,7 @@ func HandleConnectDevice(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	member, err := data.GetMember(orgID, session.UserID)
+	_, err = data.GetMember(orgID, session.UserID)
 	if err != nil {
 		log.Warn(
 			"Access denied for connect device — not a member",
@@ -121,23 +122,6 @@ func HandleConnectDevice(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
-	}
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
-		log.Warn(
-			"Insufficient role for connect device",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-			"role",
-			member.Role,
-		)
-		c.JSON(
-			http.StatusForbidden,
-			dto.Error(errors.New("only owner or administrator can connect devices")),
-		)
 
 		return
 	}
@@ -310,25 +294,12 @@ func HandleGetDevice(c *gin.Context) {
 }
 
 func HandleDisconnectDevice(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in disconnect device request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-
-		return
-	}
-
-	deviceID, err := uuid.Parse(c.Param("deviceId"))
-	if err != nil {
-		log.Warn("Invalid device id in disconnect device request", "deviceId", c.Param("deviceId"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid device id")))
-
-		return
-	}
+	orgID := requests.MustGetParamUUID(c, "id")
+	deviceID := requests.MustGetParamUUID(c, "deviceId")
 
 	session := auth.GetSession(c)
 
-	member, err := data.GetMember(orgID, session.UserID)
+	_, err := data.GetMember(orgID, session.UserID)
 	if err != nil {
 		log.Warn(
 			"Access denied for disconnect device — not a member",
@@ -338,23 +309,6 @@ func HandleDisconnectDevice(c *gin.Context) {
 			session.UserID,
 		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
-	}
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
-		log.Warn(
-			"Insufficient role for disconnect device",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-			"role",
-			member.Role,
-		)
-		c.JSON(
-			http.StatusForbidden,
-			dto.Error(errors.New("only owner or administrator can disconnect devices")),
-		)
 
 		return
 	}
