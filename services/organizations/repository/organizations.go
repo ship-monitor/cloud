@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -57,19 +56,24 @@ func (r *OrganizationsRepo) CreateOrganization(
 ) (OrganizationID, error) {
 	orgID := uuid.New()
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		return errors.Join(
-			insertOrganization(ctx, tx, &data.Organization{
-				ID:        orgID,
-				Name:      name,
-				CreatorID: creatorID,
-				CreatedAt: time.Now(),
-			}),
-			insertMember(ctx, tx, &data.OrganizationMember{
-				MemberID:       creatorID,
-				OrganizationID: orgID,
-				JoinedAt:       time.Now(),
-				Role:           data.RoleOwner,
-			}))
+		if err := insertOrganization(ctx, tx, &data.Organization{
+			ID:        orgID,
+			Name:      name,
+			CreatorID: creatorID,
+			CreatedAt: time.Now(),
+		}); err != nil {
+			return err
+		}
+		if err := insertMember(ctx, tx, &data.OrganizationMember{
+			MemberID:       creatorID,
+			OrganizationID: orgID,
+			JoinedAt:       time.Now(),
+			Role:           data.RoleOwner,
+		}); err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
 		return orgID, fmt.Errorf("create organization: %w", err)
