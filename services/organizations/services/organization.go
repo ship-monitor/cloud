@@ -1,4 +1,4 @@
-package organization
+package services
 
 import (
 	"context"
@@ -8,25 +8,25 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
-type Repository interface {
+type OrganizationsRepository interface {
 	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
 	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*data.Organization, error)
 	UserIsMember(ctx context.Context, userID, orgID uuid.UUID) (bool, error)
 	GetUsersOrganizations(ctx context.Context, userID uuid.UUID) ([]data.Organization, error)
 }
 
-type Service struct {
-	repo Repository
+type OrganizationsService struct {
+	repo OrganizationsRepository
 }
 
-func New(repo Repository) *Service {
-	return &Service{
+func NewOrganizations(repo OrganizationsRepository) *OrganizationsService {
+	return &OrganizationsService{
 		repo: repo,
 	}
 }
 
 // CreateOrganization implements [handlers.OrganizationService].
-func (s *Service) CreateOrganization(ctx context.Context,
+func (s *OrganizationsService) CreateOrganization(ctx context.Context,
 	name string,
 	creatorID uuid.UUID,
 ) (uuid.UUID, error) {
@@ -38,7 +38,7 @@ func (s *Service) CreateOrganization(ctx context.Context,
 	return id, nil
 }
 
-func (s *Service) GetOrganization(
+func (s *OrganizationsService) GetOrganization(
 	ctx context.Context,
 	userID uuid.UUID,
 	id uuid.UUID,
@@ -57,7 +57,7 @@ func (s *Service) GetOrganization(
 	return org, nil
 }
 
-func (s *Service) GetUsersOrganizations(
+func (s *OrganizationsService) GetUsersOrganizations(
 	ctx context.Context,
 	userID uuid.UUID,
 	page int,
@@ -68,4 +68,16 @@ func (s *Service) GetUsersOrganizations(
 	}
 
 	return orgs, nil
+}
+
+func (s *OrganizationsService) IsMember(
+	ctx context.Context,
+	userID, orgID uuid.UUID,
+) (bool, error) {
+	isMember, err := s.repo.UserIsMember(ctx, userID, orgID)
+	if err != nil {
+		return false, fmt.Errorf("failed check user membership of %q: %w", orgID, err)
+	}
+
+	return isMember, nil
 }

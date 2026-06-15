@@ -15,6 +15,25 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
+func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
+	devID := requests.MustGetParamUUID(c, "id")
+	session := auth.GetSession(c)
+
+	device, err := h.devices.GetDevice(c.Request.Context(), devID, session.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Error(err))
+
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.DeviceResponse{
+		ID:             device.ID,
+		Name:           device.Name,
+		CreatedAt:      device.CreatedAt,
+		OrganizationID: device.OrganizationID,
+	})
+}
+
 func HandlePatchDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

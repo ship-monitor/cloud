@@ -34,14 +34,27 @@ type OrganizationService interface {
 		page int,
 	) ([]data.Organization, error)
 }
-
-type HTTPHandler struct {
-	orgs OrganizationService
+type DevicesService interface {
+	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error
+	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
+	RenameDevice(ctx context.Context, deviceID, userID uuid.UUID, name string) error
+	GetDevice(ctx context.Context, deviceID, userID uuid.UUID) (*data.OrganizationDevice, error)
+	GetDevices(
+		ctx context.Context,
+		organizationID, userID uuid.UUID,
+	) ([]data.OrganizationDevice, error)
+	SendCommand(ctx context.Context, deviceID, userID, command string, args map[string]any) error
 }
 
-func New(orgs OrganizationService) *HTTPHandler {
+type HTTPHandler struct {
+	orgs    OrganizationService
+	devices DevicesService
+}
+
+func New(orgs OrganizationService, devices DevicesService) *HTTPHandler {
 	return &HTTPHandler{
-		orgs: orgs,
+		orgs:    orgs,
+		devices: devices,
 	}
 }
 

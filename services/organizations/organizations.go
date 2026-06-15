@@ -12,12 +12,13 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services/organization"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services"
 )
 
 var (
-	_ handlers.OrganizationService = (*organization.Service)(nil)
-	_ organization.Repository      = (*repository.OrganizationsRepo)(nil)
+	_ handlers.OrganizationService     = (*services.OrganizationsService)(nil)
+	_ services.OrganizationsRepository = (*repository.OrganizationsRepo)(nil)
+	_ handlers.DevicesService          = (*services.DevicesService)(nil)
 )
 
 func SetupRoutes(router gin.IRouter) {
@@ -37,11 +38,10 @@ func SetupRoutes(router gin.IRouter) {
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
-	webHandler := handlers.New(
-		organization.New(
-			repository.New(db),
-		),
-	)
+	orgsService := services.NewOrganizations(repository.New(db))
+	devicesService := services.NewDevices(orgsService)
+
+	webHandler := handlers.New(orgsService, devicesService)
 
 	// Роуты с проверкой аутентификации
 	orgs := api.Group("/organizations")
@@ -71,4 +71,7 @@ func SetupRoutes(router gin.IRouter) {
 	api.GET("/invitations", handlers.HandleListMyInvitations)
 	api.POST("/invitations/:id/accept", handlers.HandleAcceptInvitation)
 	api.POST("/invitations/:id/decline", handlers.HandleDeclineInvitation)
+
+	// Devices separate routes
+	api.GET("/devices/:id", webHandler.HandleGetDevice)
 }
