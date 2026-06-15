@@ -83,7 +83,11 @@ func (h *HTTPHandler) HandleGetOrganization(c *gin.Context) {
 	organizationID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	org, err := h.orgs.GetOrganization(c.Request.Context(), organizationID, session.UserID)
+	org, err := h.orgs.GetOrganization(
+		c.Request.Context(),
+		organizationID,
+		session.UserID,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 

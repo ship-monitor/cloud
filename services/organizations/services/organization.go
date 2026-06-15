@@ -40,16 +40,16 @@ func (s *OrganizationsService) CreateOrganization(ctx context.Context,
 
 func (s *OrganizationsService) GetOrganization(
 	ctx context.Context,
+	organizationID uuid.UUID,
 	userID uuid.UUID,
-	id uuid.UUID,
 ) (*data.Organization, error) {
-	if isMember, err := s.repo.UserIsMember(ctx, userID, id); err != nil {
-		return nil, fmt.Errorf("failed check user membership of %q: %w", id, err)
+	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
+		return nil, fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
 	} else if !isMember {
-		return nil, fmt.Errorf("user is not member of organization %q", id)
+		return nil, fmt.Errorf("user is not member of organization %q", organizationID)
 	}
 
-	org, err := s.repo.GetOrganizationByID(ctx, id)
+	org, err := s.repo.GetOrganizationByID(ctx, organizationID)
 	if err != nil {
 		return nil, fmt.Errorf("get org: %w", err)
 	}
