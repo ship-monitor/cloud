@@ -72,11 +72,13 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	id, err := h.orgs.CreateOrganization(c.Request.Context(), req.Name, session.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
-	} else {
-		c.JSON(http.StatusCreated, dto.CreateOrganizationResponse{
-			OrganizationID: id,
-		})
+
+		return
 	}
+
+	c.JSON(http.StatusCreated, dto.CreateOrganizationResponse{
+		OrganizationID: id,
+	})
 }
 
 func (h *HTTPHandler) HandleGetOrganization(c *gin.Context) {

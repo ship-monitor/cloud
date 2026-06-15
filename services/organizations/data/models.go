@@ -15,10 +15,10 @@ import (
 type Organization struct {
 	*bun.BaseModel `bun:"table:organizations"`
 
-	ID                  uuid.UUID            `bun:",pk,type:varchar"      json:"id"`
-	Name                string               `bun:",notnull"              json:"name"`
-	CreatedAt           time.Time            `bun:",nullzero,notnull"     json:"createdAt"`
-	UpdatedAt           time.Time            `bun:",nullzero"     	 json:"updatedAt"`
+	ID                  uuid.UUID            `bun:",pk,type:varchar" json:"id"`
+	Name                string               `bun:",notnull" json:"name"`
+	CreatedAt           time.Time            `bun:",nullzero,notnull" json:"createdAt"`
+	UpdatedAt           time.Time            `bun:",nullzero" json:"updatedAt"`
 	CreatorID           uuid.UUID            `bun:",notnull,type:varchar" json:"creatorId"`
 	OrganizationMembers []OrganizationMember `bun:"rel:has-many,join:id=organization_id"`
 }
