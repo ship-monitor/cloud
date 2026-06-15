@@ -32,7 +32,7 @@ type OrganizationService interface {
 		ctx context.Context,
 		userID uuid.UUID,
 		page int,
-	) ([]data.Organization, error)
+	) ([]*data.Organization, error)
 }
 type DevicesService interface {
 	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error

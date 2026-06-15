@@ -12,7 +12,7 @@ type OrganizationsRepository interface {
 	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
 	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*data.Organization, error)
 	UserIsMember(ctx context.Context, userID, orgID uuid.UUID) (bool, error)
-	GetUsersOrganizations(ctx context.Context, userID uuid.UUID) ([]data.Organization, error)
+	GetUsersOrganizations(ctx context.Context, userID uuid.UUID) ([]*data.Organization, error)
 }
 
 type OrganizationsService struct {
@@ -61,7 +61,7 @@ func (s *OrganizationsService) GetUsersOrganizations(
 	ctx context.Context,
 	userID uuid.UUID,
 	page int,
-) ([]data.Organization, error) {
+) ([]*data.Organization, error) {
 	orgs, err := s.repo.GetUsersOrganizations(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get users orgs: %w", err)
