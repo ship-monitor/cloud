@@ -11,15 +11,17 @@ import (
 func SetupRoutes(router gin.IRouter) {
 	data.Migrate()
 	middleware := auth.DefaultMiddleware(viper.GetViper())
+
+	h := handlers.NewAuthHandlers()
 	auth := router.Group("/api/auth")
-	auth.POST("/register", handlers.HandleRegister)
-	auth.POST("/login", handlers.HandleLogin)
-	auth.POST("/refresh", middleware.WithMiddleware, handlers.HandleRefresh)
+	auth.POST("/register", h.HandleRegister)
+	auth.POST("/login", h.HandleLogin)
+	auth.POST("/refresh", middleware.WithMiddleware, h.HandleRefresh)
 
 	users := router.Group("/api/users", middleware.WithAuthenticationRequired)
-	users.GET("/:id", handlers.HandleGetUser)
-	users.GET("/", handlers.HandleGetUsersList)
-	users.POST("/:id/set-password", handlers.HandleUserSetPassword)
-	users.POST("/:id/set-email", handlers.HandleUserSetEmail)
-	users.POST("/:id/block", handlers.HandleUserBlock)
+	users.GET("/:id", h.HandleGetUser)
+	users.GET("/", h.HandleGetUsersList)
+	users.POST("/:id/set-password", h.HandleUserSetPassword)
+	users.POST("/:id/set-email", h.HandleUserSetEmail)
+	users.POST("/:id/block", h.HandleUserBlock)
 }

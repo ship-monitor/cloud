@@ -10,7 +10,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
-func HandleGetUser(ctx *gin.Context) {
+func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
@@ -30,7 +30,7 @@ func HandleGetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
 
-func HandleGetUsersList(ctx *gin.Context) {
+func (a *AuthHandlers) HandleGetUsersList(ctx *gin.Context) {
 	page := 0
 
 	pageStr, ok := ctx.GetQuery("page")
@@ -57,7 +57,7 @@ func HandleGetUsersList(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"users": users})
 }
 
-func HandleUserSetPassword(ctx *gin.Context) {
+func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
@@ -93,7 +93,7 @@ func HandleUserSetPassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func HandleUserSetEmail(ctx *gin.Context) {
+func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)
@@ -129,7 +129,7 @@ func HandleUserSetEmail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func HandleUserBlock(ctx *gin.Context) {
+func (a *AuthHandlers) HandleUserBlock(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
 	session := auth.GetSession(ctx)

@@ -13,6 +13,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
+var ErrEmailAlreadyTaken = errors.New("email already taken")
+
 type User struct {
 	*bun.BaseModel `bun:"table:users"`
 
@@ -27,6 +29,7 @@ type User struct {
 }
 
 // NewUser creates new user in database.
+// Returns [ErrEmailAlreadyTaken].
 func NewUser(name, email, password string) (*User, error) {
 	if name == "" || email == "" || password == "" {
 		return nil, fmt.Errorf("name, email and password are required")
@@ -35,7 +38,7 @@ func NewUser(name, email, password string) (*User, error) {
 	if taken, err := checkEmailTaken(email); err != nil {
 		return nil, fmt.Errorf("failed check email availability: %w", err)
 	} else if taken {
-		return nil, fmt.Errorf("new user: %w", err)
+		return nil, fmt.Errorf("new user: %w", ErrEmailAlreadyTaken)
 	}
 
 	user := User{
@@ -94,22 +97,21 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-var ErrEmailAlreadyTaken = errors.New("email already taken")
-
 func (u *User) CheckPassword(password string) bool {
 	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
 }
 
 func checkEmailTaken(email string) (bool, error) {
-	count, err := db.DB.NewSelect().
+	taken, err := db.DB.NewSelect().
 		Model((*User)(nil)).
+		Column("email").
 		Where("email = ?", normalizeEmail(email)).
-		Count(context.TODO())
+		Exists(context.TODO())
 	if err != nil {
 		return false, err
 	}
 
-	return count > 0, nil
+	return taken, nil
 }
 
 func (u *User) SetPassword(password string) error {

@@ -8,7 +8,6 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/auth"
@@ -16,63 +15,28 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
-func mapErrors(vErrors validator.ValidationErrors) []gin.H {
-	res := []gin.H{}
-
-	for _, err := range vErrors {
-		res = append(res, gin.H{
-			"field":       err.Field(),
-			"error":       err.Error(),
-			"actualTag":   err.ActualTag(),
-			"tag":         err.Tag(),
-			"structField": err.StructField(),
-		})
-	}
-
-	return res
-}
-
-func bindJSON(ctx *gin.Context, data any) {
-	if err := ctx.ShouldBindJSON(data); err != nil {
-		if vErrors, ok := err.(validator.ValidationErrors); ok {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"details":          "body validation fails",
-				"validationErrors": mapErrors(vErrors),
-			})
-			// panic("validation fails")
-			log.Error("Validation fails", "error", err)
-		}
-		log.Error("Failed to bind JSON", "error", err)
-		ctx.AbortWithStatusJSON(
-			http.StatusBadRequest,
-			gin.H{"details": "failed get JSON body: " + err.Error()},
-		)
-
-		return
-	}
-}
-
-func HandleRegister(c *gin.Context) {
+func (a *AuthHandlers) HandleRegister(c *gin.Context) {
 	var request struct {
 		Name     string `json:"name" binding:"required"`
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	bindJSON(c, &request)
+	a.bindJSON(c, &request)
 
 	user, err := data.NewUser(
 		request.Name, request.Email, request.Password,
 	)
 	if err != nil {
+		a.logger.Error("Failed create new user", "error", err)
+
 		if errors.Is(err, data.ErrEmailAlreadyTaken) {
-			log.Error("Email already taken", "email", request.Email)
+			a.logger.Error("Email already taken", "email", request.Email)
 			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"details": "email already taken",
 			})
 
 			return
 		}
-		log.Error("Failed create new user", "error", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{})
 
 		return
@@ -81,12 +45,12 @@ func HandleRegister(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"user": user})
 }
 
-func HandleLogin(c *gin.Context) {
+func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 	var request struct {
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	bindJSON(c, &request)
+	a.bindJSON(c, &request)
 
 	user, err := data.GetUserByEmail(request.Email)
 	if err != nil {
@@ -114,11 +78,11 @@ func HandleLogin(c *gin.Context) {
 	})
 }
 
-func HandleRefresh(c *gin.Context) {
+func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 	var request struct {
 		RefreshToken string `json:"refreshToken" binding:"required"`
 	}
-	bindJSON(c, &request)
+	a.bindJSON(c, &request)
 
 	middleware := auth.GetMiddleware(c)
 
