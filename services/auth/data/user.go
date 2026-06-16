@@ -13,6 +13,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
+const PageLimit = 20
+
 var ErrEmailAlreadyTaken = errors.New("email already taken")
 
 type User struct {
@@ -70,10 +72,6 @@ func hashPassword(password string) []byte {
 	}
 
 	return hash
-}
-
-func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
 }
 
 func GetUser(id uuid.UUID) (*User, error) {
@@ -152,8 +150,6 @@ func (u *User) Block() error {
 
 	return err
 }
-
-const PageLimit = 20
 
 func GetUsersList(page int) ([]User, error) {
 	if page < 0 {

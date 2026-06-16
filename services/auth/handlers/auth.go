@@ -15,6 +15,11 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
+const (
+	tokenTTL        = time.Minute * 5
+	refreshTokenTTL = time.Hour * 24
+)
+
 func (a *AuthHandlers) HandleRegister(c *gin.Context) {
 	var request struct {
 		Name     string `json:"name" binding:"required"`
@@ -60,7 +65,7 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	if !user.ComparePassword(request.Password) {
+	if !user.CheckPassword(request.Password) {
 		log.Error("Invalid password", "email", request.Email)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"details": "invalid credentials",
@@ -113,11 +118,6 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 		"refreshToken": refreshToken,
 	})
 }
-
-const (
-	tokenTTL        = time.Minute * 5
-	refreshTokenTTL = time.Hour * 24
-)
 
 func createTokens(userID uuid.UUID, email string) (token, refreshToken string) {
 	token = createJWT(userID, email)
