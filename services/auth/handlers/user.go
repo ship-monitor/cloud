@@ -22,7 +22,9 @@ func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
 
 	user, err := data.GetUser(id)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusNotFound)
+		ctx.AbortWithStatusJSON(http.StatusNotFound, requests.BadResponse{
+			Details: err.Error(),
+		})
 
 		return
 	}
@@ -40,7 +42,9 @@ func (a *AuthHandlers) HandleGetUsersList(ctx *gin.Context) {
 		if err != nil || page < 0 {
 			ctx.AbortWithStatusJSON(
 				http.StatusBadRequest,
-				gin.H{"details": "invalid page query parameter"},
+				requests.BadResponse{
+					Details: "invalid page query parameters",
+				},
 			)
 
 			return
@@ -49,7 +53,10 @@ func (a *AuthHandlers) HandleGetUsersList(ctx *gin.Context) {
 
 	users, err := data.GetUsersList(page)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.BadResponse{Details: err.Error()},
+		)
 
 		return
 	}
@@ -98,7 +105,10 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 
 	session := auth.GetSession(ctx)
 	if session.UserID != id {
-		ctx.AbortWithStatus(http.StatusNotFound)
+		ctx.AbortWithStatusJSON(
+			http.StatusForbidden,
+			requests.BadResponse{Details: "not allowed to set email for this user"},
+		)
 
 		return
 	}
@@ -115,14 +125,17 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 
 	user, err := data.GetUser(id)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusNotFound)
+		ctx.AbortWithStatusJSON(http.StatusNotFound, requests.BadResponse{Details: err.Error()})
 
 		return
 	}
 
 	err = user.SetEmail(request.Email)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.BadResponse{Details: err.Error()},
+		)
 
 		return
 	}
