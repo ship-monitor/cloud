@@ -79,10 +79,15 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 
 	token := genEmailConfirmationToken()
 
-	if err := a.redis.Set(ctx, token, &EmailConfirmationData{
+	data, err := json.Marshal(&EmailConfirmationData{
 		Email:  user.Email,
 		UserID: userID,
-	}, EmailConfirmationTTL).Err(); err != nil {
+	})
+	if err != nil {
+		return fmt.Errorf("failed marshal data: %w", err)
+	}
+
+	if err := a.redis.Set(ctx, token, data, EmailConfirmationTTL).Err(); err != nil {
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 	e, err := NewHTMLEmail(user.Email, user.Name, "Email confirmation", fmt.Sprintf(`
