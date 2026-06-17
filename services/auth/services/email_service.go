@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/smtp"
 
+	"charm.land/log/v2"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -38,7 +39,7 @@ func NewEmailService(conf EmailServiceConfig) (*EmailService, error) {
 // SendEmail implements [EmailSender].
 func (e *EmailService) SendEmail(ctx context.Context, email IEmail) error {
 	msg := email.WriteEmail(e.conf.SenderName, e.conf.AuthEmail)
-
+	log.Info("Email", "msg", string(msg))
 	err := smtp.SendMail(
 		fmt.Sprintf("%s:%d", e.conf.SMTPHost, e.conf.SMTPPort),
 		e.auth,
