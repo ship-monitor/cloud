@@ -35,6 +35,7 @@ func NewAuthService(
 	return &AuthService{
 		logger: logger.WithPrefix("Auth service"),
 		redis:  redisClient,
+		email:  email,
 	}
 }
 
