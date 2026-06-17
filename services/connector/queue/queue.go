@@ -8,7 +8,7 @@ import (
 	"charm.land/log/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/amqputils"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/amqputils"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 )
 
