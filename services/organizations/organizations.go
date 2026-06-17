@@ -74,4 +74,5 @@ func SetupRoutes(router gin.IRouter) {
 
 	// Devices separate routes
 	api.GET("/devices/:id", webHandler.HandleGetDevice)
+	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
 }

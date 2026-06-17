@@ -66,7 +66,26 @@ func (d *DevicesService) RenameDevice(
 	deviceID, userID uuid.UUID,
 	name string,
 ) error {
-	panic("unimplemented")
+	if name == "" {
+		return fmt.Errorf("empty device name")
+	}
+
+	dev, err := data.GetDevice(deviceID)
+	if err != nil {
+		return fmt.Errorf("get device: %w", err)
+	}
+
+	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+		return fmt.Errorf("is member: %w", err)
+	} else if !isMember {
+		return ErrNotMember
+	}
+
+	if err := dev.SetName(ctx, name); err != nil {
+		return fmt.Errorf("set device name: %w", err)
+	}
+
+	return nil
 }
 
 // SendCommand implements [handlers.DevicesService].

@@ -13,6 +13,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services"
 )
 
 func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
@@ -32,6 +33,31 @@ func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
 		CreatedAt:      device.CreatedAt,
 		OrganizationID: device.OrganizationID,
 	})
+}
+
+func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
+	devID := requests.MustGetParamUUID(c, "id")
+	session := auth.GetSession(c)
+	var req dto.UpdateDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("bad request: %w", err)))
+
+		return
+	}
+
+	err := h.devices.RenameDevice(c.Request.Context(), devID, session.UserID, req.Name)
+
+	switch {
+	case errors.Is(err, services.ErrNotMember):
+		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+	case err != nil:
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			dto.Error(fmt.Errorf("internal server error: %w", err)),
+		)
+	default:
+		c.Status(http.StatusOK)
+	}
 }
 
 func HandlePatchDevice(c *gin.Context) {
