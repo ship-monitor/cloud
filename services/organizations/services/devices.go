@@ -30,7 +30,22 @@ func (d *DevicesService) ConnectDevice(
 
 // DisconnectDevice implements [handlers.DevicesService].
 func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error {
-	panic("unimplemented")
+	dev, err := data.GetDevice(deviceID)
+	if err != nil {
+		return fmt.Errorf("get device: %w", err)
+	}
+
+	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+		return fmt.Errorf("check is member: %w", err)
+	} else if !isMember {
+		return ErrNotMember
+	}
+
+	if err := data.DisconnectDevice(dev.ID); err != nil {
+		return fmt.Errorf("disconnect device: %w", err)
+	}
+
+	return nil
 }
 
 // GetDevice implements [handlers.DevicesService].

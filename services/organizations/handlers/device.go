@@ -60,6 +60,9 @@ func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
 	}
 }
 
+// HandlePatchDevice
+//
+// Deprecated: use [HTTPHandler.HandlePatchDevice].
 func HandlePatchDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -278,6 +281,9 @@ func HandleListDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"devices": resp})
 }
 
+// HandleGetDevice
+//
+// Deprecated: use [HTTPHandler.HandleGetDevice].
 func HandleGetDevice(c *gin.Context) {
 	orgID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -338,6 +344,23 @@ func HandleGetDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, device)
 }
 
+func (h *HTTPHandler) HandleDisconnectDevice(ctx *gin.Context) {
+	devID := requests.MustGetParamUUID(ctx, "id")
+	session := auth.GetSession(ctx)
+	err := h.devices.DisconnectDevice(ctx.Request.Context(), devID, session.UserID)
+	switch {
+	case errors.Is(err, services.ErrNotMember):
+		ctx.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+	case err != nil:
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
+	default:
+		ctx.Status(http.StatusOK)
+	}
+}
+
+// HandleDisconnect Device
+//
+// Deprecated: use [HTTPHandler.HandleDisconnectDevice].
 func HandleDisconnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	deviceID := requests.MustGetParamUUID(c, "deviceId")
