@@ -40,8 +40,8 @@ func NewHTMLEmail(receiverAddress, receiverName, title, content string) (*HTMLEm
 }
 
 func (e HTMLEmail) WriteEmail(senderName, senderEmail string) []byte {
-	message := fmt.Sprintf("From: %s <%s>", senderName, senderEmail) +
-		fmt.Sprintf("To: user <%s>", e.receiverEmail) +
+	message := fmt.Sprintf("From: %s <%s>\n", senderName, senderEmail) +
+		fmt.Sprintf("To: user <%s>\n", e.receiverEmail) +
 		fmt.Sprintf("Subject: %s\n", e.title) +
 		fmt.Sprintf("Content-Type: %s\n", ContentTypeHTML) +
 		fmt.Sprintf("Message-ID: %s\n", uuid.New().String()) +
