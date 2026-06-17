@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -8,7 +9,55 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/services"
 )
+
+func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
+	session := auth.GetSession(ctx)
+	err := a.authService.StartEmailConfirmation(ctx.Request.Context(), session.UserID)
+	if err != nil {
+		if errors.Is(err, services.ErrEmailAlreadyConfirmed) {
+			ctx.AbortWithStatusJSON(http.StatusNotModified, requests.BadResponse{
+				Details: err.Error(),
+			})
+
+			return
+		}
+
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.BadResponse{Details: err.Error()},
+		)
+
+		return
+	}
+	ctx.Status(http.StatusOK)
+}
+
+func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
+	session := auth.GetSession(ctx)
+
+	token := ctx.Param("token")
+
+	err := a.authService.ConfirmEmail(ctx.Request.Context(), session.UserID, token)
+	if err != nil {
+		if errors.Is(err, services.ErrEmailAlreadyConfirmed) {
+			ctx.AbortWithStatusJSON(http.StatusNotModified, requests.BadResponse{
+				Details: err.Error(),
+			})
+
+			return
+		}
+
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.BadResponse{Details: err.Error()},
+		)
+
+		return
+	}
+	ctx.Status(http.StatusOK)
+}
 
 func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")

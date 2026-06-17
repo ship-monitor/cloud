@@ -12,6 +12,7 @@ import (
 
 type AuthService interface {
 	StartEmailConfirmation(ctx context.Context, userID uuid.UUID) error
+	ConfirmEmail(ctx context.Context, userID uuid.UUID, token string) error
 }
 
 type AuthHandlers struct {

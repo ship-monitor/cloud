@@ -66,7 +66,7 @@ func genEmailConfirmationToken() string {
 }
 
 // StartEmailConfirmation implements [handlers.AuthService].
-// Returns [ErrAlreadyConfirmed] if it is so.
+// Returns [ErrEmailAlreadyConfirmed] if it is so.
 func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UUID) error {
 	user, err := a.GetUser(ctx, userID)
 	if err != nil {
@@ -74,7 +74,7 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 	}
 
 	if user.EmailVerified {
-		return ErrAlreadyConfirmed
+		return ErrEmailAlreadyConfirmed
 	}
 
 	token := genEmailConfirmationToken()
@@ -102,25 +102,23 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 	return nil
 }
 
-var ErrAlreadyConfirmed = fmt.Errorf("user email already confirmed")
+var ErrEmailAlreadyConfirmed = fmt.Errorf("user email already confirmed")
 
-// ConfirmEmail try to confirm email by token. Returns [ErrAlreadyConfirmed] if it is so.
-func (a *AuthService) ConfirmEmail(ctx context.Context, token string) error {
+// ConfirmEmail try to confirm email by token. Returns [ErrEmailAlreadyConfirmed] if it is so.
+func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token string) error {
 	value, err := a.redis.Get(ctx, token).Result()
 	if err != nil {
 		return fmt.Errorf("get confirmation data: %w", err)
 	}
 
-	defer func() {
-		if err := a.redis.Del(ctx, token).Err(); err != nil {
-			log.Warn("failed delete redis key", "key", token, "error", err)
-		}
-	}()
-
 	var confData EmailConfirmationData
 
 	if err := json.Unmarshal([]byte(value), &confData); err != nil {
 		return fmt.Errorf("bad confirmation data: %w", err)
+	}
+
+	if confData.UserID != userID {
+		return fmt.Errorf("wrong user to confirm email")
 	}
 
 	user, err := a.GetUser(ctx, confData.UserID)
@@ -133,7 +131,7 @@ func (a *AuthService) ConfirmEmail(ctx context.Context, token string) error {
 	}
 
 	if user.EmailVerified {
-		return ErrAlreadyConfirmed
+		return ErrEmailAlreadyConfirmed
 	}
 
 	if err := data.SetEmailVerified(ctx, user.ID); err != nil {

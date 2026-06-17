@@ -46,4 +46,6 @@ func SetupRoutes(router gin.IRouter) {
 	users.POST("/:id/set-password", h.HandleUserSetPassword)
 	users.POST("/:id/set-email", h.HandleUserSetEmail)
 	users.POST("/:id/block", h.HandleUserBlock)
+	users.POST("/start-email-confirmation", h.HandleStartEmailConfirmation)
+	users.POST("/confirm-email/:token", h.HandleConfirmEmail)
 }
