@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
@@ -106,8 +107,21 @@ func (d *DevicesService) RenameDevice(
 // SendCommand implements [handlers.DevicesService].
 func (d *DevicesService) SendCommand(
 	ctx context.Context,
-	deviceID, userID, command string,
+	deviceID, userID uuid.UUID, command string,
 	args map[string]any,
-) error {
-	panic("unimplemented")
+) (*commands.CommandResponse, error) {
+	dev, err := data.GetDevice(deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("get device: %w", err)
+	}
+
+	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+		return nil, fmt.Errorf("is member: %w", err)
+	} else if !isMember {
+		return nil, ErrNotMember
+	}
+	cmd := commands.NewCommand(deviceID.String(), command, args)
+	result := commands.SendCommand(ctx, cmd)
+
+	return &result, nil
 }

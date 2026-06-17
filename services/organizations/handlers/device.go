@@ -340,23 +340,43 @@ func HandleDisconnectDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
+func (h *HTTPHandler) HandleSendCommand(c *gin.Context) {
+	deviceID := requests.MustGetParamUUID(c, "id")
+	session := auth.GetSession(c)
+
+	var req dto.SendCommandRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
+
+		return
+	}
+
+	resp, err := h.devices.SendCommand(
+		c.Request.Context(),
+		deviceID,
+		session.UserID,
+		req.Command,
+		req.Args,
+	)
+
+	switch {
+	case errors.Is(err, services.ErrNotMember):
+		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+	case err != nil:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
+	case resp.RequestError != "" || resp.CommandError != "":
+		c.AbortWithStatusJSON(http.StatusBadRequest, resp)
+	default:
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
+// HandleSendCommand
+//
+// Deprecated: use [HTTPHandler.HandleSendCommand].
 func HandleSendCommand(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in send command request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-
-		return
-	}
-
-	deviceID, err := uuid.Parse(c.Param("deviceId"))
-	if err != nil {
-		log.Warn("Invalid device id in send command request", "deviceId", c.Param("deviceId"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid device id")))
-
-		return
-	}
-
+	orgID := requests.MustGetParamUUID(c, "id")
+	deviceID := requests.MustGetParamUUID(c, "deviceId")
 	session := auth.GetSession(c)
 
 	if _, err := data.GetMember(orgID, session.UserID); err != nil {

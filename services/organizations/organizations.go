@@ -76,4 +76,5 @@ func SetupRoutes(router gin.IRouter) {
 	api.GET("/devices/:id", webHandler.HandleGetDevice)
 	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
 	api.DELETE("/devices/:id", webHandler.HandleDisconnectDevice)
+	api.POST("/devices/:id/command", webHandler.HandleSendCommand)
 }

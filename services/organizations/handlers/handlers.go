@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
@@ -43,7 +44,11 @@ type DevicesService interface {
 		ctx context.Context,
 		organizationID, userID uuid.UUID,
 	) ([]data.OrganizationDevice, error)
-	SendCommand(ctx context.Context, deviceID, userID, command string, args map[string]any) error
+	SendCommand(
+		ctx context.Context,
+		deviceID, userID uuid.UUID, command string,
+		args map[string]any,
+	) (*commands.CommandResponse, error)
 }
 
 type HTTPHandler struct {
