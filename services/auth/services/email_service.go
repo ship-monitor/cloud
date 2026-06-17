@@ -12,7 +12,7 @@ var _ EmailSender = (*EmailService)(nil)
 
 type EmailServiceConfig struct {
 	SMTPHost     string `validate:"required,hostname"`
-	SMTPPort     int    `validate:"required,port"`
+	SMTPPort     uint   `validate:"required,port"`
 	AuthEmail    string `validate:"required,email"`
 	AuthPassword string `validate:"required"`
 

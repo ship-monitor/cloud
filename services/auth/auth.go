@@ -23,7 +23,7 @@ func SetupRoutes(router gin.IRouter) {
 
 	email, err := services.NewEmailService(services.EmailServiceConfig{
 		SMTPHost:     viper.GetString("email.smtp-host"),
-		SMTPPort:     viper.GetInt("email.smtp-port"),
+		SMTPPort:     viper.GetUint("email.smtp-port"),
 		SenderName:   viper.GetString("email.sender-name"),
 		AuthEmail:    viper.GetString("email.email"),
 		AuthPassword: viper.GetString("email.password"),
