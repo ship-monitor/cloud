@@ -18,7 +18,7 @@ func SetupRoutes(router gin.IRouter) {
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: "redis:6379",
 	})
 
 	email, err := services.NewEmailService(services.EmailServiceConfig{

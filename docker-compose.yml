@@ -68,9 +68,27 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - auth-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "rabbitmq-diagnostics --quiet check_running && rabbitmq-diagnostics --quiet check_local_alarms",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
   # REDIS
   redis:
     image: redis:7.4-alpine
     restart: always
     ports:
       - "6379:6379"
+    networks:
+      - auth-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
