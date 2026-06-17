@@ -57,8 +57,8 @@ func (a *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*data.User
 }
 
 type EmailConfirmationData struct {
-	Email  string
-	UserID uuid.UUID
+	Email  string    `json:"email"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 func genEmailConfirmationToken() string {
