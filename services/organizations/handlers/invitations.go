@@ -17,58 +17,18 @@ import (
 )
 
 func HandleCreateInvitation(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in create invitation request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-
-		return
-	}
-
+	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	member, err := data.GetMember(orgID, session.UserID)
+	_, err := data.GetMember(orgID, session.UserID)
 	if err != nil {
-		log.Warn(
-			"Access denied for create invitation — not a member",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
-	}
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
-		log.Warn(
-			"Insufficient role for create invitation",
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-			"role",
-			member.Role,
-		)
-		c.JSON(
-			http.StatusForbidden,
-			dto.Error(errors.New("only owner or administrator can invite members")),
-		)
 
 		return
 	}
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		log.Warn(
-			"Failed to read invitation request body",
-			"error",
-			err,
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("failed to read request body")))
 
 		return
@@ -80,15 +40,6 @@ func HandleCreateInvitation(c *gin.Context) {
 	if err := json.Unmarshal(body, &singleReq); err == nil && singleReq.InviteeEmail != "" {
 		inv, err := createInvitation(orgID, singleReq.InviteeEmail)
 		if err != nil {
-			log.Warn(
-				"Failed to create invitation",
-				"error",
-				err,
-				"organization",
-				orgID,
-				"email",
-				singleReq.InviteeEmail,
-			)
 			c.JSON(http.StatusConflict, dto.Error(err))
 
 			return
@@ -108,15 +59,6 @@ func HandleCreateInvitation(c *gin.Context) {
 		for _, email := range bulkReq.InviteeEmails {
 			inv, err := createInvitation(orgID, email)
 			if err != nil {
-				log.Warn(
-					"Failed to create invitation in bulk",
-					"error",
-					err,
-					"organization",
-					orgID,
-					"email",
-					email,
-				)
 				errs = append(errs, email+": "+err.Error())
 			} else {
 				created = append(created, invitationToDTO(inv))
@@ -128,7 +70,6 @@ func HandleCreateInvitation(c *gin.Context) {
 		return
 	}
 
-	log.Warn("Invalid invitation request body", "organization", orgID, "user", session.UserID)
 	c.JSON(
 		http.StatusBadRequest,
 		dto.Error(errors.New("invalid request: expected inviteeEmail or inviteeEmails")),
@@ -233,52 +174,28 @@ func HandleListOrgInvitations(c *gin.Context) {
 
 func HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
+	session := auth.GetSession(c)
 
 	inv, err := data.GetInvitationByID(invID)
 	if err != nil {
-		log.Warn("Invitation not found for accept", "invitation", invID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
 
 		return
 	}
 
 	if inv.Status != data.StatusPending {
-		log.Warn(
-			"Attempt to accept already processed invitation",
-			"invitation",
-			invID,
-			"status",
-			inv.Status,
-		)
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invitation already processed")))
 
 		return
 	}
 
 	if time.Now().After(inv.ExpiresAt) {
-		log.Warn(
-			"Attempt to accept expired invitation",
-			"invitation",
-			invID,
-			"expiresAt",
-			inv.ExpiresAt,
-		)
 		c.JSON(http.StatusGone, dto.Error(errors.New("invitation expired")))
 
 		return
 	}
 
-	session := auth.GetSession(c)
 	if session.Email != inv.InviteeEmail {
-		log.Warn(
-			"User is not the invitee",
-			"invitation",
-			invID,
-			"user",
-			session.UserID,
-			"invitee",
-			inv.InviteeEmail,
-		)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("you are not the invitee")))
 
 		return
@@ -286,45 +203,17 @@ func HandleAcceptInvitation(c *gin.Context) {
 
 	alreadyMember, err := data.IsMember(session.UserID, inv.OrganizationID)
 	if err != nil {
-		log.Error(
-			"Failed to check membership on accept",
-			"error",
-			err,
-			"invitation",
-			invID,
-			"user",
-			session.UserID,
-		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
 	}
 	if alreadyMember {
-		log.Warn(
-			"User is already a member on accept",
-			"invitation",
-			invID,
-			"user",
-			session.UserID,
-			"organization",
-			inv.OrganizationID,
-		)
-		c.JSON(
-			http.StatusConflict,
-			dto.Error(errors.New("you are already a member of this organization")),
-		)
+		c.JSON(http.StatusConflict, dto.Error(errors.New("you are already a member")))
 
 		return
 	}
 
 	if err := data.UpdateInvitationStatus(invID, data.StatusAccepted); err != nil {
-		log.Error(
-			"Failed to update invitation status to accepted",
-			"error",
-			err,
-			"invitation",
-			invID,
-		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
@@ -336,17 +225,6 @@ func HandleAcceptInvitation(c *gin.Context) {
 		Role:           data.RoleMember,
 		JoinedAt:       time.Now(),
 	}); err != nil {
-		log.Error(
-			"Failed to add member after invitation accept",
-			"error",
-			err,
-			"invitation",
-			invID,
-			"user",
-			session.UserID,
-			"organization",
-			inv.OrganizationID,
-		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
