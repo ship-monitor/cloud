@@ -17,6 +17,7 @@ func Setup() {
 	_ = godotenv.Load()
 	viper.SetConfigName("ship")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc")
 	if err := viper.ReadInConfig(); err != nil {
 		log.Warn("Failed to read config file, using environment variables only", "error", err)
 	}

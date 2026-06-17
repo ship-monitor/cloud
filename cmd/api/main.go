@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	"charm.land/log/v2"
@@ -50,6 +51,12 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           maxAge,
 	}))
+
+	server.GET("/api/health", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"healthy": true,
+		})
+	})
 
 	auth.SetupRoutes(server)
 	organizations.SetupRoutes(server)

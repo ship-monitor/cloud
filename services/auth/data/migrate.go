@@ -22,6 +22,7 @@ func Migrate() {
 	panicIfErr(err)
 
 	_, err = db.DB.NewCreateIndex().
+		IfNotExists().
 		Model((*User)(nil)).
 		Index("idx_users_email").
 		Column("email").
