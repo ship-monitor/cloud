@@ -13,6 +13,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     ports:
       - "8080:8080"
       - "8071:8071"
@@ -66,3 +68,9 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - auth-net
+  # REDIS
+  redis:
+    image: redis:7.4-alpine
+    restart: always
+    ports:
+      - "6379:6379"

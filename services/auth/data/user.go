@@ -151,6 +151,23 @@ func (u *User) Block() error {
 	return err
 }
 
+func SetEmailVerified(ctx context.Context, userID uuid.UUID) error {
+	_, err := db.DB.NewUpdate().
+		Model(&User{
+			ID:            userID,
+			EmailVerified: true,
+			UpdatedAt:     time.Now(),
+		}).
+		Column("email_verified", "updated_at").
+		WherePK().
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("set email verified: %w", err)
+	}
+
+	return nil
+}
+
 func GetUsersList(page int) ([]User, error) {
 	if page < 0 {
 		return nil, fmt.Errorf("invalid page value '%d'", page)

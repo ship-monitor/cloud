@@ -1,18 +1,40 @@
 package auth
 
 import (
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/handlers"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/services"
 )
+
+var _ handlers.AuthService = (*services.AuthService)(nil)
 
 func SetupRoutes(router gin.IRouter) {
 	data.Migrate()
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
-	h := handlers.NewAuthHandlers()
+	rdb := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	email, err := services.NewEmailService(services.EmailServiceConfig{
+		SMTPHost:     viper.GetString("email.smtp-host"),
+		SMTPPort:     viper.GetInt("email.smtp-port"),
+		SenderName:   viper.GetString("email.sender-name"),
+		AuthEmail:    viper.GetString("email.email"),
+		AuthPassword: viper.GetString("email.password"),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	authService := services.NewAuthService(log.Default(), rdb, email)
+	h := handlers.NewAuthHandlers(authService)
+
 	auth := router.Group("/api/auth")
 	auth.POST("/register", h.HandleRegister)
 	auth.POST("/login", h.HandleLogin)

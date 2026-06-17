@@ -1,20 +1,28 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
-type AuthHandlers struct {
-	logger *log.Logger
+type AuthService interface {
+	StartEmailConfirmation(ctx context.Context, userID uuid.UUID) error
 }
 
-func NewAuthHandlers() *AuthHandlers {
+type AuthHandlers struct {
+	logger      *log.Logger
+	authService AuthService
+}
+
+func NewAuthHandlers(authService AuthService) *AuthHandlers {
 	return &AuthHandlers{
-		logger: log.WithPrefix("Auth handlers"),
+		authService: authService,
+		logger:      log.WithPrefix("Auth handlers"),
 	}
 }
 
