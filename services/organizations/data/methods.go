@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -34,19 +35,23 @@ func RemoveMember(orgID, userID uuid.UUID) error {
 		Model((*OrganizationMember)(nil)).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("delete member: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 // GetMember возвращает информацию об участнике.
 func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
 	var member OrganizationMember
+
 	err := db.DB.NewSelect().
 		Model(&member).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Scan(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("member not found")
+		return nil, errors.New("member not found")
 	}
 
 	return &member, nil
@@ -55,6 +60,7 @@ func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
 // GetMembersWithUserInfo возвращает участников организации с информацией о пользователях.
 func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 	var members []MemberWithUser
+
 	err := db.DB.NewSelect().
 		TableExpr("organization_members AS om").
 		ColumnExpr("om.member_id, om.organization_id, om.role, om.joined_at, u.name, u.email").
@@ -117,6 +123,7 @@ func DeleteOrganization(id uuid.UUID) error {
 // GetOrganizationsByMember возвращает все организации пользователя.
 func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 	var orgs []Organization
+
 	err := db.DB.NewSelect().
 		Model(&orgs).
 		Join("JOIN organization_members AS om ON om.organization_id = organization.id").
@@ -133,6 +140,9 @@ func IsMember(userID, orgID uuid.UUID) (bool, error) {
 		Model((*OrganizationMember)(nil)).
 		Where("member_id = ? AND organization_id = ?", userID, orgID).
 		Exists(context.Background())
+	if err != nil {
+		return false, fmt.Errorf("select member: %w", err)
+	}
 
-	return exists, err
+	return exists, nil
 }

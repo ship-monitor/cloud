@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ func main() {
 
 	db.Setup()
 	keyval.Setup()
+
 	defer keyval.Close()
 
 	if viper.GetBool("devel") {
@@ -32,7 +34,9 @@ func main() {
 	}
 
 	config.Config.RegisterAlias("jwt-security-key", "security-key")
+
 	server := gin.Default()
+
 	if viper.GetBool("devel") {
 		gin.SetMode(gin.DebugMode)
 	}
@@ -60,14 +64,16 @@ func main() {
 
 	auth.SetupRoutes(server)
 	organizations.SetupRoutes(server)
+
 	if viper.GetBool("services.connector.enable") {
 		log.Info("Connector service enabled")
-		connector.Setup(server)
+		connector.Setup(context.Background(), server)
 	} else {
 		log.Warn("Connector service disabled")
 	}
 
-	if err := server.Run(":8080"); err != nil {
-		log.Fatal("failed to start server", "error", err)
+	err := server.Run(":8080")
+	if err != nil {
+		log.Error("failed to start server", "error", err)
 	}
 }

@@ -3,22 +3,19 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
-type IEmail interface {
-	WriteEmail(senderName, senderEmail string) []byte
-	ReceiverEmail() string
-}
-
 type EmailSender interface {
-	SendEmail(ctx context.Context, email IEmail) error
+	SendEmail(ctx context.Context, e email.Email) error
 }
 
 type AuthService struct {
@@ -40,7 +37,7 @@ func NewAuthService(
 }
 
 func (a *AuthService) GetUserEmail(ctx context.Context, userID uuid.UUID) (string, error) {
-	user, err := data.GetUser(userID)
+	user, err := data.GetUser(ctx, userID)
 	if err != nil {
 		return "", fmt.Errorf("user not found: %w", err)
 	}
@@ -49,7 +46,7 @@ func (a *AuthService) GetUserEmail(ctx context.Context, userID uuid.UUID) (strin
 }
 
 func (a *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*data.User, error) {
-	user, err := data.GetUser(userID)
+	user, err := data.GetUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
@@ -63,7 +60,7 @@ type EmailConfirmationData struct {
 }
 
 func genEmailConfirmationToken() string {
-	return fmt.Sprintf("email-confirmation-%s", uuid.New().String())
+	return "email-confirmation-" + uuid.New().String()
 }
 
 // StartEmailConfirmation implements [handlers.AuthService].
@@ -91,14 +88,17 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 	if err := a.redis.Set(ctx, token, data, EmailConfirmationTTL).Err(); err != nil {
 		return fmt.Errorf("set key in redis: %w", err)
 	}
-	e, err := NewHTMLEmail(user.Email, user.Name, "Email confirmation", fmt.Sprintf(`
-		<h1>Confirm email</h1>
-		<p>Click link below to go to email confirmation page</p>
-		<a href="%s/confirm-email?token=%s">Confirm</a>
-		<p>Link is valid till %s</p>
-	`, FrontendBaseURL, token, time.Now().Add(EmailConfirmationTTL).Format(time.DateTime)))
-	if err != nil {
-		return fmt.Errorf("create email: %w", err)
+
+	e := email.Email{
+		To:      user.Email,
+		Subject: "Email confirmation",
+		Lang:    "en",
+		Body: fmt.Appendf(nil, `
+			<h1>Confirm email</h1>
+			<p>Click link below to go to email confirmation page</p>
+			<a href="%s/confirm-email?token=%s">Confirm</a>
+			<p>Link is valid till %s</p>`,
+			FrontendBaseURL, token, time.Now().Add(EmailConfirmationTTL).Format(time.DateTime)),
 	}
 
 	if err := a.email.SendEmail(ctx, e); err != nil {
@@ -108,7 +108,7 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 	return nil
 }
 
-var ErrEmailAlreadyConfirmed = fmt.Errorf("user email already confirmed")
+var ErrEmailAlreadyConfirmed = errors.New("user email already confirmed")
 
 // ConfirmEmail try to confirm email by token. Returns [ErrEmailAlreadyConfirmed] if it is so.
 func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token string) error {
@@ -124,7 +124,7 @@ func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token 
 	}
 
 	if confData.UserID != userID {
-		return fmt.Errorf("wrong user to confirm email")
+		return errors.New("wrong user to confirm email")
 	}
 
 	user, err := a.GetUser(ctx, confData.UserID)
@@ -133,7 +133,7 @@ func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token 
 	}
 
 	if confData.Email != user.Email {
-		return fmt.Errorf("wrong email to confirm")
+		return errors.New("wrong email to confirm")
 	}
 
 	if user.EmailVerified {

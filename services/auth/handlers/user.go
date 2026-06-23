@@ -14,6 +14,7 @@ import (
 
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
 	session := auth.GetSession(ctx)
+
 	err := a.authService.StartEmailConfirmation(ctx.Request.Context(), session.UserID)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailAlreadyConfirmed) {
@@ -31,6 +32,7 @@ func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
 
 		return
 	}
+
 	ctx.Status(http.StatusOK)
 }
 
@@ -56,6 +58,7 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
 
 		return
 	}
+
 	ctx.Status(http.StatusOK)
 }
 
@@ -69,7 +72,7 @@ func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
 		return
 	}
 
-	user, err := data.GetUser(id)
+	user, err := data.GetUser(ctx.Request.Context(), id)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, requests.BadResponse{
 			Details: err.Error(),
@@ -87,6 +90,7 @@ func (a *AuthHandlers) HandleGetUsersList(ctx *gin.Context) {
 	pageStr, ok := ctx.GetQuery("page")
 	if ok || pageStr != "" {
 		var err error
+
 		page, err = strconv.Atoi(pageStr)
 		if err != nil || page < 0 {
 			ctx.AbortWithStatusJSON(
@@ -128,12 +132,14 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": err.Error()})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, requests.BadResponse{
+			Details: err.Error(),
+		})
 
 		return
 	}
 
-	user, err := data.GetUser(id)
+	user, err := data.GetUser(ctx.Request.Context(), id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
 
@@ -146,6 +152,7 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
@@ -167,12 +174,12 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"details": err.Error()})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, requests.BadResponse{Details: err.Error()})
 
 		return
 	}
 
-	user, err := data.GetUser(id)
+	user, err := data.GetUser(ctx.Request.Context(), id)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, requests.BadResponse{Details: err.Error()})
 
@@ -188,6 +195,7 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
@@ -201,7 +209,7 @@ func (a *AuthHandlers) HandleUserBlock(ctx *gin.Context) {
 		return
 	}
 
-	user, err := data.GetUser(id)
+	user, err := data.GetUser(ctx.Request.Context(), id)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusNotFound)
 

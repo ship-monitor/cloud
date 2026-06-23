@@ -43,6 +43,7 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 		CreatedAt:      time.Now(),
 		ExpiresAt:      inv.ExpiresAt,
 	}
+
 	_, err := db.DB.NewInsert().Model(&invitation).Exec(context.Background())
 	if err != nil {
 		return nil, err
@@ -53,6 +54,7 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 
 func GetInvitationByID(id uuid.UUID) (*OrganizationInvitation, error) {
 	var inv OrganizationInvitation
+
 	err := db.DB.NewSelect().
 		Model(&inv).
 		Where("id = ?", id).
@@ -73,6 +75,7 @@ func HasPendingInvitation(orgID uuid.UUID, email string) (bool, error) {
 
 func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
 	var invs []OrganizationInvitation
+
 	err := db.DB.NewSelect().
 		Model(&invs).
 		Where("invitee_email = ? AND status = ?", email, StatusPending).
@@ -84,6 +87,7 @@ func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
 
 func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
 	var invs []OrganizationInvitation
+
 	err := db.DB.NewSelect().
 		Model(&invs).
 		Where("organization_id = ?", orgID).

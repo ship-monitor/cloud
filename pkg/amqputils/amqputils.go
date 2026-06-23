@@ -33,7 +33,8 @@ func PublishAnswerJSON(ctx context.Context,
 	message any,
 	correlationID string,
 ) error {
-	if err := publishJSON(ctx, ch, queue, message, correlationID); err != nil {
+	err := publishJSON(ctx, ch, queue, message, correlationID)
+	if err != nil {
 		return fmt.Errorf("publish answer JSON: %w", err)
 	}
 
@@ -78,6 +79,7 @@ func ConsumeMessages(
 	queue amqp.Queue,
 ) (<-chan amqp.Delivery, CancelConsumerFunc, error) {
 	consumerID := uuid.New().String()
+
 	messages, err := ch.ConsumeWithContext(
 		ctx,
 		queue.Name,
@@ -93,7 +95,8 @@ func ConsumeMessages(
 	}
 
 	cancel := func() {
-		if err := ch.Cancel(consumerID, false); err != nil {
+		err := ch.Cancel(consumerID, false)
+		if err != nil {
 			log.Error("Failed to cancel consumer", "consumerID", consumerID, "error", err)
 		}
 	}

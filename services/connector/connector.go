@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -13,32 +14,39 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/repository"
 )
 
-func Setup(r gin.IRouter) {
-	repository.Migrate()
+func Setup(ctx context.Context, r gin.IRouter) {
+	repository.Migrate(ctx)
 	r.GET("/nodes/:id", handlers.GetSingleClientHandler())
 
-	go func() {
-		connections.Serve()
-	}()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	go func() {
-		conn, err := queue.Connect(queue.GetRabbitMQUrl())
-		if err != nil {
-			log.Fatal("Failed connect to rabbitmq", "error", err)
-		}
-		defer queue.Close(conn)
-		if err := queue.Serve(conn); err != nil {
+	q, err := queue.NewQueue()
+	if err != nil {
+		panic(err)
+	}
+
+	go func(ctx context.Context) {
+		connections.Serve(ctx)
+	}(ctx)
+
+	go func(ctx context.Context) {
+		if err := q.Serve(ctx); err != nil {
 			log.Fatal("failed serve queue", "error", err)
 		}
-	}()
+	}(ctx)
 
-	queue.AddHandler(queueHandler)
+	q.AddHandler(queueHandler)
 
-	connections.AddHandler(websocketHandler)
+	connections.AddHandler(websocketHandler(q))
+
+	<-ctx.Done()
 }
 
 var (
-	qlog  = log.WithPrefix("Queue")
+	//nolint:gochecknoglobals
+	qlog = log.WithPrefix("Queue")
+	//nolint:gochecknoglobals
 	wsLog = log.WithPrefix("WebSocket")
 )
 
@@ -48,47 +56,58 @@ func queueHandler(m *amqp.Delivery) error {
 	qlog.Info("New message", "requestId", requestId, "body", string(m.Body))
 
 	var cloudRequest connections.FromCloudRequest
-	if err := json.Unmarshal(m.Body, &cloudRequest); err != nil {
+
+	err := json.Unmarshal(m.Body, &cloudRequest)
+	if err != nil {
 		qlog.Error("Failed to unmarshal message", "error", err)
 
 		return err
 	}
 
-	if err := cloudRequest.Validate(); err != nil {
+	err = cloudRequest.Validate()
+	if err != nil {
 		qlog.Error("Failed validate request from cloud", "error", err, "requestId", requestId)
 
-		return fmt.Errorf("failed validate request from cloud: %s", err)
+		return fmt.Errorf("failed validate request from cloud: %w", err)
 	}
 
-	if err := connections.SendRequest(
+	err = connections.SendRequest(
 		cloudRequest.NodeID,
 		cloudRequest.ToNode(requestId),
-	); err != nil {
+	)
+	if err != nil {
 		qlog.Error("Failed to send request", "error", err)
 
 		return err
 	}
+
 	qlog.Info("Message handled", "requestId", requestId)
 
 	return nil
 }
 
-func websocketHandler(body []byte) error {
-	var response connections.FromNodeResponse
-	if err := json.Unmarshal(body, &response); err != nil {
-		wsLog.Error("Failed to unmarshal message", "error", err)
+func websocketHandler(q *queue.Queue) connections.MessageHandlerFunc {
+	return func(ctx context.Context, body []byte) error {
+		var response connections.FromNodeResponse
 
-		return err
+		err := json.Unmarshal(body, &response)
+		if err != nil {
+			wsLog.Error("Failed to unmarshal message", "error", err)
+
+			return err
+		}
+
+		wsLog.Info("New message", "requestId", response.RequestID, "body", string(body))
+
+		err = q.SendResponse(ctx, response.RequestID, response.ToCloud())
+		if err != nil {
+			wsLog.Error("Failed to send response", "error", err)
+
+			return err
+		}
+
+		wsLog.Info("Message handled", "requestId", response.RequestID)
+
+		return nil
 	}
-
-	wsLog.Info("New message", "requestId", response.RequestID, "body", string(body))
-
-	if err := queue.SendResponse(response.RequestID, response.ToCloud()); err != nil {
-		wsLog.Error("Failed to send response", "error", err)
-
-		return err
-	}
-	wsLog.Info("Message handled", "requestId", response.RequestID)
-
-	return nil
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -9,7 +10,10 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
-var ErrNotMember = fmt.Errorf("access denied: user is not member of organization")
+var (
+	ErrNotMember       = errors.New("access denied: user is not member of organization")
+	ErrEmptyDeviceName = errors.New("empty device name")
+)
 
 type DevicesService struct {
 	orgs *OrganizationsService
@@ -31,7 +35,7 @@ func (d *DevicesService) ConnectDevice(
 
 // DisconnectDevice implements [handlers.DevicesService].
 func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error {
-	dev, err := data.GetDevice(deviceID)
+	dev, err := data.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf("get device: %w", err)
 	}
@@ -42,7 +46,7 @@ func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID 
 		return ErrNotMember
 	}
 
-	if err := data.DisconnectDevice(dev.ID); err != nil {
+	if err := data.DisconnectDevice(ctx, dev.ID); err != nil {
 		return fmt.Errorf("disconnect device: %w", err)
 	}
 
@@ -54,7 +58,7 @@ func (d *DevicesService) GetDevice(
 	ctx context.Context,
 	deviceID, userID uuid.UUID,
 ) (*data.OrganizationDevice, error) {
-	dev, err := data.GetDevice(deviceID)
+	dev, err := data.GetDevice(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get device: %w", err)
 	}
@@ -83,15 +87,16 @@ func (d *DevicesService) RenameDevice(
 	name string,
 ) error {
 	if name == "" {
-		return fmt.Errorf("empty device name")
+		return ErrEmptyDeviceName
 	}
 
-	dev, err := data.GetDevice(deviceID)
+	dev, err := data.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf("get device: %w", err)
 	}
 
-	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+	isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID)
+	if err != nil {
 		return fmt.Errorf("is member: %w", err)
 	} else if !isMember {
 		return ErrNotMember
@@ -110,7 +115,7 @@ func (d *DevicesService) SendCommand(
 	deviceID, userID uuid.UUID, command string,
 	args map[string]any,
 ) (*commands.CommandResponse, error) {
-	dev, err := data.GetDevice(deviceID)
+	dev, err := data.GetDevice(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get device: %w", err)
 	}
@@ -120,6 +125,7 @@ func (d *DevicesService) SendCommand(
 	} else if !isMember {
 		return nil, ErrNotMember
 	}
+
 	cmd := commands.NewCommand(deviceID.String(), command, args)
 	result := commands.SendCommand(ctx, cmd)
 

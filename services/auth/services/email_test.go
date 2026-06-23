@@ -1,19 +1,22 @@
-package services
+package services_test
 
 import (
 	"testing"
 
 	"github.com/go-playground/validator/v10"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/services"
 )
 
 func TestEmailServiceConfig(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
-		data              EmailServiceConfig
+		data              services.EmailServiceConfig
 		shouldReturnError bool
 	}{
-		{data: EmailServiceConfig{}, shouldReturnError: true},
+		{data: services.EmailServiceConfig{}, shouldReturnError: true},
 		{
-			data: EmailServiceConfig{
+			data: services.EmailServiceConfig{
 				SMTPHost:     "localhost",
 				SMTPPort:     8080,
 				AuthPassword: "pass",

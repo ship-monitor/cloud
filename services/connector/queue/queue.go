@@ -3,20 +3,12 @@ package queue
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"charm.land/log/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/amqputils"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
-)
-
-var (
-	conn      *amqp.Connection
-	channel   *amqp.Channel
-	requests  amqp.Queue
-	responses amqp.Queue
 )
 
 func GetRabbitMQUrl() string {
@@ -30,24 +22,9 @@ func GetRabbitMQUrl() string {
 
 type MessageHandlerFunc func(*amqp.Delivery) error
 
-var messageHandlers = []MessageHandlerFunc{}
-
-func AddHandler(h MessageHandlerFunc) {
-	messageHandlers = append(messageHandlers, h)
-}
-
-func closeConnection() {
-	if conn == nil {
-		return
-	}
-	err := conn.Close()
+func connect(url string) (*amqp.Connection, error) {
+	connection, err := amqp.Dial(url)
 	if err != nil {
-		log.Error("Failed to close connection", "error", err)
-	}
-}
-
-func Connect(url string) (*amqp.Connection, error) {
-	if connection, err := amqp.Dial(url); err != nil {
 		return nil, fmt.Errorf("connect to rabbitmq: %w", err)
 	} else {
 		return connection, nil
@@ -58,45 +35,81 @@ func Close(c *amqp.Connection) {
 	if c == nil {
 		return
 	}
-	if err := c.Close(); err != nil {
+
+	err := c.Close()
+	if err != nil {
 		log.Error("Failed to close connection", "error", err)
 	}
 }
 
-func Serve(connection *amqp.Connection) error {
-	conn = connection
+type Queue struct {
+	conn            *amqp.Connection
+	requests        amqp.Queue
+	responses       amqp.Queue
+	messageHandlers []MessageHandlerFunc
+	channel         *amqp.Channel
+}
 
-	if ch, err := conn.Channel(); err != nil {
-		return fmt.Errorf("open channel: %w", err)
-	} else {
-		channel = ch
+func NewQueue() (*Queue, error) {
+	conn, err := connect(GetRabbitMQUrl())
+	if err != nil {
+		return nil, fmt.Errorf("connect to queue: %w", err)
 	}
 
-	if req, res, err := setupQueues(channel); err != nil {
+	return &Queue{
+		conn: conn,
+	}, nil
+}
+
+func (q *Queue) AddHandler(h MessageHandlerFunc) {
+	q.messageHandlers = append(q.messageHandlers, h)
+}
+
+func (q *Queue) SendResponse(
+	ctx context.Context,
+	requestId string,
+	response *connections.ToCloudResponse,
+) error {
+	err := amqputils.PublishAnswerJSON(ctx, q.channel, q.responses, response, requestId)
+	if err != nil {
+		return fmt.Errorf("send response: %w", err)
+	}
+
+	return nil
+}
+
+func (q *Queue) Serve(ctx context.Context) error {
+	if ch, err := q.conn.Channel(); err != nil {
+		return fmt.Errorf("open amqp channel: %w", err)
+	} else {
+		q.channel = ch
+	}
+
+	if req, res, err := q.setupQueues(); err != nil {
 		return fmt.Errorf("setup queues: %w", err)
 	} else {
-		requests = req
-		responses = res
+		q.requests = req
+		q.responses = res
 	}
-	messages, cancel, err := amqputils.ConsumeMessages(context.TODO(), channel, requests)
+
+	messages, cancel, err := amqputils.ConsumeMessages(ctx, q.channel, q.requests)
 	if err != nil {
 		return fmt.Errorf("register consumer: %w", err)
 	}
 	defer cancel()
 
 	for m := range messages {
-		go handleMessage(&m)
+		go q.handleMessage(ctx, &m)
 	}
 
 	return nil
 }
 
-func handleMessage(msg *amqp.Delivery) {
-	wg := sync.WaitGroup{}
-
-	for _, handler := range messageHandlers {
-		wg.Go(func() {
-			if err := handler(msg); err != nil {
+func (q *Queue) handleMessage(ctx context.Context, msg *amqp.Delivery) {
+	for _, handler := range q.messageHandlers {
+		go func() {
+			err := handler(msg)
+			if err != nil {
 				log.Error(
 					"Error while handling message, sending internal error back",
 					"correlationId",
@@ -105,22 +118,24 @@ func handleMessage(msg *amqp.Delivery) {
 					err,
 				)
 
-				if err2 := sendError(msg.CorrelationId, err); err2 != nil {
+				err2 := q.sendError(ctx, msg.CorrelationId, err)
+				if err2 != nil {
 					log.Error("Failed to send error response", "error", err2)
 				}
 			}
-		})
+		}()
 	}
-	wg.Wait()
+
+	<-ctx.Done()
 }
 
-func sendError(requestId string, err error) error {
+func (q *Queue) sendError(ctx context.Context, requestId string, err error) error {
 	log.Error("Sending error response", "error", err, "requestId", requestId)
 	response := &connections.ToCloudResponse{
 		RequestError: err.Error(),
 	}
 
-	return SendResponse(requestId, response)
+	return q.SendResponse(ctx, requestId, response)
 }
 
 const (
@@ -140,31 +155,23 @@ func declareQueue(ch *amqp.Channel, name string) (amqp.Queue, error) {
 		nil,
 	)
 	if err != nil {
-		return queue, fmt.Errorf("declare queue: %w", err)
+		return queue, fmt.Errorf("declare queue %q: %w", name, err)
 	}
 
 	return queue, nil
 }
 
-func setupQueues(channel *amqp.Channel) (requests, responses amqp.Queue, err error) {
-	requests, err = declareQueue(channel, "requests-1")
+// setupQueues returns requests and responses queue and error.
+func (q *Queue) setupQueues() (amqp.Queue, amqp.Queue, error) {
+	requests, err := declareQueue(q.channel, "requests-1")
 	if err != nil {
-		return requests, responses, fmt.Errorf("declare %q queue: %w", "requests-1", err)
+		return requests, amqp.Queue{}, err
 	}
 
-	responses, err = declareQueue(channel, "responses-1")
+	responses, err := declareQueue(q.channel, "responses-1")
 	if err != nil {
-		return requests, responses, fmt.Errorf("declare %q queue: %w", "responses-1", err)
+		return requests, responses, err
 	}
 
 	return requests, responses, nil
-}
-
-func SendResponse(requestId string, response *connections.ToCloudResponse) error {
-	err := amqputils.PublishAnswerJSON(context.TODO(), channel, responses, response, requestId)
-	if err != nil {
-		return fmt.Errorf("send response: %w", err)
-	}
-
-	return nil
 }

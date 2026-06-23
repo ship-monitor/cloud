@@ -1,4 +1,4 @@
-package repository
+package repository_test
 
 import (
 	"context"
@@ -11,9 +11,11 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
 )
 
 func createDB(t *testing.T) *sql.DB {
+	t.Helper()
 	// Setup in-memory database for testing
 	db, err := sql.Open(sqliteshim.ShimName, ":memory:")
 	if err != nil {
@@ -24,8 +26,11 @@ func createDB(t *testing.T) *sql.DB {
 }
 
 func TestMigrate(t *testing.T) {
+	t.Parallel()
+
 	db := createDB(t)
-	repo := New(db)
+	repo := repository.New(db)
+
 	err := repo.Migrate(t.Context())
 	if err != nil {
 		t.Fatalf("Failed migrate with error: %s", err)
@@ -33,13 +38,19 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestGetUsersOrganizations(t *testing.T) {
+	t.Parallel()
+
 	db := createDB(t)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("failed to close database: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
 	// Create repository
-	repo := New(db)
+	repo := repository.New(db)
 	if err := repo.Migrate(ctx); err != nil {
 		t.Fatalf("Failed migrate DB: %s", err)
 	}
@@ -110,6 +121,7 @@ func TestGetUsersOrganizations(t *testing.T) {
 	if !orgIDs[orgID1] {
 		t.Error("expected organization 1 to be in results")
 	}
+
 	if !orgIDs[orgID2] {
 		t.Error("expected organization 2 to be in results")
 	}

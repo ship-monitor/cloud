@@ -11,16 +11,16 @@ import (
 	"github.com/authzed/grpcutil"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/spf13/viper"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
-var (
-	sessionKey    = "session-" + uuid.New().String()
-	middlewareKey = "middleware-" + uuid.New().String()
-)
+const (
+	AuthorizationHeader = "Authorization"
 
-const AuthorizationHeader = "Authorization"
+	sessionKey    = "ship-auth-session"
+	middlewareKey = "ship-auth-middleware"
+)
 
 var (
 	ErrArmenUsedBearer = errors.New("someone (Armen) included 'Bearer ' in token header")
@@ -82,15 +82,16 @@ type Middleware struct {
 func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
 	systemCerts, err := grpcutil.WithSystemCerts(grpcutil.VerifyCA)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load system CA certificates: %s", err)
+		return nil, fmt.Errorf("unable to load system CA certificates: %w", err)
 	}
+
 	spiceClient, err := authzed.NewClient(
 		config.SpiceDB.Address,
 		systemCerts,
 		grpcutil.WithBearerToken(config.SpiceDB.APIKey),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed connect to SpiceDB: %s", err)
+		return nil, fmt.Errorf("failed connect to SpiceDB: %w", err)
 	}
 
 	return &Middleware{spiceClient, config.SecurityKeyFunc}, nil
@@ -99,17 +100,22 @@ func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
 func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
 	middleware, err := newMiddleware(config)
 	if err != nil {
-		panic(fmt.Errorf("failed create auth middleware: %s", err))
+		panic(fmt.Errorf("failed create auth middleware: %w", err))
 	}
 
 	return middleware
 }
 
 func GetMiddleware(ctx *gin.Context) *Middleware {
-	if middleware, ok := ctx.Get(middlewareKey); ok {
-		return middleware.(*Middleware)
-	} else {
+	middleware, ok := ctx.Get(middlewareKey)
+	if !ok {
 		panic("there is no middleware")
+	}
+
+	if m, ok := middleware.(*Middleware); ok {
+		return m
+	} else {
+		panic("middleware is of unexpected type")
 	}
 }
 
@@ -123,19 +129,18 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	header := ctx.GetHeader(AuthorizationHeader)
 
 	if header == "" {
-		err := fmt.Errorf("bad token specified: %s", ErrNoAuthHeader)
+		err := fmt.Errorf("bad token specified: %w", ErrNoAuthHeader)
 		log.Error("No authorization header", "error", err)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": err.Error()})
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseErr(err))
 
 		return
 	}
 
 	if strings.Contains(header, "Bearer") {
-		err := fmt.Errorf("bad token specified: %s", ErrArmenUsedBearer)
-		log.Error("Армен, заебал, пиши авторизацию сам, а не через ИИ", "error", ErrArmenUsedBearer)
+		err := fmt.Errorf("bad token specified: %w", ErrArmenUsedBearer)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			gin.H{"details": err.Error(), "messageForArmen": "stop it"},
+			requests.ResponseArmenErr(err, "Армен, пиши авторизацию не через ИИ"),
 		)
 
 		return
@@ -146,7 +151,7 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 		log.Error("Failed parse JWT", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			gin.H{"details": "bad credentials: " + err.Error()},
+			requests.ResponseErr(fmt.Errorf("bad credentials: %w", err)),
 		)
 
 		return
@@ -156,7 +161,7 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 		UserID:  claims.UserID,
 		Email:   claims.Email,
 		spiceDB: m.spice,
-		ctx:     ctx.Request.Context(),
+		c:       ctx,
 	}
 
 	ctx.Set(sessionKey, session)
@@ -172,5 +177,10 @@ func GetSession(ctx *gin.Context) *Session {
 		panic(fmt.Errorf("session not found (key %q), probably not authenticated", sessionKey))
 	}
 
-	return session.(*Session)
+	s, ok := session.(*Session)
+	if !ok {
+		panic(fmt.Errorf("session in context is of unknown type (key %q)", sessionKey))
+	}
+
+	return s
 }

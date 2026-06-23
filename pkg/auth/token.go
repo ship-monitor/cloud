@@ -17,16 +17,19 @@ func (m *Middleware) ParseToken(tokenStr string) (*Claims, error) {
 
 			return nil, fmt.Errorf("parse token: %w", err)
 		}
+
 		log.Error("Failed parse JWT", "error", err)
 
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
+
 	if !token.Valid {
-		return nil, fmt.Errorf("token invalid")
+		return nil, errors.New("token invalid")
 	}
+
 	claims, ok := token.Claims.(*Claims)
 	if !ok {
-		return nil, fmt.Errorf("invalid claims type")
+		return nil, errors.New("invalid claims type")
 	}
 
 	return claims, nil

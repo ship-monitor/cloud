@@ -38,6 +38,7 @@ func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
 func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
 	devID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
+
 	var req dto.UpdateDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("bad request: %w", err)))
@@ -73,6 +74,7 @@ func HandlePatchDevice(c *gin.Context) {
 
 		return
 	}
+
 	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
 		c.JSON(
 			http.StatusForbidden,
@@ -81,6 +83,7 @@ func HandlePatchDevice(c *gin.Context) {
 
 		return
 	}
+
 	var req dto.UpdateDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
@@ -94,9 +97,10 @@ func HandlePatchDevice(c *gin.Context) {
 
 		return
 	}
-	device, err := data.GetDevice(deviceID)
+
+	device, err := data.GetDevice(c.Request.Context(), deviceID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Error(fmt.Errorf("no device")))
+		c.JSON(http.StatusNotFound, dto.Error(errors.New("no device")))
 
 		return
 	}
@@ -104,7 +108,7 @@ func HandlePatchDevice(c *gin.Context) {
 	if err := device.SetName(c.Request.Context(), req.Name); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			dto.Error(fmt.Errorf("failed set device name: %s", err)),
+			dto.Error(fmt.Errorf("failed set device name: %w", err)),
 		)
 
 		return
@@ -133,13 +137,13 @@ func HandleConnectDevice(c *gin.Context) {
 		return
 	}
 
-	if err := data.ConnectDevice(req.DeviceID, orgID, req.Name); err != nil {
+	if err := data.ConnectDevice(c.Request.Context(), req.DeviceID, orgID, req.Name); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Error(err))
 
 		return
 	}
 
-	device, err := data.GetDeviceDTO(req.DeviceID)
+	device, err := data.GetDeviceDTO(c.Request.Context(), req.DeviceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
@@ -175,6 +179,7 @@ func HandleListDevices(c *gin.Context) {
 
 		return
 	}
+
 	if !isMember {
 		log.Warn("Access denied for list devices", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
@@ -182,7 +187,7 @@ func HandleListDevices(c *gin.Context) {
 		return
 	}
 
-	devices, err := data.ListDevices(orgID)
+	devices, err := data.ListDevices(c.Request.Context(), orgID)
 	if err != nil {
 		log.Error(
 			"Failed to list devices",
@@ -243,6 +248,7 @@ func HandleGetDevice(c *gin.Context) {
 
 		return
 	}
+
 	if !isMember {
 		log.Warn("Access denied for get device", "organization", orgID, "user", session.UserID)
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
@@ -250,7 +256,7 @@ func HandleGetDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDeviceDTO(deviceID)
+	device, err := data.GetDeviceDTO(c.Request.Context(), deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn(
 			"Device not found",
@@ -272,6 +278,7 @@ func HandleGetDevice(c *gin.Context) {
 func (h *HTTPHandler) HandleDisconnectDevice(ctx *gin.Context) {
 	devID := requests.MustGetParamUUID(ctx, "id")
 	session := auth.GetSession(ctx)
+
 	err := h.devices.DisconnectDevice(ctx.Request.Context(), devID, session.UserID)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
@@ -306,7 +313,7 @@ func HandleDisconnectDevice(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDeviceDTO(deviceID)
+	device, err := data.GetDeviceDTO(c.Request.Context(), deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		log.Warn(
 			"Device not found for disconnect",
@@ -322,7 +329,7 @@ func HandleDisconnectDevice(c *gin.Context) {
 		return
 	}
 
-	if err := data.DisconnectDevice(deviceID); err != nil {
+	if err := data.DisconnectDevice(c.Request.Context(), deviceID); err != nil {
 		log.Error(
 			"Failed to disconnect device",
 			"error",
@@ -337,7 +344,7 @@ func HandleDisconnectDevice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.Status(http.StatusOK)
 }
 
 func (h *HTTPHandler) HandleSendCommand(c *gin.Context) {
@@ -388,7 +395,7 @@ func HandleSendCommand(c *gin.Context) {
 		return
 	}
 
-	device, err := data.GetDeviceDTO(deviceID)
+	device, err := data.GetDeviceDTO(c.Request.Context(), deviceID)
 	if err != nil || device.OrganizationID != orgID {
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
 
@@ -401,6 +408,7 @@ func HandleSendCommand(c *gin.Context) {
 
 		return
 	}
+
 	cmd := commands.NewCommand(deviceID.String(), req.Command, req.Args)
 	result := commands.SendCommand(c.Request.Context(), cmd)
 

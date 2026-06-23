@@ -11,22 +11,28 @@ import (
 
 var Config *viper.Viper
 
-var developmentMode = flag.Bool("devel", false, "Enable development mode")
-
 func Setup() {
 	_ = godotenv.Load()
+
 	viper.SetConfigName("ship")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc")
-	if err := viper.ReadInConfig(); err != nil {
+
+	err := viper.ReadInConfig()
+	if err != nil {
 		log.Warn("Failed to read config file, using environment variables only", "error", err)
 	}
+
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
+
 	Config = viper.GetViper()
 
 	flag.Parse()
-	viper.BindPFlags(flag.CommandLine)
+
+	if err := viper.BindPFlags(flag.CommandLine); err != nil {
+		log.Fatal("Failed to bind flags", "error", err)
+	}
 }
 
 func SecurityKey() []byte {

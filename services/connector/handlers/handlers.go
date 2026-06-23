@@ -57,7 +57,7 @@ func GetSingleClientHandler() gin.HandlerFunc {
 			return
 		}
 
-		node, err := repository.GetNode(id)
+		node, err := repository.GetNode(c.Request.Context(), id)
 		if err != nil {
 			log.Error("Failed get nodes from repository", "error", err)
 			c.AbortWithStatus(http.StatusInternalServerError)

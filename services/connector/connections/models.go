@@ -1,7 +1,7 @@
 package connections
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -34,11 +34,11 @@ type FromNodeResponse struct {
 
 func (r *FromCloudRequest) Validate() error {
 	if r.NodeID == "" {
-		return fmt.Errorf("empty node id specified")
+		return errors.New("empty node id specified")
 	}
 
 	if r.Command == "" {
-		return fmt.Errorf("command not specified")
+		return errors.New("command not specified")
 	}
 
 	return nil

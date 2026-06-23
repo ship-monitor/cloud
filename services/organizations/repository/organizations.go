@@ -42,7 +42,7 @@ func (r *OrganizationsRepo) Migrate(ctx context.Context) error {
 			IfNotExists().
 			Exec(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("migrate model: %w", err)
 		}
 	}
 
@@ -55,22 +55,26 @@ func (r *OrganizationsRepo) CreateOrganization(
 	creatorID uuid.UUID,
 ) (OrganizationID, error) {
 	orgID := uuid.New()
+
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if err := insertOrganization(ctx, tx, &data.Organization{
+		err := insertOrganization(ctx, tx, &data.Organization{
 			ID:        orgID,
 			Name:      name,
 			CreatorID: creatorID,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-		}); err != nil {
+		})
+		if err != nil {
 			return err
 		}
-		if err := insertMember(ctx, tx, &data.OrganizationMember{
+
+		err = insertMember(ctx, tx, &data.OrganizationMember{
 			MemberID:       creatorID,
 			OrganizationID: orgID,
 			JoinedAt:       time.Now(),
 			Role:           data.RoleOwner,
-		}); err != nil {
+		})
+		if err != nil {
 			return err
 		}
 
@@ -106,6 +110,7 @@ func (r *OrganizationsRepo) GetOrganizationByID(
 	id OrganizationID,
 ) (*data.Organization, error) {
 	org := data.Organization{}
+
 	err := r.db.NewSelect().Model(&org).Where("id = ?", id).Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get org by id: %w", err)

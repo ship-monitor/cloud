@@ -1,13 +1,15 @@
 package data
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand/v2"
+	"math/big"
 
 	"github.com/google/uuid"
 )
 
 var (
+	//nolint:gochecknoglobals
 	Adjectives = []string{
 		"Cool",
 		"Splendid",
@@ -27,24 +29,26 @@ var (
 		"Wide",
 		"High",
 	}
+	//nolint:gochecknoglobals
 	Nouns = []string{
 		"Node", "Thing", "Box", "Service", "Child", "Line", "Statement",
 		"Flower", "Cat", "Sheep",
 	}
 )
 
-type source struct {
-	seed uuid.UUID
-}
-
-func (s *source) Uint64() uint64 {
-	return uint64(s.seed.ID())
-}
+//nolint:gochecknoglobals
+var defaultName = fmt.Sprintf("%s %s", Adjectives[0], Nouns[0])
 
 func GenNodeName(id uuid.UUID) string {
-	generator := rand.New(&source{seed: id})
-	adj := generator.IntN(len(Adjectives))
-	noun := generator.IntN(len(Nouns))
+	adj, err := rand.Int(rand.Reader, big.NewInt(int64(len(Adjectives))))
+	if err != nil {
+		return defaultName
+	}
 
-	return fmt.Sprintf("%s %s", Adjectives[adj], Nouns[noun])
+	noun, err := rand.Int(rand.Reader, big.NewInt(int64(len(Nouns))))
+	if err != nil {
+		return defaultName
+	}
+
+	return fmt.Sprintf("%s %s", Adjectives[adj.Int64()], Nouns[noun.Int64()])
 }

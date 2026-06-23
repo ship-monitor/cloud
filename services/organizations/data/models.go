@@ -44,6 +44,7 @@ type OrganizationMember struct {
 
 func GetOrganization(id uuid.UUID) (*Organization, error) {
 	var org Organization
+
 	err := db.DB.NewSelect().Model(&org).Where("id = ?", id).Scan(context.Background())
 	if err != nil {
 		return nil, err
@@ -59,9 +60,10 @@ type CreateOrganizationInput struct {
 
 func CreateOrganization(in CreateOrganizationInput) (Organization, error) {
 	log.Debug("Creating organization", "name", in.Name, "creatorId", in.CreatorID)
+
 	err := validator.New().Struct(in)
 	if err != nil {
-		return Organization{}, fmt.Errorf("failed validate input: %s", err)
+		return Organization{}, fmt.Errorf("failed validate input: %w", err)
 	}
 
 	org := Organization{

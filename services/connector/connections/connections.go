@@ -1,10 +1,12 @@
 package connections
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
@@ -14,10 +16,12 @@ import (
 )
 
 const (
-	NodeIDHeader = "X-Node-ID"
+	NodeIDHeader = "X-Node-Id"
 
 	readBufferSize  = 1024
 	writeBufferSize = 1024
+
+	readHeaderTimeout = time.Second * 2
 )
 
 var (
@@ -29,17 +33,18 @@ var (
 	connMu      sync.RWMutex
 )
 
-func AppendConnection(node *AuthData, conn *websocket.Conn) {
+func AppendConnection(ctx context.Context, node *AuthData, conn *websocket.Conn) {
 	connMu.Lock()
 	defer connMu.Unlock()
 
-	if existingNode, _ := repository.GetNode(node.NodeID); existingNode != nil {
+	if existingNode, _ := repository.GetNode(ctx, node.NodeID); existingNode != nil {
 		log.Warn("Connection with that node already exists, closing it", "nodeId", node.NodeID)
-		if _, err := repository.ReconnectNode(node.NodeID); err != nil {
+
+		if _, err := repository.ReconnectNode(ctx, node.NodeID); err != nil {
 			log.Error("Failed to reconnect node", "error", err)
 		}
 	} else {
-		if _, err := repository.NewNode(node.NodeID, "DUMMY NAME"); err != nil {
+		if _, err := repository.NewNode(ctx, node.NodeID, "DUMMY NAME"); err != nil {
 			log.Error("Failed to create node", "error", err)
 		}
 	}
@@ -47,7 +52,7 @@ func AppendConnection(node *AuthData, conn *websocket.Conn) {
 	connections[node.NodeID] = conn
 }
 
-func closeConn(nodeID UUID, conn *websocket.Conn) {
+func closeConn(ctx context.Context, nodeID UUID, conn *websocket.Conn) {
 	connMu.Lock()
 	defer connMu.Unlock()
 
@@ -55,16 +60,16 @@ func closeConn(nodeID UUID, conn *websocket.Conn) {
 
 	delete(connections, nodeID)
 
-	if _, err := repository.UpdateLastConnection(nodeID); err != nil {
+	if _, err := repository.UpdateLastConnection(ctx, nodeID); err != nil {
 		log.Error("Failed to update last connection", "error", err)
 	}
 
 	log.Warn("Connection closed", "address", addr)
 }
 
-func Serve() {
-	srv := http.NewServeMux()
-	srv.HandleFunc("/api/ipc/connect", func(w http.ResponseWriter, r *http.Request) {
+func Serve(ctx context.Context) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/ipc/connect", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("New connection", "address", r.RemoteAddr)
 
 		auth, err := checkAuth(r)
@@ -73,6 +78,7 @@ func Serve() {
 
 			return
 		}
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Error("Failed to upgrade connection", "error", err)
@@ -80,24 +86,35 @@ func Serve() {
 			return
 		}
 
-		AppendConnection(auth, conn)
+		AppendConnection(ctx, auth, conn)
 
-		go serveConnection(auth.NodeID, conn)
+		go serveConnection(ctx, auth.NodeID, conn)
 
 		log.Info("Connection established", "nodeId", auth.NodeID)
 	})
 
 	log.Info("Starting connections server", "address", getAddress())
-	if err := http.ListenAndServe(getAddress(), srv); err != nil {
-		log.Error("Failed to start connections server", "error", err)
-		panic(err)
-	}
+	go func() {
+		server := http.Server{
+			Addr:              getAddress(),
+			Handler:           mux,
+			ReadHeaderTimeout: readHeaderTimeout,
+		}
+
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Error("Failed to start connections server", "error", err)
+			panic(err)
+		}
+	}()
+
+	<-ctx.Done()
 }
 
 type AuthData struct {
 	NodeID UUID
 }
-type MessageHandlerFunc func(message []byte) error
+type MessageHandlerFunc func(ctx context.Context, message []byte) error
 
 var handlers = []MessageHandlerFunc{}
 
@@ -105,39 +122,52 @@ func AddHandler(handler MessageHandlerFunc) {
 	handlers = append(handlers, handler)
 }
 
-func serveConnection(nodeId UUID, conn *websocket.Conn) {
+func serveConnection(ctx context.Context, nodeId UUID, conn *websocket.Conn) {
 	defer func() {
 		if recover() != nil {
 			log.Error("Connection closed with panic", "nodeId", nodeId, "panic", recover())
 		}
-		closeConn(nodeId, conn)
-	}()
-	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Error("Failed to read message", "error", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Error("Unexpected closing connection", "error", err)
 
+		closeConn(ctx, nodeId, conn)
+	}()
+
+	go func() {
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Error("Failed to read message", "error", err)
+
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+					log.Error("Unexpected closing connection", "error", err)
+
+					return
+				}
+
+				continue
+			}
+
+			if messageType == websocket.CloseMessage {
 				return
 			}
 
-			continue
-		}
+			for _, handler := range handlers {
+				ctx, cancel := context.WithTimeout(ctx, handlerTimeout)
+				defer cancel()
 
-		if messageType == websocket.CloseMessage {
-			return
+				go func(ctx context.Context, handler MessageHandlerFunc) {
+					err := handler(ctx, message)
+					if err != nil {
+						log.Error("Failed to handle message", "error", err)
+					}
+				}(ctx, handler)
+			}
 		}
+	}()
 
-		for _, handler := range handlers {
-			go func() {
-				if err := handler(message); err != nil {
-					log.Error("Failed to handle message", "error", err)
-				}
-			}()
-		}
-	}
+	<-ctx.Done()
 }
+
+const handlerTimeout = time.Second * 10
 
 func checkAuth(r *http.Request) (*AuthData, error) {
 	nodeID, err := uuid.Parse(r.Header.Get(NodeIDHeader))
@@ -150,7 +180,7 @@ func checkAuth(r *http.Request) (*AuthData, error) {
 			err,
 		)
 
-		return nil, fmt.Errorf("bad node id header %q specified: %s", NodeIDHeader, err)
+		return nil, fmt.Errorf("bad node id header %q specified: %w", NodeIDHeader, err)
 	}
 
 	return &AuthData{
@@ -176,8 +206,9 @@ func getAddress() string {
 func SendRequest(nodeId string, r *ToNodeRequest) error {
 	id, err := uuid.Parse(nodeId)
 	if err != nil {
-		return fmt.Errorf("bad node id %q: %s", nodeId, err)
+		return fmt.Errorf("bad node id %q: %w", nodeId, err)
 	}
+
 	conn, ok := connections[id]
 	if !ok {
 		return fmt.Errorf("node with id %q not connected", nodeId)

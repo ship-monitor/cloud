@@ -1,59 +1,63 @@
 package services
 
 import (
+	"context"
 	"fmt"
+	"net/smtp"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
 
-type HTMLEmail struct {
-	receiverEmail string
-	receiverName  string
-	title         string
-	content       string
+var _ EmailSender = (*EmailService)(nil)
+
+type EmailServiceConfig struct {
+	SMTPHost     string `validate:"required,hostname"`
+	SMTPPort     uint   `validate:"required,port"`
+	AuthEmail    string `validate:"required,email"`
+	AuthPassword string `validate:"required"`
+
+	SenderName string `validate:"required"`
 }
 
-var _ IEmail = (*HTMLEmail)(nil)
+type EmailService struct {
+	auth smtp.Auth
+	conf EmailServiceConfig
+}
 
-func NewHTMLEmail(receiverAddress, receiverName, title, content string) (*HTMLEmail, error) {
-	v := validator.New()
-	if err := v.Var(receiverAddress, "email,required"); err != nil {
-		return nil, fmt.Errorf("invalid email: %w", err)
-	}
-	if err := v.Var(receiverName, "required"); err != nil {
-		return nil, fmt.Errorf("invalid content: %w", err)
-	}
-	if err := v.Var(title, "required"); err != nil {
-		return nil, fmt.Errorf("invalid title: %w", err)
-	}
-	if err := v.Var(content, "required"); err != nil {
-		return nil, fmt.Errorf("invalid content: %w", err)
+func NewEmailService(conf EmailServiceConfig) (*EmailService, error) {
+	err := validator.New().Struct(conf)
+	if err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	return &HTMLEmail{
-		receiverEmail: receiverAddress,
-		receiverName:  receiverName,
-		content:       content,
-		title:         title,
+	return &EmailService{
+		auth: smtp.PlainAuth("", conf.AuthEmail, conf.AuthPassword, conf.SMTPHost),
+		conf: conf,
 	}, nil
 }
 
-func (e HTMLEmail) WriteEmail(senderName, senderEmail string) []byte {
-	message := fmt.Sprintf("From: %s <%s>\n", senderName, senderEmail) +
-		fmt.Sprintf("To: user <%s>\n", e.receiverEmail) +
-		fmt.Sprintf("Subject: %s\n", e.title) +
-		fmt.Sprintf("Content-Type: %s\n", ContentTypeHTML) +
-		fmt.Sprintf("Message-ID: %s\n", uuid.New().String()) +
-		"MIME-Version: 1.0\n" +
-		"\n" +
-		e.content
+// SendEmail implements [EmailSender].
+func (s *EmailService) SendEmail(ctx context.Context, e email.Email) error {
+	w := email.NewHTMLWriter(email.Sender{
+		Email: s.conf.AuthEmail,
+		Name:  s.conf.SenderName,
+	})
 
-	return []byte(message)
-}
+	msg, err := w.Write(e)
+	if err != nil {
+		return fmt.Errorf("write email: %w", err)
+	}
 
-const ContentTypeHTML = "text/html; charset=UTF-8"
+	err = smtp.SendMail(
+		fmt.Sprintf("%s:%d", s.conf.SMTPHost, s.conf.SMTPPort),
+		s.auth,
+		s.conf.AuthEmail,
+		[]string{e.To}, msg,
+	)
+	if err != nil {
+		return fmt.Errorf("smtp send: %w", err)
+	}
 
-func (e HTMLEmail) ReceiverEmail() string {
-	return e.receiverEmail
+	return nil
 }

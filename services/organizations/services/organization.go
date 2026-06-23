@@ -2,11 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
+
+var ErrUserIsNotMember = errors.New("user is not member of organization")
 
 type OrganizationsRepository interface {
 	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
@@ -46,7 +49,7 @@ func (s *OrganizationsService) GetOrganization(
 	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
 		return nil, fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
 	} else if !isMember {
-		return nil, fmt.Errorf("user is not member of organization %q", organizationID)
+		return nil, ErrUserIsNotMember
 	}
 
 	org, err := s.repo.GetOrganizationByID(ctx, organizationID)

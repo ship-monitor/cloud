@@ -15,6 +15,7 @@ var _ handlers.AuthService = (*services.AuthService)(nil)
 
 func SetupRoutes(router gin.IRouter) {
 	data.Migrate()
+
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	rdb := redis.NewClient(&redis.Options{

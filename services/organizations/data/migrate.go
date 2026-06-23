@@ -12,7 +12,7 @@ func Migrate() {
 	ctx := context.TODO()
 
 	// Создаём таблицы, если их нет
-	models := []interface{}{
+	models := []any{
 		(*Organization)(nil),
 		(*OrganizationInvitation)(nil),
 		(*OrganizationMember)(nil),
@@ -50,6 +50,7 @@ func Migrate() {
 func addColumnIfNotExists(ctx context.Context, table, column, columnType string) {
 	// Проверяем существование колонки
 	var count int
+
 	err := db.DB.NewRaw(
 		`SELECT COUNT(*) FROM information_schema.columns 
 		 WHERE table_name = ? AND column_name = ?`,
@@ -63,11 +64,13 @@ func addColumnIfNotExists(ctx context.Context, table, column, columnType string)
 
 	if count == 0 {
 		query := "ALTER TABLE " + table + " ADD COLUMN IF NOT EXISTS " + column + " " + columnType
+
 		_, err := db.DB.NewRaw(query).Exec(ctx)
 		if err != nil {
 			log.Error("Failed add column", "table", table, "column", column, "error", err)
 			panic(err)
 		}
+
 		log.Info("Added column", "table", table, "column", column)
 	}
 }

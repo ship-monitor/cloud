@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
@@ -19,6 +20,10 @@ const (
 	tokenTTL        = time.Minute * 5
 	refreshTokenTTL = time.Hour * 24
 )
+
+type registerUserResponse struct {
+	User *data.User `json:"user"`
+}
 
 func (a *AuthHandlers) HandleRegister(c *gin.Context) {
 	var request struct {
@@ -36,18 +41,18 @@ func (a *AuthHandlers) HandleRegister(c *gin.Context) {
 
 		if errors.Is(err, data.ErrEmailAlreadyTaken) {
 			a.logger.Error("Email already taken", "email", request.Email)
-			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
-				"details": "email already taken",
-			})
+			c.AbortWithStatusJSON(http.StatusConflict,
+				requests.ResponseBad("email already taken"))
 
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{})
+
+		c.AbortWithStatus(http.StatusInternalServerError)
 
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"user": user})
+	c.JSON(http.StatusCreated, registerUserResponse{User: user})
 }
 
 func (a *AuthHandlers) HandleLogin(c *gin.Context) {
@@ -60,16 +65,14 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 	user, err := data.GetUserByEmail(request.Email)
 	if err != nil {
 		log.Error("Failed get user by email", "error", err, "email", request.Email)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"details": "invalid credentials"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseBad("invalid credentials"))
 
 		return
 	}
 
 	if !user.CheckPassword(request.Password) {
 		log.Error("Invalid password", "email", request.Email)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"details": "invalid credentials",
-		})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseBad("invalid credentials"))
 
 		return
 	}
@@ -95,17 +98,17 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			gin.H{"details": "invalid refresh token: " + err.Error()},
+			requests.ResponseErr(fmt.Errorf("invalid refresh token: %w", err)),
 		)
 
 		return
 	}
 
-	user, err := data.GetUser(claims.UserID)
+	user, err := data.GetUser(c.Request.Context(), claims.UserID)
 	if err != nil {
 		c.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			gin.H{"details": "user specified in token not found"},
+			requests.ResponseBad("user specified token not found"),
 		)
 
 		return
@@ -119,24 +122,25 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 	})
 }
 
-func createTokens(userID uuid.UUID, email string) (token, refreshToken string) {
-	token = createJWT(userID, email)
-	refreshToken = createRefreshJWT(userID)
+func createTokens(userID uuid.UUID, email string) (string, string) {
+	token := createJWT(userID, email)
+	refreshToken := createRefreshJWT(userID)
 
 	return token, refreshToken
 }
 
 func newJWT(claims auth.Claims) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+
 	signed, err := token.SignedString(config.SecurityKey())
 	if err != nil {
-		panic(fmt.Errorf("failed sign JWT: %s", err))
+		panic(fmt.Errorf("failed sign JWT: %w", err))
 	}
 
 	return signed
 }
 
-func createJWT(userID uuid.UUID, email string) (token string) {
+func createJWT(userID uuid.UUID, email string) string {
 	claims := auth.Claims{
 		UserID: userID,
 		Email:  email,

@@ -22,6 +22,7 @@ func setupDebugDB() {
 	if err != nil {
 		panic(err)
 	}
+
 	DB = bun.NewDB(sqldb, sqlitedialect.New())
 }
 
@@ -31,10 +32,12 @@ func Setup() {
 
 		return
 	}
+
 	dsn := config.Config.GetString("database-url")
 	if dsn == "" {
 		panic("database-url not configured")
 	}
+
 	sqldb := sql.OpenDB(pgdriver.NewConnector(
 		pgdriver.WithDSN(dsn),
 	))

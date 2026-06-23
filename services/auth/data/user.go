@@ -34,7 +34,7 @@ type User struct {
 // Returns [ErrEmailAlreadyTaken].
 func NewUser(name, email, password string) (*User, error) {
 	if name == "" || email == "" || password == "" {
-		return nil, fmt.Errorf("name, email and password are required")
+		return nil, errors.New("name, email and password are required")
 	}
 
 	if taken, err := checkEmailTaken(email); err != nil {
@@ -74,9 +74,10 @@ func hashPassword(password string) []byte {
 	return hash
 }
 
-func GetUser(id uuid.UUID) (*User, error) {
+func GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
 	var user User
-	err := db.DB.NewSelect().Model(&user).Where("id = ?", id).Scan(context.TODO())
+
+	err := db.DB.NewSelect().Model(&user).Where("id = ?", id).Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get user: %w", err)
 	}
@@ -86,7 +87,9 @@ func GetUser(id uuid.UUID) (*User, error) {
 
 func GetUserByEmail(email string) (*User, error) {
 	email = normalizeEmail(email)
+
 	var user User
+
 	err := db.DB.NewSelect().Model(&user).Where("email = ?", email).Scan(context.TODO())
 	if err != nil {
 		return nil, err
@@ -172,7 +175,9 @@ func GetUsersList(page int) ([]User, error) {
 	if page < 0 {
 		return nil, fmt.Errorf("invalid page value '%d'", page)
 	}
+
 	var users []User
+
 	err := db.DB.NewSelect().
 		Model(&users).
 		Offset(page * PageLimit).

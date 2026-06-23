@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"charm.land/log/v2"
@@ -17,9 +18,13 @@ const (
 )
 
 var (
-	conn           *amqp.Connection
-	channel        *amqp.Channel
-	requestsQueue  amqp.Queue
+	//nolint:gochecknoglobals
+	conn *amqp.Connection
+	//nolint:gochecknoglobals
+	channel *amqp.Channel
+	//nolint:gochecknoglobals
+	requestsQueue amqp.Queue
+	//nolint:gochecknoglobals
 	responsesQueue amqp.Queue
 )
 
@@ -39,10 +44,11 @@ func NewCommand(nodeID, command string, args map[string]any) Command {
 
 func (cmd Command) valid() (bool, error) {
 	if cmd.Command == "" {
-		return false, fmt.Errorf("command not specified")
+		return false, errors.New("command not specified")
 	}
+
 	if cmd.NodeID == "" {
-		return false, fmt.Errorf("node ID not specified")
+		return false, errors.New("node ID not specified")
 	}
 
 	return true, nil
@@ -57,6 +63,7 @@ func Connect() error {
 	}
 
 	var err error
+
 	conn, err = amqp.Dial(url)
 	if err != nil {
 		return err
@@ -78,6 +85,7 @@ func Connect() error {
 	if err != nil {
 		return err
 	}
+
 	responsesQueue, err = channel.QueueDeclare(
 		responsesQueueName,
 		true,  // durable
@@ -97,7 +105,9 @@ func Close() {
 	if conn == nil {
 		return
 	}
-	if err := conn.Close(); err != nil {
+
+	err := conn.Close()
+	if err != nil {
 		log.Error("Something went wrong while closing amqp connection", "error", err)
 	}
 }
@@ -111,6 +121,8 @@ type CommandResponse struct {
 func badResponse(format string, args ...any) CommandResponse {
 	return CommandResponse{
 		RequestError: fmt.Sprintf(format, args...),
+		CommandError: "",
+		Data:         nil,
 	}
 }
 
@@ -120,7 +132,7 @@ func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 		return badResponse("invalid command: %s", err)
 	}
 
-	requestID, err := amqputils.PublishJSON(context.TODO(), channel, requestsQueue, cmd)
+	requestID, err := amqputils.PublishJSON(ctx, channel, requestsQueue, cmd)
 	if err != nil {
 		return badResponse("failed publish command: %s", err)
 	}
@@ -145,12 +157,15 @@ func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 			}
 
 			var commandResponse CommandResponse
-			if err := json.Unmarshal(response.Body, &commandResponse); err != nil {
+
+			err := json.Unmarshal(response.Body, &commandResponse)
+			if err != nil {
 				log.Error("Failed to unmarshal response", "error", err)
 
 				return badResponse("failed to unmarshal response: %s", err)
 			}
 			defer acknowledge(response)
+
 			log.Info("Received response", "requestID", requestID, "response", response)
 
 			return commandResponse
@@ -161,7 +176,8 @@ func SendCommand(ctx context.Context, cmd Command) CommandResponse {
 }
 
 func acknowledge(d amqp.Delivery) {
-	if err := d.Ack(false); err != nil {
+	err := d.Ack(false)
+	if err != nil {
 		log.Error("Failed to acknowledge message", "requestID", d.CorrelationId, "error", err)
 	}
 }

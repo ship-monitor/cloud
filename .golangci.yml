@@ -2,9 +2,29 @@ version: "2"
 linters:
   default: all
   disable:
+    # deprecated
     - wsl
+    - gomodguard
+    # useless 
     - tagalign
+    # own style
+    - varnamelen
+    - revive
+    # temporary disabled
+    - wrapcheck
+    - funlen
+    - godox
+    - cyclop
+    - noinlineerr
+    - exhaustruct
+    - gochecknoglobals
+    - err113
+    
+
   settings:
+    staticcheck:
+      checks:
+        - "-SA1019"
     depguard:
       rules:
         prevent_unmaintained_packages:
@@ -35,5 +55,3 @@ formatters:
       shorten-comments: true
       reformat-tags: false
       chain-split-dots: true
-      
-      

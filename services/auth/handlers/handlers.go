@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
 type AuthService interface {
@@ -28,19 +30,20 @@ func NewAuthHandlers(authService AuthService) *AuthHandlers {
 }
 
 func (a *AuthHandlers) bindJSON(ctx *gin.Context, data any) {
-	if err := ctx.ShouldBindJSON(data); err != nil {
-		if vErrors, ok := err.(validator.ValidationErrors); ok {
+	err := ctx.ShouldBindJSON(data)
+	if err != nil {
+		if vErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"details":          "body validation fails",
 				"validationErrors": mapErrors(vErrors),
 			})
-			// panic("validation fails")
 			a.logger.Error("Validation fails", "error", err)
 		}
+
 		a.logger.Error("Failed to bind JSON", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusBadRequest,
-			gin.H{"details": "failed get JSON body: " + err.Error()},
+			requests.BadResponse{Details: err.Error()},
 		)
 
 		return
@@ -48,7 +51,7 @@ func (a *AuthHandlers) bindJSON(ctx *gin.Context, data any) {
 }
 
 func mapErrors(vErrors validator.ValidationErrors) []gin.H {
-	res := []gin.H{}
+	res := make([]gin.H, 0, len(vErrors))
 
 	for _, err := range vErrors {
 		res = append(res, gin.H{

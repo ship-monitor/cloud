@@ -25,7 +25,8 @@ func SetupRoutes(router gin.IRouter) {
 	// Запускаем миграции
 	data.Migrate()
 
-	if err := commands.Connect(); err != nil {
+	err := commands.Connect()
+	if err != nil {
 		log.Fatal("Failed connect to commands queue", "error", err)
 	}
 
@@ -34,7 +35,9 @@ func SetupRoutes(router gin.IRouter) {
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
 	orgsRepository := repository.New(db.DB.DB)
-	if err := orgsRepository.Migrate(context.Background()); err != nil {
+
+	err = orgsRepository.Migrate(context.Background())
+	if err != nil {
 		log.Fatal("Failed migrate organizations schema")
 	}
 
