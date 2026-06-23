@@ -99,7 +99,6 @@ type DeviceResponse struct {
 	OrganizationID uuid.UUID `json:"organizationId"`
 	CreatedAt      time.Time `json:"createdAt"`
 	Name           string    `json:"name"`
-	IsConnected    bool      `json:"isConnected"`
 }
 
 type SendCommandResponse struct {

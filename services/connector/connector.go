@@ -26,8 +26,14 @@ func Setup(ctx context.Context, r gin.IRouter) {
 		panic(err)
 	}
 
+	connServer := connections.NewServer()
+
+	q.AddHandler(queueHandler(connServer))
+
+	connServer.AddHandler(websocketHandler(q))
+
 	go func(ctx context.Context) {
-		connections.Serve(ctx)
+		connServer.Serve(ctx)
 	}(ctx)
 
 	go func(ctx context.Context) {
@@ -35,10 +41,6 @@ func Setup(ctx context.Context, r gin.IRouter) {
 			log.Fatal("failed serve queue", "error", err)
 		}
 	}(ctx)
-
-	q.AddHandler(queueHandler)
-
-	connections.AddHandler(websocketHandler(q))
 
 	<-ctx.Done()
 }
@@ -50,40 +52,42 @@ var (
 	wsLog = log.WithPrefix("WebSocket")
 )
 
-func queueHandler(m *amqp.Delivery) error {
-	requestId := m.CorrelationId
+func queueHandler(c *connections.Server) queue.MessageHandlerFunc {
+	return func(m *amqp.Delivery) error {
+		requestId := m.CorrelationId
 
-	qlog.Info("New message", "requestId", requestId, "body", string(m.Body))
+		qlog.Info("New message", "requestId", requestId, "body", string(m.Body))
 
-	var cloudRequest connections.FromCloudRequest
+		var cloudRequest connections.FromCloudRequest
 
-	err := json.Unmarshal(m.Body, &cloudRequest)
-	if err != nil {
-		qlog.Error("Failed to unmarshal message", "error", err)
+		err := json.Unmarshal(m.Body, &cloudRequest)
+		if err != nil {
+			qlog.Error("Failed to unmarshal message", "error", err)
 
-		return fmt.Errorf("unmarshal message: %w", err)
+			return fmt.Errorf("unmarshal message: %w", err)
+		}
+
+		err = cloudRequest.Validate()
+		if err != nil {
+			qlog.Error("Failed validate request from cloud", "error", err, "requestId", requestId)
+
+			return fmt.Errorf("failed validate request from cloud: %w", err)
+		}
+
+		err = c.SendRequest(
+			cloudRequest.NodeID,
+			cloudRequest.ToNode(requestId),
+		)
+		if err != nil {
+			qlog.Error("Failed to send request", "error", err)
+
+			return fmt.Errorf("send request: %w", err)
+		}
+
+		qlog.Info("Message handled", "requestId", requestId)
+
+		return nil
 	}
-
-	err = cloudRequest.Validate()
-	if err != nil {
-		qlog.Error("Failed validate request from cloud", "error", err, "requestId", requestId)
-
-		return fmt.Errorf("failed validate request from cloud: %w", err)
-	}
-
-	err = connections.SendRequest(
-		cloudRequest.NodeID,
-		cloudRequest.ToNode(requestId),
-	)
-	if err != nil {
-		qlog.Error("Failed to send request", "error", err)
-
-		return fmt.Errorf("send request: %w", err)
-	}
-
-	qlog.Info("Message handled", "requestId", requestId)
-
-	return nil
 }
 
 func websocketHandler(q *queue.Queue) connections.MessageHandlerFunc {

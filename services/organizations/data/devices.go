@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
@@ -36,16 +35,12 @@ func ConnectDevice(ctx context.Context, id, organizationID uuid.UUID, name strin
 		name = GenNodeName(id)
 	}
 
-	if connections.IsConnected(id) {
-		_, err := createDevice(ctx, id, organizationID, name)
-		if err != nil {
-			return fmt.Errorf("create device: %w", err)
-		} else {
-			return nil
-		}
+	_, err := createDevice(ctx, id, organizationID, name)
+	if err != nil {
+		return fmt.Errorf("create device: %w", err)
+	} else {
+		return nil
 	}
-
-	return fmt.Errorf("device %q is not connected to server", id)
 }
 
 func createDevice(
@@ -84,7 +79,6 @@ func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
 		ID:             device.ID,
 		OrganizationID: device.OrganizationID,
 		CreatedAt:      device.CreatedAt,
-		IsConnected:    connections.IsConnected(device.ID),
 		Name:           device.Name,
 	}
 }

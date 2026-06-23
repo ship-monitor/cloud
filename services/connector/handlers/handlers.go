@@ -7,7 +7,6 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/repository"
 )
 
@@ -16,18 +15,14 @@ type ResponseNode struct {
 	Name            string     `json:"name"`
 	LastConnection  *time.Time `json:"lastConnection"`
 	FirstConnection time.Time  `json:"firstConnection"`
-	Connected       bool       `json:"connected"`
 }
 
 func toResponse(in *repository.Node) ResponseNode {
-	connected := connections.IsConnected(in.ID)
-
 	return ResponseNode{
 		ID:              in.ID,
 		Name:            in.Name,
 		LastConnection:  in.LastConnection,
 		FirstConnection: in.FirstConnection,
-		Connected:       connected,
 	}
 }
 
