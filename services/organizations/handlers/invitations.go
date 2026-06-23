@@ -163,7 +163,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	inv, err := data.GetInvitationByID(invID)
+	inv, err := data.GetInvitationByID(c.Request.Context(), invID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
 
@@ -230,7 +230,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 		return
 	}
 
-	inv, err := data.GetInvitationByID(invID)
+	inv, err := data.GetInvitationByID(c.Request.Context(), invID)
 	if err != nil {
 		log.Warn("Invitation not found for decline", "invitation", invID)
 		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))

@@ -22,7 +22,7 @@ func GetParamUUID(c *gin.Context, key string) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("failed parse param %q as uuid: %w", val, err)
 	}
 
-	return id, err
+	return id, nil
 }
 
 func MustGetParamUUID(c *gin.Context, key string) uuid.UUID {

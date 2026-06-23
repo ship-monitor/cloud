@@ -62,7 +62,7 @@ func createDevice(
 
 	_, err := db.DB.NewInsert().Model(&device).Exec(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("insert device: %w", err)
 	}
 
 	return &device, nil
@@ -70,9 +70,13 @@ func createDevice(
 
 func (device *OrganizationDevice) SetName(ctx context.Context, name string) error {
 	device.Name = name
-	_, err := db.DB.NewUpdate().Model(device).Column("name").WherePK().Exec(ctx)
 
-	return err
+	_, err := db.DB.NewUpdate().Model(device).Column("name").WherePK().Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("update device: %w", err)
+	}
+
+	return nil
 }
 
 func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
@@ -93,7 +97,7 @@ func GetDevice(ctx context.Context, id uuid.UUID) (*OrganizationDevice, error) {
 		Where("id = ?", id).
 		Scan(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select device: %w", err)
 	}
 
 	return &device, nil
@@ -117,7 +121,7 @@ func ListDevices(ctx context.Context, orgID uuid.UUID) ([]OrganizationDevice, er
 		Order("created_at ASC").
 		Scan(ctx)
 
-	return devices, err
+	return devices, fmt.Errorf("select devices: %w", err)
 }
 
 func DisconnectDevice(ctx context.Context, id uuid.UUID) error {
@@ -133,6 +137,9 @@ func deleteDevice(ctx context.Context, id uuid.UUID) error {
 		Model((*OrganizationDevice)(nil)).
 		Where("id = ?", id).
 		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("delete device: %w", err)
+	}
 
-	return err
+	return nil
 }

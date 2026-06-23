@@ -14,8 +14,11 @@ import (
 func AddMember(member OrganizationMember) error {
 	// Сохраняем в БД
 	_, err := db.DB.NewInsert().Model(&member).Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("insert member: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 // UpdateMemberRole обновляет роль участника.
@@ -25,8 +28,11 @@ func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
 		Set("role = ?", role).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("update member role: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 // RemoveMember удаляет участника из организации.
@@ -68,8 +74,11 @@ func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 		Where("om.organization_id = ?", orgID).
 		Order("om.joined_at ASC").
 		Scan(context.Background(), &members)
+	if err != nil {
+		return nil, fmt.Errorf("select members: %w", err)
+	}
 
-	return members, err
+	return members, nil
 }
 
 // MemberWithUser — участник с данными пользователя.
@@ -93,7 +102,7 @@ func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 		Where("id = ?", org.ID).
 		Exec(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("update organization: %w", err)
 	}
 
 	return GetOrganization(org.ID)
@@ -130,8 +139,11 @@ func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 		Where("om.member_id = ?", userID).
 		Order("organization.created_at DESC").
 		Scan(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("select organizations: %w", err)
+	}
 
-	return orgs, err
+	return orgs, nil
 }
 
 // IsMember проверяет, является ли пользователь участником организации.

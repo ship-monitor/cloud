@@ -66,12 +66,12 @@ func Connect() error {
 
 	conn, err = amqp.Dial(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("amqp dial: %w", err)
 	}
 
 	channel, err = conn.Channel()
 	if err != nil {
-		return err
+		return fmt.Errorf("open channel: %w", err)
 	}
 
 	requestsQueue, err = channel.QueueDeclare(
@@ -83,7 +83,7 @@ func Connect() error {
 		nil,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("declare queue: %w", err)
 	}
 
 	responsesQueue, err = channel.QueueDeclare(
@@ -95,7 +95,7 @@ func Connect() error {
 		nil,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("declare queue: %w", err)
 	}
 
 	return nil

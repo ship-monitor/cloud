@@ -47,7 +47,7 @@ func GetOrganization(id uuid.UUID) (*Organization, error) {
 
 	err := db.DB.NewSelect().Model(&org).Where("id = ?", id).Scan(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select organization: %w", err)
 	}
 
 	return &org, nil
@@ -73,7 +73,11 @@ func CreateOrganization(in CreateOrganizationInput) (Organization, error) {
 		Name:      in.Name,
 		CreatorID: in.CreatorID,
 	}
-	_, err = db.DB.NewInsert().Model(&org).Exec(context.Background())
 
-	return org, err
+	_, err = db.DB.NewInsert().Model(&org).Exec(context.Background())
+	if err != nil {
+		return Organization{}, fmt.Errorf("insert organization: %w", err)
+	}
+
+	return org, nil
 }

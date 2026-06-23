@@ -92,7 +92,7 @@ func GetUserByEmail(email string) (*User, error) {
 
 	err := db.DB.NewSelect().Model(&user).Where("email = ?", email).Scan(context.TODO())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select user by email: %w", err)
 	}
 
 	return &user, nil
@@ -109,7 +109,7 @@ func checkEmailTaken(email string) (bool, error) {
 		Where("email = ?", normalizeEmail(email)).
 		Exists(context.TODO())
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("select user by email: %w", err)
 	}
 
 	return taken, nil
@@ -124,8 +124,11 @@ func (u *User) SetPassword(password string) error {
 		Column("password_hash", "updated_at").
 		WherePK().
 		Exec(context.TODO())
+	if err != nil {
+		return fmt.Errorf("update user password: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (u *User) SetEmail(email string) error {
@@ -138,20 +141,27 @@ func (u *User) SetEmail(email string) error {
 		Column("email", "email_verified", "updated_at").
 		WherePK().
 		Exec(context.TODO())
+	if err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (u *User) Block() error {
 	u.UpdatedAt = time.Now()
 	u.Blocked = true
+
 	_, err := db.DB.NewUpdate().
 		Model(u).
 		Column("blocked", "updated_at").
 		WherePK().
 		Exec(context.TODO())
+	if err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func SetEmailVerified(ctx context.Context, userID uuid.UUID) error {
@@ -184,7 +194,7 @@ func GetUsersList(page int) ([]User, error) {
 		Limit(PageLimit).
 		Scan(context.TODO())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select users: %w", err)
 	}
 
 	return users, nil

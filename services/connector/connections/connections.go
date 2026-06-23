@@ -216,10 +216,14 @@ func SendRequest(nodeId string, r *ToNodeRequest) error {
 
 	message, err := json.Marshal(r)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal message: %w", err)
 	}
 
-	return conn.WriteMessage(websocket.TextMessage, message)
+	if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		return fmt.Errorf("write message: %w", err)
+	}
+
+	return nil
 }
 
 func IsConnected(nodeId UUID) bool {

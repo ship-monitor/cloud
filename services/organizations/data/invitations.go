@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,31 +47,36 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 
 	_, err := db.DB.NewInsert().Model(&invitation).Exec(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("insert invitation: %w", err)
 	}
 
 	return &invitation, nil
 }
 
-func GetInvitationByID(id uuid.UUID) (*OrganizationInvitation, error) {
+func GetInvitationByID(ctx context.Context, id uuid.UUID) (*OrganizationInvitation, error) {
 	var inv OrganizationInvitation
 
 	err := db.DB.NewSelect().
 		Model(&inv).
 		Where("id = ?", id).
-		Scan(context.Background())
+		Scan(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select invitations: %w", err)
 	}
 
 	return &inv, nil
 }
 
 func HasPendingInvitation(orgID uuid.UUID, email string) (bool, error) {
-	return db.DB.NewSelect().
+	exists, err := db.DB.NewSelect().
 		Model((*OrganizationInvitation)(nil)).
 		Where("organization_id = ? AND invitee_email = ? AND status = ?", orgID, email, StatusPending).
 		Exists(context.Background())
+	if err != nil {
+		return false, fmt.Errorf("select invitations: %w", err)
+	}
+
+	return exists, nil
 }
 
 func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
@@ -82,7 +88,7 @@ func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
 		Order("created_at DESC").
 		Scan(context.Background())
 
-	return invs, err
+	return invs, fmt.Errorf("select invitations: %w", err)
 }
 
 func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
@@ -93,8 +99,11 @@ func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
 		Where("organization_id = ?", orgID).
 		Order("created_at DESC").
 		Scan(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("select invitations: %w", err)
+	}
 
-	return invs, err
+	return invs, nil
 }
 
 func UpdateInvitationStatus(id uuid.UUID, status InvitationStatus) error {
@@ -103,6 +112,9 @@ func UpdateInvitationStatus(id uuid.UUID, status InvitationStatus) error {
 		Set("status = ?", status).
 		Where("id = ?", id).
 		Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("update invitation: %w", err)
+	}
 
-	return err
+	return nil
 }

@@ -61,7 +61,7 @@ func queueHandler(m *amqp.Delivery) error {
 	if err != nil {
 		qlog.Error("Failed to unmarshal message", "error", err)
 
-		return err
+		return fmt.Errorf("unmarshal message: %w", err)
 	}
 
 	err = cloudRequest.Validate()
@@ -78,7 +78,7 @@ func queueHandler(m *amqp.Delivery) error {
 	if err != nil {
 		qlog.Error("Failed to send request", "error", err)
 
-		return err
+		return fmt.Errorf("send request: %w", err)
 	}
 
 	qlog.Info("Message handled", "requestId", requestId)
@@ -94,7 +94,7 @@ func websocketHandler(q *queue.Queue) connections.MessageHandlerFunc {
 		if err != nil {
 			wsLog.Error("Failed to unmarshal message", "error", err)
 
-			return err
+			return fmt.Errorf("unmarshal message: %w", err)
 		}
 
 		wsLog.Info("New message", "requestId", response.RequestID, "body", string(body))
@@ -103,7 +103,7 @@ func websocketHandler(q *queue.Queue) connections.MessageHandlerFunc {
 		if err != nil {
 			wsLog.Error("Failed to send response", "error", err)
 
-			return err
+			return fmt.Errorf("send response to queue: %w", err)
 		}
 
 		wsLog.Info("Message handled", "requestId", response.RequestID)
