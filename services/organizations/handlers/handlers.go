@@ -68,7 +68,7 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid create organization request", "error", err)
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
 
 		return
 	}
@@ -368,7 +368,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 
 	var req dto.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
 
 		return
 	}

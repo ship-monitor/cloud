@@ -4,12 +4,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
-type ErrorResponse struct {
-	Details          string            `json:"details"`
-	ValidationErrors []ValidationError `json:"validationErrors,omitempty"`
-}
+type ErrorResponse = requests.BadResponse
 
 type ValidationError struct {
 	ActualTag   string `json:"actualTag"`
@@ -19,8 +17,8 @@ type ValidationError struct {
 	Tag         string `json:"tag"`
 }
 
-func Error(err error) ErrorResponse {
-	return ErrorResponse{Details: err.Error()}
+func Error(err error) requests.BadResponse {
+	return requests.ResponseErr(err)
 }
 
 // --- Organization DTOs ---

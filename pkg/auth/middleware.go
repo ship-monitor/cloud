@@ -23,8 +23,14 @@ const (
 )
 
 var (
-	ErrArmenUsedBearer = errors.New("someone (Armen) included 'Bearer ' in token header")
-	ErrNoAuthHeader    = fmt.Errorf("header %q not specified", AuthorizationHeader)
+	ErrArmenUsedBearer         = errors.New("someone (Armen) included 'Bearer ' in token header")
+	ErrNoAuthHeader            = fmt.Errorf("header %q not specified", AuthorizationHeader)
+	ErrUnsupportedSigninMethod = errors.New("unsupported signing method")
+
+	ErrNoSessionInCtx           = errors.New("no session in context, probably not authenticated")
+	ErrUnexpectedSessionType    = errors.New("session in context is of unexpected type")
+	ErrNoMiddlewareInCtx        = errors.New("no middleware in context")
+	ErrUnexpectedMiddlewareType = errors.New("middleware in context is of unexpected type")
 )
 
 // DefaultMiddleware returns a new Middleware with the default Redis configuration from viper.
@@ -59,7 +65,7 @@ func tokenKeyFunc(config *viper.Viper) jwt.Keyfunc {
 		case jwt.SigningMethodHS512:
 			return []byte(config.GetString("security-key")), nil
 		default:
-			return nil, fmt.Errorf("unsupported signing method: %s", token.Method.Alg())
+			return nil, fmt.Errorf("method %s: %w", token.Method.Alg(), ErrUnsupportedSigninMethod)
 		}
 	}
 }
@@ -109,14 +115,15 @@ func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
 func GetMiddleware(ctx *gin.Context) *Middleware {
 	middleware, ok := ctx.Get(middlewareKey)
 	if !ok {
-		panic("there is no middleware")
+		abortRequest(ctx, ErrNoMiddlewareInCtx)
 	}
 
-	if m, ok := middleware.(*Middleware); ok {
-		return m
-	} else {
-		panic("middleware is of unexpected type")
+	m, ok := middleware.(*Middleware)
+	if !ok {
+		abortRequest(ctx, ErrUnexpectedMiddlewareType)
 	}
+
+	return m
 }
 
 func (m *Middleware) WithMiddleware(ctx *gin.Context) {
@@ -174,13 +181,20 @@ func (m *Middleware) addToContext(ctx *gin.Context) {
 func GetSession(ctx *gin.Context) *Session {
 	session, ok := ctx.Get(sessionKey)
 	if !ok {
-		panic(fmt.Errorf("session not found (key %q), probably not authenticated", sessionKey))
+		abortRequest(ctx, ErrNoSessionInCtx)
 	}
 
 	s, ok := session.(*Session)
 	if !ok {
-		panic(fmt.Errorf("session in context is of unknown type (key %q)", sessionKey))
+		abortRequest(ctx, ErrUnexpectedSessionType)
 	}
 
 	return s
+}
+
+func abortRequest(ctx *gin.Context, err error) {
+	ctx.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseErr(err))
+	_ = ctx.Error(err)
+
+	panic(fmt.Sprintf("aborting request: %s", err))
 }

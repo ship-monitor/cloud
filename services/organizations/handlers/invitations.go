@@ -16,12 +16,16 @@ import (
 )
 
 var (
-	ErrInvitationNotFound   = errors.New("invitation not found")
-	ErrInvalidInviteRequest = errors.New(
-		"invalid request: expected inviteeEmail or inviteeEmails",
-	)
+	ErrAlreadyProcessed         = errors.New("invitation already processed")
+	ErrInvitationNotFound       = errors.New("invitation not found")
 	ErrAccessDenied             = errors.New("access denied")
 	ErrInvitationAlreadyPending = errors.New("invitation already exists and is pending")
+	ErrInvitationExpired        = errors.New("invitation expired")
+	ErrAlreadyMember            = errors.New("user is already a member")
+	ErrNotInvitee               = errors.New("user is not invitee")
+	ErrInvalidInviteRequest     = errors.New(
+		"invalid request: expected inviteeEmail or inviteeEmails",
+	)
 )
 
 func HandleCreateInvitation(c *gin.Context) {
@@ -165,25 +169,25 @@ func HandleAcceptInvitation(c *gin.Context) {
 
 	inv, err := data.GetInvitationByID(c.Request.Context(), invID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
+		c.JSON(http.StatusNotFound, dto.Error(ErrInvitationNotFound))
 
 		return
 	}
 
 	if inv.Status != data.StatusPending {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invitation already processed")))
+		c.JSON(http.StatusBadRequest, dto.Error(ErrAlreadyProcessed))
 
 		return
 	}
 
 	if time.Now().After(inv.ExpiresAt) {
-		c.JSON(http.StatusGone, dto.Error(errors.New("invitation expired")))
+		c.JSON(http.StatusGone, dto.Error(ErrInvitationExpired))
 
 		return
 	}
 
 	if session.Email != inv.InviteeEmail {
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("you are not the invitee")))
+		c.JSON(http.StatusForbidden, dto.Error(ErrNotInvitee))
 
 		return
 	}
@@ -196,7 +200,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 	}
 
 	if alreadyMember {
-		c.JSON(http.StatusConflict, dto.Error(errors.New("you are already a member")))
+		c.JSON(http.StatusConflict, dto.Error(ErrAlreadyMember))
 
 		return
 	}
@@ -222,18 +226,12 @@ func HandleAcceptInvitation(c *gin.Context) {
 }
 
 func HandleDeclineInvitation(c *gin.Context) {
-	invID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid invitation id in decline request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid invitation id")))
-
-		return
-	}
+	invID := requests.MustGetParamUUID(c, "id")
 
 	inv, err := data.GetInvitationByID(c.Request.Context(), invID)
 	if err != nil {
 		log.Warn("Invitation not found for decline", "invitation", invID)
-		c.JSON(http.StatusNotFound, dto.Error(errors.New("invitation not found")))
+		c.JSON(http.StatusNotFound, dto.Error(ErrInvitationNotFound))
 
 		return
 	}
@@ -246,7 +244,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 			"status",
 			inv.Status,
 		)
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invitation already processed")))
+		c.JSON(http.StatusBadRequest, dto.Error(ErrAlreadyProcessed))
 
 		return
 	}
@@ -262,7 +260,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 			"invitee",
 			inv.InviteeEmail,
 		)
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("you are not the invitee")))
+		c.JSON(http.StatusForbidden, dto.Error(ErrNotInvitee))
 
 		return
 	}
