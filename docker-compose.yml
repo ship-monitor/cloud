@@ -24,8 +24,12 @@ services:
       SECURITY_KEY: "your_jwt_security_key_here"
       SERVICES_CONNECTOR_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
     depends_on:
-      - auth-db
-      - rabbitmq
+      auth-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - auth-net
     healthcheck:
