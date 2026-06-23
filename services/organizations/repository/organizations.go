@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
@@ -137,11 +138,9 @@ func (r *OrganizationsRepo) UserIsMember(
 }
 
 // GetUsersOrganizations implements [organization.Repository].
-//
-// TODO: implement pagination.
 func (r *OrganizationsRepo) GetUsersOrganizations(
 	ctx context.Context,
-	userID uuid.UUID,
+	userID uuid.UUID, p paging.Paging,
 ) ([]*data.Organization, error) {
 	var orgs []*data.Organization
 
@@ -150,6 +149,8 @@ func (r *OrganizationsRepo) GetUsersOrganizations(
 		Relation("OrganizationMembers", func(q *bun.SelectQuery) *bun.SelectQuery {
 			return q.Where("member_id = ?", userID)
 		}).
+		Limit(p.Size).
+		Offset(p.Page * p.Size).
 		Distinct().Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("select users organization: %w", err)

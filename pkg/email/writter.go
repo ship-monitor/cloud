@@ -17,8 +17,6 @@ const (
 )
 
 // Writer writes email as smtp document.
-//
-// TODO: fix doc.
 type Writer interface {
 	Write(e Email) ([]byte, error)
 }
@@ -36,8 +34,6 @@ func NewHTMLWriter(sender Sender) *HTMLWriter {
 }
 
 func (w *HTMLWriter) Write(e Email) ([]byte, error) {
-	lang := "en"
-
 	encodedSubject := mime.QEncoding.Encode("utf-8", e.Subject)
 
 	headers := textproto.MIMEHeader{}
@@ -45,8 +41,8 @@ func (w *HTMLWriter) Write(e Email) ([]byte, error) {
 	headers.Add("Subject", encodedSubject)
 	headers.Add("From", fmt.Sprintf("%s <%s>", w.sender.Name, w.sender.Email))
 	headers.Add("Comments", Comment)
-	headers.Add("Language", lang)         // TODO: fix this
-	headers.Add("Content-Language", lang) // TODO: fix this
+	headers.Add("Language", e.Lang)
+	headers.Add("Content-Language", e.Lang)
 	headers.Add("Date", time.Now().String())
 	headers.Add("Message-ID", uuid.NewString())
 	headers.Add("To", e.To)

@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
 )
@@ -103,7 +104,7 @@ func TestGetUsersOrganizations(t *testing.T) {
 	}
 
 	// Test GetUsersOrganizations
-	organizations, err := repo.GetUsersOrganizations(ctx, userID)
+	organizations, err := repo.GetUsersOrganizations(ctx, userID, paging.Paging{Page: 0, Size: 10})
 	if err != nil {
 		t.Fatalf("GetUsersOrganizations failed: %v", err)
 	}

@@ -6,8 +6,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
+
+const PageSize = 100
 
 var ErrUserIsNotMember = errors.New("user is not member of organization")
 
@@ -15,7 +18,11 @@ type OrganizationsRepository interface {
 	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
 	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*data.Organization, error)
 	UserIsMember(ctx context.Context, userID, orgID uuid.UUID) (bool, error)
-	GetUsersOrganizations(ctx context.Context, userID uuid.UUID) ([]*data.Organization, error)
+	GetUsersOrganizations(
+		ctx context.Context,
+		userID uuid.UUID,
+		p paging.Paging,
+	) ([]*data.Organization, error)
 }
 
 type OrganizationsService struct {
@@ -65,7 +72,11 @@ func (s *OrganizationsService) GetUsersOrganizations(
 	userID uuid.UUID,
 	page int,
 ) ([]*data.Organization, error) {
-	orgs, err := s.repo.GetUsersOrganizations(ctx, userID)
+	orgs, err := s.repo.GetUsersOrganizations(
+		ctx,
+		userID,
+		paging.Paging{Page: page, Size: PageSize},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get users orgs: %w", err)
 	}

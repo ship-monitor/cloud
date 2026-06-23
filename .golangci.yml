@@ -12,7 +12,6 @@ linters:
     - revive
     # temporary disabled
     - funlen
-    - godox
     - cyclop
     - noinlineerr
     - exhaustruct
