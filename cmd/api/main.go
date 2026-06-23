@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/keyval"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
@@ -23,9 +22,6 @@ func main() {
 	config.Setup()
 
 	db.Setup()
-	keyval.Setup()
-
-	defer keyval.Close()
 
 	if viper.GetBool("devel") {
 		log.SetLevel(log.DebugLevel)
