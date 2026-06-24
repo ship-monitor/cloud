@@ -10,6 +10,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
@@ -40,11 +41,11 @@ type DevicesService interface {
 	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error
 	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
 	RenameDevice(ctx context.Context, deviceID, userID uuid.UUID, name string) error
-	GetDevice(ctx context.Context, deviceID, userID uuid.UUID) (*data.OrganizationDevice, error)
+	GetDevice(ctx context.Context, deviceID, userID uuid.UUID) (*domain.OrganizationDevice, error)
 	GetDevices(
 		ctx context.Context,
 		organizationID, userID uuid.UUID,
-	) ([]data.OrganizationDevice, error)
+	) ([]domain.OrganizationDevice, error)
 	SendCommand(
 		ctx context.Context,
 		deviceID, userID uuid.UUID, command string,

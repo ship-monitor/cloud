@@ -9,14 +9,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Config *viper.Viper
-
 func Setup() {
 	_ = godotenv.Load()
 
 	viper.SetConfigName("ship")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc")
+
+	viper.RegisterAlias("jwt-security-key", "security-key")
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -25,8 +25,6 @@ func Setup() {
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
-
-	Config = viper.GetViper()
 
 	flag.Parse()
 

@@ -6,23 +6,36 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
 var (
-	ErrNotMember       = errors.New("access denied: user is not member of organization")
-	ErrEmptyDeviceName = errors.New("empty device name")
+	ErrNotMember        = errors.New("access denied: user is not member of organization")
+	ErrEmptyDeviceName  = errors.New("empty device name")
+	ErrAlreadyConnected = errors.New("device already connected to organization")
 )
+
+type OrgDevicesRepo interface {
+	ListDevices(ctx context.Context, organizationID uuid.UUID) ([]domain.OrganizationDevice, error)
+	GetDevice(ctx context.Context, deviceID uuid.UUID) (*domain.OrganizationDevice, error)
+	CreateDevice(ctx context.Context, device *domain.OrganizationDevice) error
+	DeleteDevice(ctx context.Context, deviceID uuid.UUID) error
+	SetName(ctx context.Context, deviceID uuid.UUID, name string) error
+	DeviceExists(ctx context.Context, deviceID uuid.UUID) (bool, error)
+}
 
 type DevicesService struct {
 	orgs *services.OrganizationsService
+	repo OrgDevicesRepo
 }
 
-func NewDevices(orgs *services.OrganizationsService) *DevicesService {
+func NewDevices(devRepo OrgDevicesRepo, orgs *services.OrganizationsService) *DevicesService {
 	return &DevicesService{
 		orgs: orgs,
+		repo: devRepo,
 	}
 }
 
@@ -31,12 +44,35 @@ func (d *DevicesService) ConnectDevice(
 	ctx context.Context,
 	deviceID, organizationID, userID uuid.UUID,
 ) error {
-	panic("unimplemented")
+	if isMember, err := d.orgs.IsMember(ctx, userID, organizationID); err != nil {
+		return fmt.Errorf("check is member: %w", err)
+	} else if !isMember {
+		return ErrNotMember
+	}
+
+	if exists, err := d.repo.DeviceExists(ctx, deviceID); err != nil {
+		return fmt.Errorf("check already connected: %w", err)
+	} else if exists {
+		return ErrAlreadyConnected
+	}
+
+	name := names.Gen()
+
+	err := d.repo.CreateDevice(ctx, &domain.OrganizationDevice{
+		ID:             deviceID,
+		Name:           name,
+		OrganizationID: organizationID,
+	})
+	if err != nil {
+		return fmt.Errorf("create device: %w", err)
+	} else {
+		return nil
+	}
 }
 
 // DisconnectDevice implements [handlers.DevicesService].
 func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error {
-	dev, err := data.GetDevice(ctx, deviceID)
+	dev, err := d.repo.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf("get device: %w", err)
 	}
@@ -47,7 +83,7 @@ func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID 
 		return ErrNotMember
 	}
 
-	if err := data.DisconnectDevice(ctx, dev.ID); err != nil {
+	if err := d.repo.DeleteDevice(ctx, deviceID); err != nil {
 		return fmt.Errorf("disconnect device: %w", err)
 	}
 
@@ -58,8 +94,8 @@ func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID 
 func (d *DevicesService) GetDevice(
 	ctx context.Context,
 	deviceID, userID uuid.UUID,
-) (*data.OrganizationDevice, error) {
-	dev, err := data.GetDevice(ctx, deviceID)
+) (*domain.OrganizationDevice, error) {
+	dev, err := d.repo.GetDevice(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get device: %w", err)
 	}
@@ -77,8 +113,19 @@ func (d *DevicesService) GetDevice(
 func (d *DevicesService) GetDevices(
 	ctx context.Context,
 	organizationID, userID uuid.UUID,
-) ([]data.OrganizationDevice, error) {
-	panic("unimplemented")
+) ([]domain.OrganizationDevice, error) {
+	if isMember, err := d.orgs.IsMember(ctx, userID, organizationID); err != nil {
+		return nil, fmt.Errorf("check is member: %w", err)
+	} else if !isMember {
+		return nil, ErrNotMember
+	}
+
+	devs, err := d.repo.ListDevices(ctx, organizationID)
+	if err != nil {
+		return nil, fmt.Errorf("list devices: %w", err)
+	}
+
+	return devs, nil
 }
 
 // RenameDevice implements [handlers.DevicesService].
@@ -91,7 +138,7 @@ func (d *DevicesService) RenameDevice(
 		return ErrEmptyDeviceName
 	}
 
-	dev, err := data.GetDevice(ctx, deviceID)
+	dev, err := d.repo.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf("get device: %w", err)
 	}
@@ -103,7 +150,7 @@ func (d *DevicesService) RenameDevice(
 		return ErrNotMember
 	}
 
-	if err := dev.SetName(ctx, name); err != nil {
+	if err := d.repo.SetName(ctx, deviceID, name); err != nil {
 		return fmt.Errorf("set device name: %w", err)
 	}
 
@@ -116,7 +163,7 @@ func (d *DevicesService) SendCommand(
 	deviceID, userID uuid.UUID, command string,
 	args map[string]any,
 ) (*commands.CommandResponse, error) {
-	dev, err := data.GetDevice(ctx, deviceID)
+	dev, err := d.repo.GetDevice(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get device: %w", err)
 	}

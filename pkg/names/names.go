@@ -1,11 +1,9 @@
-package data
+package names
 
 import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -39,7 +37,7 @@ var (
 //nolint:gochecknoglobals
 var defaultName = fmt.Sprintf("%s %s", Adjectives[0], Nouns[0])
 
-func GenNodeName(id uuid.UUID) string {
+func Gen() string {
 	adj, err := rand.Int(rand.Reader, big.NewInt(int64(len(Adjectives))))
 	if err != nil {
 		return defaultName

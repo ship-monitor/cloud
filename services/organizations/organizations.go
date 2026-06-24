@@ -34,7 +34,8 @@ func SetupRoutes(router gin.IRouter) {
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
-	orgsRepository := repository.New(db.DB.DB)
+	orgsRepository := repository.NewOrgs(db.DB.DB)
+	devsRepository := repository.NewOrgDevices(db.DB)
 
 	err = orgsRepository.Migrate(context.Background())
 	if err != nil {
@@ -42,7 +43,7 @@ func SetupRoutes(router gin.IRouter) {
 	}
 
 	orgsService := intservices.NewOrganizations(orgsRepository)
-	devicesService := services.NewDevices(orgsService)
+	devicesService := services.NewDevices(devsRepository, orgsService)
 
 	webHandler := handlers.New(orgsService, devicesService)
 
@@ -61,7 +62,7 @@ func SetupRoutes(router gin.IRouter) {
 	orgs.DELETE("/:id/members/:userId", handlers.HandleRemoveMember)
 
 	// Device routes
-	orgs.POST("/:id/devices", handlers.HandleConnectDevice)
+	orgs.POST("/:id/devices", webHandler.HandleConnectDevice)
 	orgs.GET("/:id/devices", handlers.HandleListDevices)
 	orgs.GET("/:id/devices/:deviceId", handlers.HandleGetDevice)
 	orgs.PATCH("/:id/devices/:deviceId", handlers.HandlePatchDevice)

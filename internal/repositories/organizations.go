@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
@@ -19,7 +20,7 @@ type OrganizationsRepo struct {
 	db *bun.DB
 }
 
-func New(db *sql.DB) *OrganizationsRepo {
+func NewOrgs(db *sql.DB) *OrganizationsRepo {
 	if db == nil {
 		panic("db is nil")
 	}
@@ -34,7 +35,7 @@ func (r *OrganizationsRepo) Migrate(ctx context.Context) error {
 		&data.Organization{},
 		&data.OrganizationInvitation{},
 		&data.OrganizationMember{},
-		&data.OrganizationDevice{},
+		&domain.OrganizationDevice{},
 	}
 
 	for _, model := range models {
@@ -108,7 +109,7 @@ func insertMember(ctx context.Context, db bun.IDB, member *data.OrganizationMemb
 
 func (r *OrganizationsRepo) GetOrganizationByID(
 	ctx context.Context,
-	id OrganizationID,
+	id uuid.UUID,
 ) (*data.Organization, error) {
 	org := data.Organization{}
 

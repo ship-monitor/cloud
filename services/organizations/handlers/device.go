@@ -8,6 +8,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
@@ -105,7 +106,7 @@ func HandlePatchDevice(c *gin.Context) {
 		return
 	}
 
-	if err := device.SetName(c.Request.Context(), req.Name); err != nil {
+	if err := data.SetName(c.Request.Context(), device, req.Name); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			dto.Error(fmt.Errorf("failed set device name: %w", err)),
@@ -119,38 +120,26 @@ func HandlePatchDevice(c *gin.Context) {
 	})
 }
 
-func HandleConnectDevice(c *gin.Context) {
+func (h *HTTPHandler) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
-
-	_, err := data.GetMember(orgID, session.UserID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
-	}
-
 	var req dto.ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
 
 		return
 	}
-
-	if err := data.ConnectDevice(c.Request.Context(), req.DeviceID, orgID, req.Name); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(err))
-
-		return
+	err := h.devices.ConnectDevice(c.Request.Context(), req.DeviceID, orgID, session.UserID)
+	switch {
+	case errors.Is(err, services.ErrAlreadyConnected):
+		c.AbortWithStatusJSON(http.StatusConflict, requests.ResponseErr(err))
+	case errors.Is(err, services.ErrNotMember):
+		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
+	case err != nil:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		c.Status(http.StatusCreated)
 	}
-
-	device, err := data.GetDeviceDTO(c.Request.Context(), req.DeviceID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
-
-		return
-	}
-
-	c.JSON(http.StatusCreated, device)
 }
 
 func HandleListDevices(c *gin.Context) {
@@ -426,7 +415,7 @@ func HandleSendCommand(c *gin.Context) {
 	})
 }
 
-func deviceToDTO(d *data.OrganizationDevice) dto.DeviceResponse {
+func deviceToDTO(d *domain.OrganizationDevice) dto.DeviceResponse {
 	return dto.DeviceResponse{
 		ID:             d.ID,
 		OrganizationID: d.OrganizationID,

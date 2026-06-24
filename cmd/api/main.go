@@ -29,8 +29,6 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	config.Config.RegisterAlias("jwt-security-key", "security-key")
-
 	server := gin.Default()
 
 	if viper.GetBool("devel") {

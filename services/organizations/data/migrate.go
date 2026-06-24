@@ -6,6 +6,7 @@ import (
 
 	"charm.land/log/v2"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 func Migrate() {
@@ -16,7 +17,7 @@ func Migrate() {
 		(*Organization)(nil),
 		(*OrganizationInvitation)(nil),
 		(*OrganizationMember)(nil),
-		(*OrganizationDevice)(nil),
+		(*domain.OrganizationDevice)(nil),
 	}
 
 	for _, model := range models {
@@ -42,7 +43,7 @@ func Migrate() {
 		ctx,
 		"organization_devices",
 		"name",
-		fmt.Sprintf("VARCHAR NOT NULL DEFAULT '%s'", DefaultDeviceName),
+		fmt.Sprintf("VARCHAR NOT NULL DEFAULT '%s'", domain.DefaultOrganizationDeviceName),
 	)
 }
 
@@ -52,7 +53,7 @@ func addColumnIfNotExists(ctx context.Context, table, column, columnType string)
 	var count int
 
 	err := db.DB.NewRaw(
-		`SELECT COUNT(*) FROM information_schema.columns 
+		`SELECT COUNT(*) FROM information_schema.columns
 		 WHERE table_name = ? AND column_name = ?`,
 		table, column,
 	).Scan(ctx, &count)

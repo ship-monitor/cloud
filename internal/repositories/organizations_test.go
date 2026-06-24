@@ -30,7 +30,7 @@ func TestMigrate(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
-	repo := repository.New(db)
+	repo := repository.NewOrgs(db)
 
 	err := repo.Migrate(t.Context())
 	if err != nil {
@@ -52,7 +52,7 @@ func TestGetUsersOrganizations(t *testing.T) {
 	ctx := context.Background()
 
 	// Create repository
-	repo := repository.New(db)
+	repo := repository.NewOrgs(db)
 	if err := repo.Migrate(ctx); err != nil {
 		t.Fatalf("Failed migrate DB: %s", err)
 	}

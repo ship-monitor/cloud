@@ -6,21 +6,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
 const DefaultDeviceName = "Unknown Device"
-
-type OrganizationDevice struct {
-	*bun.BaseModel `bun:"table:organization_devices"`
-
-	ID             uuid.UUID `bun:",pk,type:varchar"      json:"id"`
-	OrganizationID uuid.UUID `bun:",notnull,type:varchar" json:"organizationId"`
-	CreatedAt      time.Time `bun:",nullzero,notnull"     json:"createdAt"`
-	Name           string    `bun:",notnull,default"      json:"name"`
-}
 
 func ConnectDevice(ctx context.Context, id, organizationID uuid.UUID, name string) error {
 	if device, _ := GetDeviceDTO(ctx, id); device != nil {
@@ -32,7 +24,7 @@ func ConnectDevice(ctx context.Context, id, organizationID uuid.UUID, name strin
 	}
 
 	if name == "" {
-		name = GenNodeName(id)
+		name = names.Gen()
 	}
 
 	_, err := createDevice(ctx, id, organizationID, name)
@@ -47,8 +39,8 @@ func createDevice(
 	ctx context.Context,
 	id, orgID uuid.UUID,
 	name string,
-) (*OrganizationDevice, error) {
-	device := OrganizationDevice{
+) (*domain.OrganizationDevice, error) {
+	device := domain.OrganizationDevice{
 		ID:             id,
 		OrganizationID: orgID,
 		CreatedAt:      time.Now(),
@@ -63,7 +55,7 @@ func createDevice(
 	return &device, nil
 }
 
-func (device *OrganizationDevice) SetName(ctx context.Context, name string) error {
+func SetName(ctx context.Context, device *domain.OrganizationDevice, name string) error {
 	device.Name = name
 
 	_, err := db.DB.NewUpdate().Model(device).Column("name").WherePK().Exec(ctx)
@@ -74,7 +66,7 @@ func (device *OrganizationDevice) SetName(ctx context.Context, name string) erro
 	return nil
 }
 
-func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
+func toDTO(device *domain.OrganizationDevice) *dto.DeviceResponse {
 	return &dto.DeviceResponse{
 		ID:             device.ID,
 		OrganizationID: device.OrganizationID,
@@ -83,8 +75,8 @@ func (device *OrganizationDevice) toDTO() *dto.DeviceResponse {
 	}
 }
 
-func GetDevice(ctx context.Context, id uuid.UUID) (*OrganizationDevice, error) {
-	var device OrganizationDevice
+func GetDevice(ctx context.Context, id uuid.UUID) (*domain.OrganizationDevice, error) {
+	var device domain.OrganizationDevice
 
 	err := db.DB.NewSelect().
 		Model(&device).
@@ -103,11 +95,11 @@ func GetDeviceDTO(ctx context.Context, id uuid.UUID) (*dto.DeviceResponse, error
 		return nil, err
 	}
 
-	return device.toDTO(), nil
+	return toDTO(device), nil
 }
 
-func ListDevices(ctx context.Context, orgID uuid.UUID) ([]OrganizationDevice, error) {
-	var devices []OrganizationDevice
+func ListDevices(ctx context.Context, orgID uuid.UUID) ([]domain.OrganizationDevice, error) {
+	var devices []domain.OrganizationDevice
 
 	err := db.DB.NewSelect().
 		Model(&devices).
@@ -128,7 +120,7 @@ func DisconnectDevice(ctx context.Context, id uuid.UUID) error {
 
 func deleteDevice(ctx context.Context, id uuid.UUID) error {
 	_, err := db.DB.NewDelete().
-		Model((*OrganizationDevice)(nil)).
+		Model((*domain.OrganizationDevice)(nil)).
 		Where("id = ?", id).
 		Exec(ctx)
 	if err != nil {
