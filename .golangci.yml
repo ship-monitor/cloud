@@ -5,7 +5,7 @@ linters:
     # deprecated
     - wsl
     - gomodguard
-    # useless 
+    # useless
     - tagalign
     # own style
     - varnamelen
@@ -17,7 +17,6 @@ linters:
     - exhaustruct
     # - gochecknoglobals
     - err113
-    
 
   settings:
     staticcheck:
@@ -25,8 +24,16 @@ linters:
         - "-SA1019" # deprecated methods
     depguard:
       rules:
-        prevent_unmaintained_packages:
+        prevent_bad_architecture:
           list-mode: lax # allow unless explicitely denied
+          files:
+            - $all
+            - "!$test"
+          deny:
+            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db
+              desc: "Should not be used directly, and be replaced by repositories"
+        prevent_unmaintained_packages:
+          list-mode: lax
           files:
             - $all
             - "!$test"

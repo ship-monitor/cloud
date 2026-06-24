@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/repository"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
 )
 
 const (
@@ -28,19 +28,22 @@ const (
 type AuthData struct {
 	NodeID UUID
 }
+
 type MessageHandlerFunc func(ctx context.Context, message []byte) error
 
 type Server struct {
 	connections map[UUID]*websocket.Conn
 	connMu      sync.RWMutex
 	handlers    []MessageHandlerFunc
+	repo        models.Repository
 }
 
-func NewServer() *Server {
+func NewServer(repo models.Repository) *Server {
 	return &Server{
 		connections: map[UUID]*websocket.Conn{},
 		connMu:      sync.RWMutex{},
 		handlers:    nil,
+		repo:        repo,
 	}
 }
 
@@ -48,14 +51,14 @@ func (s *Server) AppendConnection(ctx context.Context, node *AuthData, conn *web
 	s.connMu.Lock()
 	defer s.connMu.Unlock()
 
-	if existingNode, _ := repository.GetNode(ctx, node.NodeID); existingNode != nil {
+	if existingNode, _ := s.repo.GetNode(ctx, node.NodeID); existingNode != nil {
 		log.Warn("Connection with that node already exists, closing it", "nodeId", node.NodeID)
 
-		if _, err := repository.ReconnectNode(ctx, node.NodeID); err != nil {
+		if _, err := s.repo.ReconnectNode(ctx, node.NodeID); err != nil {
 			log.Error("Failed to reconnect node", "error", err)
 		}
 	} else {
-		if _, err := repository.NewNode(ctx, node.NodeID, "DUMMY NAME"); err != nil {
+		if _, err := s.repo.NewNode(ctx, node.NodeID, "DUMMY NAME"); err != nil {
 			log.Error("Failed to create node", "error", err)
 		}
 	}
@@ -95,6 +98,7 @@ func (s *Server) Serve(ctx context.Context) {
 	})
 
 	log.Info("Starting connections server", "address", getAddress())
+
 	go func() {
 		server := http.Server{
 			Addr:              getAddress(),
@@ -192,7 +196,7 @@ func (s *Server) closeConn(ctx context.Context, nodeID UUID, conn *websocket.Con
 
 	delete(s.connections, nodeID)
 
-	if _, err := repository.UpdateLastConnection(ctx, nodeID); err != nil {
+	if _, err := s.repo.UpdateLastConnection(ctx, nodeID); err != nil {
 		log.Error("Failed to update last connection", "error", err)
 	}
 

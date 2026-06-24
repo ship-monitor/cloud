@@ -8,6 +8,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/queue"
@@ -15,8 +16,14 @@ import (
 )
 
 func Setup(ctx context.Context, r gin.IRouter) {
-	repository.Migrate(ctx)
-	r.GET("/nodes/:id", handlers.GetSingleClientHandler())
+	repo := repository.NewNodes(db.DB)
+	if err := repo.Migrate(ctx); err != nil {
+		panic(err)
+	}
+
+	h := handlers.NewHandlers(repo)
+
+	r.GET("/nodes/:id", h.GetSingleClientHandler())
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -26,7 +33,7 @@ func Setup(ctx context.Context, r gin.IRouter) {
 		panic(err)
 	}
 
-	connServer := connections.NewServer()
+	connServer := connections.NewServer(repo)
 
 	q.AddHandler(queueHandler(connServer))
 

@@ -7,7 +7,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/repository"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
 )
 
 type ResponseNode struct {
@@ -17,7 +17,7 @@ type ResponseNode struct {
 	FirstConnection time.Time  `json:"firstConnection"`
 }
 
-func toResponse(in *repository.Node) ResponseNode {
+func toResponse(in *models.Node) ResponseNode {
 	return ResponseNode{
 		ID:              in.ID,
 		Name:            in.Name,
@@ -31,7 +31,17 @@ type Node struct {
 	Name string `json:"name"`
 }
 
-func GetSingleClientHandler() gin.HandlerFunc {
+type Handlers struct {
+	repo models.Repository
+}
+
+func NewHandlers(repo models.Repository) *Handlers {
+	return &Handlers{
+		repo: repo,
+	}
+}
+
+func (h *Handlers) GetSingleClientHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var uri struct {
 			Id string `uri:"id" binding:"required"`
@@ -52,7 +62,7 @@ func GetSingleClientHandler() gin.HandlerFunc {
 			return
 		}
 
-		node, err := repository.GetNode(c.Request.Context(), id)
+		node, err := h.repo.GetNode(c.Request.Context(), id)
 		if err != nil {
 			log.Error("Failed get nodes from repository", "error", err)
 			c.AbortWithStatus(http.StatusInternalServerError)

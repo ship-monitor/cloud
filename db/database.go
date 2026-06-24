@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 )
 
 var DB *bun.DB
@@ -33,7 +32,7 @@ func Setup() {
 		return
 	}
 
-	dsn := config.Config.GetString("database-url")
+	dsn := viper.GetString("database-url")
 	if dsn == "" {
 		panic("database-url not configured")
 	}

@@ -8,35 +8,39 @@ import (
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
 )
 
-func Migrate(ctx context.Context) {
-	query := db.DB.NewCreateTable().
-		Model(&Node{}).
+var _ models.Repository = (*Nodes)(nil)
+
+type Nodes struct {
+	db *bun.DB
+}
+
+func NewNodes(db *bun.DB) *Nodes {
+	return &Nodes{db: db}
+}
+
+func (n *Nodes) Migrate(ctx context.Context) error {
+	query := n.db.NewCreateTable().
+		Model(&models.Node{}).
 		IfNotExists()
 
 	_, err := query.Exec(ctx)
 	if err != nil {
 		log.Debug(query.String())
 		log.Error("failed to create node table", "error", err.Error())
-		panic(err)
+
+		return fmt.Errorf("migrate model: %w", err)
 	}
+
+	return nil
 }
 
-type Node struct {
-	*bun.BaseModel `bun:"table:nodes"`
+func (n *Nodes) GetNode(ctx context.Context, id uuid.UUID) (*models.Node, error) {
+	var node models.Node
 
-	ID              uuid.UUID  `bun:",pk,type:varchar"      json:"id"`
-	Name            string     `bun:",notnull"              json:"name"`
-	FirstConnection time.Time  `bun:",notnull,type:varchar" json:"firstConnection"`
-	LastConnection  *time.Time `bun:",notnull,type:varchar" json:"lastConnection"`
-}
-
-func GetNode(ctx context.Context, id uuid.UUID) (*Node, error) {
-	var node Node
-
-	err := db.DB.NewSelect().Model(&node).Where("id = ?", id).Scan(ctx)
+	err := n.db.NewSelect().Model(&node).Where("id = ?", id).Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed select node with id %s: %w", id, err)
 	}
@@ -44,10 +48,10 @@ func GetNode(ctx context.Context, id uuid.UUID) (*Node, error) {
 	return &node, nil
 }
 
-func GetNodes(organizationID uuid.UUID) ([]Node, error) {
-	var nodes []Node
+func (n *Nodes) GetNodes(ctx context.Context, organizationID uuid.UUID) ([]models.Node, error) {
+	var nodes []models.Node
 
-	err := db.DB.NewSelect().
+	err := n.db.NewSelect().
 		Model(&nodes).
 		Where("organization_id = ?", organizationID).
 		Scan(context.TODO())
@@ -58,16 +62,16 @@ func GetNodes(organizationID uuid.UUID) ([]Node, error) {
 	return nodes, nil
 }
 
-func NewNode(ctx context.Context, id uuid.UUID, name string) (*Node, error) {
+func (n *Nodes) NewNode(ctx context.Context, id uuid.UUID, name string) (*models.Node, error) {
 	now := time.Now()
-	model := &Node{
+	model := &models.Node{
 		ID:              id,
 		Name:            name,
 		LastConnection:  &now,
 		FirstConnection: now,
 	}
 
-	_, err := db.DB.NewInsert().Model(model).Exec(ctx)
+	_, err := n.db.NewInsert().Model(model).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create node: %w", err)
 	}
@@ -75,10 +79,10 @@ func NewNode(ctx context.Context, id uuid.UUID, name string) (*Node, error) {
 	return model, nil
 }
 
-func ReconnectNode(ctx context.Context, id uuid.UUID) (*Node, error) {
-	var node Node
+func (n *Nodes) ReconnectNode(ctx context.Context, id uuid.UUID) (*models.Node, error) {
+	var node models.Node
 
-	_, err := db.DB.NewUpdate().
+	_, err := n.db.NewUpdate().
 		Model(&node).
 		Where("id = ?", id).
 		Set("last_connection = ?", time.Now()).
@@ -90,10 +94,10 @@ func ReconnectNode(ctx context.Context, id uuid.UUID) (*Node, error) {
 	return &node, nil
 }
 
-func UpdateLastConnection(ctx context.Context, id uuid.UUID) (*Node, error) {
-	var node Node
+func (n *Nodes) UpdateLastConnection(ctx context.Context, id uuid.UUID) (*models.Node, error) {
+	var node models.Node
 
-	_, err := db.DB.NewUpdate().
+	_, err := n.db.NewUpdate().
 		Model(&node).
 		Where("id = ?", id).
 		Set("last_connection = ?", time.Now()).
