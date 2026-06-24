@@ -51,7 +51,7 @@ func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
 
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
 	case err != nil:
 		c.AbortWithStatusJSON(
 			http.StatusInternalServerError,
@@ -123,12 +123,14 @@ func HandlePatchDevice(c *gin.Context) {
 func (h *HTTPHandler) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
+
 	var req dto.ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
 
 		return
 	}
+
 	err := h.devices.ConnectDevice(c.Request.Context(), req.DeviceID, orgID, session.UserID)
 	switch {
 	case errors.Is(err, services.ErrAlreadyConnected):
@@ -271,7 +273,7 @@ func (h *HTTPHandler) HandleDisconnectDevice(ctx *gin.Context) {
 	err := h.devices.DisconnectDevice(ctx.Request.Context(), devID, session.UserID)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		ctx.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+		ctx.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
 	case err != nil:
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
 	default:
@@ -357,7 +359,7 @@ func (h *HTTPHandler) HandleSendCommand(c *gin.Context) {
 
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
 	case err != nil:
 		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
 	case resp.RequestError != "" || resp.CommandError != "":
