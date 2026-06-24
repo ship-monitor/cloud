@@ -6,10 +6,11 @@ import (
 	"net/smtp"
 
 	"github.com/go-playground/validator/v10"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
 
-var _ EmailSender = (*EmailService)(nil)
+var _ domain.EmailSender = (*EmailService)(nil)
 
 type EmailServiceConfig struct {
 	SMTPHost     string `validate:"required,hostname"`

@@ -7,7 +7,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 type ResponseNode struct {
@@ -17,7 +17,7 @@ type ResponseNode struct {
 	FirstConnection time.Time  `json:"firstConnection"`
 }
 
-func toResponse(in *models.Node) ResponseNode {
+func toResponse(in *domain.Node) ResponseNode {
 	return ResponseNode{
 		ID:              in.ID,
 		Name:            in.Name,
@@ -32,10 +32,10 @@ type Node struct {
 }
 
 type Handlers struct {
-	repo models.Repository
+	repo domain.NodesRepo
 }
 
-func NewHandlers(repo models.Repository) *Handlers {
+func NewHandlers(repo domain.NodesRepo) *Handlers {
 	return &Handlers{
 		repo: repo,
 	}

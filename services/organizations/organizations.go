@@ -7,18 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	intservices "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services"
 )
 
 var (
-	_ handlers.OrganizationService     = (*services.OrganizationsService)(nil)
-	_ services.OrganizationsRepository = (*repository.OrganizationsRepo)(nil)
-	_ handlers.DevicesService          = (*services.DevicesService)(nil)
+	_ intservices.OrganizationsRepository = (*repository.OrganizationsRepo)(nil)
+	_ handlers.DevicesService             = (*services.DevicesService)(nil)
 )
 
 func SetupRoutes(router gin.IRouter) {
@@ -41,7 +41,7 @@ func SetupRoutes(router gin.IRouter) {
 		log.Fatal("Failed migrate organizations schema")
 	}
 
-	orgsService := services.NewOrganizations(orgsRepository)
+	orgsService := intservices.NewOrganizations(orgsRepository)
 	devicesService := services.NewDevices(orgsService)
 
 	webHandler := handlers.New(orgsService, devicesService)

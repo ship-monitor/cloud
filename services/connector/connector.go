@@ -9,10 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/connections"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/queue"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/repository"
 )
 
 func Setup(ctx context.Context, r gin.IRouter) {

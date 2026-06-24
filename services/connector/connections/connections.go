@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 const (
@@ -35,10 +35,10 @@ type Server struct {
 	connections map[UUID]*websocket.Conn
 	connMu      sync.RWMutex
 	handlers    []MessageHandlerFunc
-	repo        models.Repository
+	repo        domain.NodesRepo
 }
 
-func NewServer(repo models.Repository) *Server {
+func NewServer(repo domain.NodesRepo) *Server {
 	return &Server{
 		connections: map[UUID]*websocket.Conn{},
 		connMu:      sync.RWMutex{},

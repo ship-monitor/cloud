@@ -10,24 +10,21 @@ import (
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 )
 
-type EmailSender interface {
-	SendEmail(ctx context.Context, e email.Email) error
-}
-
 type AuthService struct {
 	logger *log.Logger
 	redis  *redis.Client
-	email  EmailSender
+	email  domain.EmailSender
 }
 
 func NewAuthService(
 	logger *log.Logger,
 	redisClient *redis.Client,
-	email EmailSender,
+	email domain.EmailSender,
 ) *AuthService {
 	return &AuthService{
 		logger: logger.WithPrefix("Auth service"),

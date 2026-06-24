@@ -10,9 +10,9 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/repository"
 )
 
 func createDB(t *testing.T) *sql.DB {

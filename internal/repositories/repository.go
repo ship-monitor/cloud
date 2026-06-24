@@ -8,22 +8,22 @@ import (
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector/models"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
-var _ models.Repository = (*Nodes)(nil)
+var _ domain.NodesRepo = (*NodesRepo)(nil)
 
-type Nodes struct {
+type NodesRepo struct {
 	db *bun.DB
 }
 
-func NewNodes(db *bun.DB) *Nodes {
-	return &Nodes{db: db}
+func NewNodes(db *bun.DB) *NodesRepo {
+	return &NodesRepo{db: db}
 }
 
-func (n *Nodes) Migrate(ctx context.Context) error {
+func (n *NodesRepo) Migrate(ctx context.Context) error {
 	query := n.db.NewCreateTable().
-		Model(&models.Node{}).
+		Model(&domain.Node{}).
 		IfNotExists()
 
 	_, err := query.Exec(ctx)
@@ -37,8 +37,8 @@ func (n *Nodes) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (n *Nodes) GetNode(ctx context.Context, id uuid.UUID) (*models.Node, error) {
-	var node models.Node
+func (n *NodesRepo) GetNode(ctx context.Context, id uuid.UUID) (*domain.Node, error) {
+	var node domain.Node
 
 	err := n.db.NewSelect().Model(&node).Where("id = ?", id).Scan(ctx)
 	if err != nil {
@@ -48,8 +48,8 @@ func (n *Nodes) GetNode(ctx context.Context, id uuid.UUID) (*models.Node, error)
 	return &node, nil
 }
 
-func (n *Nodes) GetNodes(ctx context.Context, organizationID uuid.UUID) ([]models.Node, error) {
-	var nodes []models.Node
+func (n *NodesRepo) GetNodes(ctx context.Context, organizationID uuid.UUID) ([]domain.Node, error) {
+	var nodes []domain.Node
 
 	err := n.db.NewSelect().
 		Model(&nodes).
@@ -62,9 +62,9 @@ func (n *Nodes) GetNodes(ctx context.Context, organizationID uuid.UUID) ([]model
 	return nodes, nil
 }
 
-func (n *Nodes) NewNode(ctx context.Context, id uuid.UUID, name string) (*models.Node, error) {
+func (n *NodesRepo) NewNode(ctx context.Context, id uuid.UUID, name string) (*domain.Node, error) {
 	now := time.Now()
-	model := &models.Node{
+	model := &domain.Node{
 		ID:              id,
 		Name:            name,
 		LastConnection:  &now,
@@ -79,8 +79,8 @@ func (n *Nodes) NewNode(ctx context.Context, id uuid.UUID, name string) (*models
 	return model, nil
 }
 
-func (n *Nodes) ReconnectNode(ctx context.Context, id uuid.UUID) (*models.Node, error) {
-	var node models.Node
+func (n *NodesRepo) ReconnectNode(ctx context.Context, id uuid.UUID) (*domain.Node, error) {
+	var node domain.Node
 
 	_, err := n.db.NewUpdate().
 		Model(&node).
@@ -94,8 +94,8 @@ func (n *Nodes) ReconnectNode(ctx context.Context, id uuid.UUID) (*models.Node, 
 	return &node, nil
 }
 
-func (n *Nodes) UpdateLastConnection(ctx context.Context, id uuid.UUID) (*models.Node, error) {
-	var node models.Node
+func (n *NodesRepo) UpdateLastConnection(ctx context.Context, id uuid.UUID) (*domain.Node, error) {
+	var node domain.Node
 
 	_, err := n.db.NewUpdate().
 		Model(&node).

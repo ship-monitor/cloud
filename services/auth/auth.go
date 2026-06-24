@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
+	intservices "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/handlers"
@@ -22,7 +23,7 @@ func SetupRoutes(router gin.IRouter) {
 		Addr: "redis:6379",
 	})
 
-	email, err := services.NewEmailService(services.EmailServiceConfig{
+	email, err := intservices.NewEmailService(intservices.EmailServiceConfig{
 		SMTPHost:     viper.GetString("email.smtp-host"),
 		SMTPPort:     viper.GetUint("email.smtp-port"),
 		SenderName:   viper.GetString("email.sender-name"),

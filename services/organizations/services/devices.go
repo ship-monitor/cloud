@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
@@ -16,10 +17,10 @@ var (
 )
 
 type DevicesService struct {
-	orgs *OrganizationsService
+	orgs *services.OrganizationsService
 }
 
-func NewDevices(orgs *OrganizationsService) *DevicesService {
+func NewDevices(orgs *services.OrganizationsService) *DevicesService {
 	return &DevicesService{
 		orgs: orgs,
 	}
