@@ -11,7 +11,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
-	intservices "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 )
 
@@ -24,7 +23,7 @@ func SetupRoutes(router gin.IRouter) {
 		Addr: "redis:6379",
 	})
 
-	email, err := intservices.NewEmailService(intservices.EmailServiceConfig{
+	email, err := services.NewEmailService(services.EmailServiceConfig{
 		SMTPHost:     viper.GetString("email.smtp-host"),
 		SMTPPort:     viper.GetUint("email.smtp-port"),
 		SenderName:   viper.GetString("email.sender-name"),
