@@ -12,7 +12,6 @@ import (
 	intservices "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
 )
 
@@ -23,7 +22,6 @@ var (
 
 func SetupRoutes(router gin.IRouter) {
 	// Запускаем миграции
-	data.Migrate()
 
 	err := commands.Connect()
 	if err != nil {

@@ -140,7 +140,7 @@ func HandleListOrgInvitations(c *gin.Context) {
 		return
 	}
 
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdministrator {
 		c.JSON(
 			http.StatusForbidden,
 			dto.Error(ErrAccessDenied),
@@ -212,10 +212,10 @@ func HandleAcceptInvitation(c *gin.Context) {
 		return
 	}
 
-	if err := data.AddMember(data.OrganizationMember{
+	if err := data.AddMember(domain.OrganizationMember{
 		MemberID:       session.UserID,
 		OrganizationID: inv.OrganizationID,
-		Role:           data.RoleMember,
+		Role:           domain.RoleMember,
 		JoinedAt:       time.Now(),
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))

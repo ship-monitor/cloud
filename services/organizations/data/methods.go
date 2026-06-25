@@ -8,10 +8,11 @@ import (
 
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 // AddMember добавляет пользователя в организацию с ролью и синхронизирует SpiceDB.
-func AddMember(member OrganizationMember) error {
+func AddMember(member domain.OrganizationMember) error {
 	// Сохраняем в БД
 	_, err := db.DB.NewInsert().Model(&member).Exec(context.Background())
 	if err != nil {
@@ -22,9 +23,9 @@ func AddMember(member OrganizationMember) error {
 }
 
 // UpdateMemberRole обновляет роль участника.
-func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
+func UpdateMemberRole(orgID, userID uuid.UUID, role domain.Role) error {
 	_, err := db.DB.NewUpdate().
-		Model((*OrganizationMember)(nil)).
+		Model((*domain.OrganizationMember)(nil)).
 		Set("role = ?", role).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
@@ -38,7 +39,7 @@ func UpdateMemberRole(orgID, userID uuid.UUID, role Role) error {
 // RemoveMember удаляет участника из организации.
 func RemoveMember(orgID, userID uuid.UUID) error {
 	_, err := db.DB.NewDelete().
-		Model((*OrganizationMember)(nil)).
+		Model((*domain.OrganizationMember)(nil)).
 		Where("organization_id = ? AND member_id = ?", orgID, userID).
 		Exec(context.Background())
 	if err != nil {
@@ -49,8 +50,8 @@ func RemoveMember(orgID, userID uuid.UUID) error {
 }
 
 // GetMember возвращает информацию об участнике.
-func GetMember(orgID, userID uuid.UUID) (*OrganizationMember, error) {
-	var member OrganizationMember
+func GetMember(orgID, userID uuid.UUID) (*domain.OrganizationMember, error) {
+	var member domain.OrganizationMember
 
 	err := db.DB.NewSelect().
 		Model(&member).
@@ -83,16 +84,16 @@ func GetMembersWithUserInfo(orgID uuid.UUID) ([]MemberWithUser, error) {
 
 // MemberWithUser — участник с данными пользователя.
 type MemberWithUser struct {
-	MemberID       uuid.UUID `json:"memberId"`
-	OrganizationID uuid.UUID `json:"organizationId"`
-	Role           Role      `json:"role"`
-	JoinedAt       time.Time `json:"joinedAt"`
-	Name           string    `json:"name"`
-	Email          string    `json:"email"`
+	MemberID       uuid.UUID   `json:"memberId"`
+	OrganizationID uuid.UUID   `json:"organizationId"`
+	Role           domain.Role `json:"role"`
+	JoinedAt       time.Time   `json:"joinedAt"`
+	Name           string      `json:"name"`
+	Email          string      `json:"email"`
 }
 
 // UpdateOrganization обновляет название организации.
-func UpdateOrganization(org *Organization, name string) (*Organization, error) {
+func UpdateOrganization(org *domain.Organization, name string) (*domain.Organization, error) {
 	org.Name = name
 	org.UpdatedAt = time.Now()
 
@@ -111,7 +112,7 @@ func UpdateOrganization(org *Organization, name string) (*Organization, error) {
 // DeleteOrganization удаляет организацию.
 func DeleteOrganization(id uuid.UUID) error {
 	_, err := db.DB.NewDelete().
-		Model((*OrganizationMember)(nil)).
+		Model((*domain.OrganizationMember)(nil)).
 		Where("organization_id = ?", id).
 		Exec(context.Background())
 	if err != nil {
@@ -119,7 +120,7 @@ func DeleteOrganization(id uuid.UUID) error {
 	}
 
 	_, err = db.DB.NewDelete().
-		Model((*Organization)(nil)).
+		Model((*domain.Organization)(nil)).
 		Where("id = ?", id).
 		Exec(context.Background())
 	if err != nil {
@@ -130,8 +131,8 @@ func DeleteOrganization(id uuid.UUID) error {
 }
 
 // GetOrganizationsByMember возвращает все организации пользователя.
-func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
-	var orgs []Organization
+func GetOrganizationsByMember(userID uuid.UUID) ([]domain.Organization, error) {
+	var orgs []domain.Organization
 
 	err := db.DB.NewSelect().
 		Model(&orgs).
@@ -149,7 +150,7 @@ func GetOrganizationsByMember(userID uuid.UUID) ([]Organization, error) {
 // IsMember проверяет, является ли пользователь участником организации.
 func IsMember(userID, orgID uuid.UUID) (bool, error) {
 	exists, err := db.DB.NewSelect().
-		Model((*OrganizationMember)(nil)).
+		Model((*domain.OrganizationMember)(nil)).
 		Where("member_id = ? AND organization_id = ?", userID, orgID).
 		Exists(context.Background())
 	if err != nil {

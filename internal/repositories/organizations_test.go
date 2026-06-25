@@ -10,9 +10,9 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
 func createDB(t *testing.T) *sql.DB {
@@ -67,7 +67,7 @@ func TestGetUsersOrganizations(t *testing.T) {
 
 	// Insert test organizations
 	now := time.Now()
-	if _, err := bunDB.NewInsert().Model(&data.Organization{
+	if _, err := bunDB.NewInsert().Model(&domain.Organization{
 		ID:        orgID1,
 		Name:      "Test Org 1",
 		CreatorID: userID,
@@ -76,7 +76,7 @@ func TestGetUsersOrganizations(t *testing.T) {
 		t.Fatalf("failed to insert organization 1: %v", err)
 	}
 
-	if _, err := bunDB.NewInsert().Model(&data.Organization{
+	if _, err := bunDB.NewInsert().Model(&domain.Organization{
 		ID:        orgID2,
 		Name:      "Test Org 2",
 		CreatorID: userID,
@@ -86,20 +86,20 @@ func TestGetUsersOrganizations(t *testing.T) {
 	}
 
 	// Insert test members
-	if _, err := bunDB.NewInsert().Model(&data.OrganizationMember{
+	if _, err := bunDB.NewInsert().Model(&domain.OrganizationMember{
 		MemberID:       userID,
 		OrganizationID: orgID1,
 		JoinedAt:       now,
-		Role:           data.RoleOwner,
+		Role:           domain.RoleOwner,
 	}).Exec(ctx); err != nil {
 		t.Fatalf("failed to insert member 1: %v", err)
 	}
 
-	if _, err := bunDB.NewInsert().Model(&data.OrganizationMember{
+	if _, err := bunDB.NewInsert().Model(&domain.OrganizationMember{
 		MemberID:       userID,
 		OrganizationID: orgID2,
 		JoinedAt:       now,
-		Role:           data.RoleMember,
+		Role:           domain.RoleMember,
 	}).Exec(ctx); err != nil {
 		t.Fatalf("failed to insert member 2: %v", err)
 	}

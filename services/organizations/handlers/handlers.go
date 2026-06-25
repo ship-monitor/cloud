@@ -30,12 +30,12 @@ type OrganizationService interface {
 		ctx context.Context,
 		id OrganizationID,
 		userID uuid.UUID,
-	) (*data.Organization, error)
+	) (*domain.Organization, error)
 	GetUsersOrganizations(
 		ctx context.Context,
 		userID uuid.UUID,
 		page int,
-	) ([]*data.Organization, error)
+	) ([]*domain.Organization, error)
 }
 type OrgDevicesService interface {
 	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error
@@ -206,7 +206,7 @@ func HandleUpdateOrganization(c *gin.Context) {
 		return
 	}
 
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdministrator {
 		c.JSON(
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can update organization")),
@@ -316,13 +316,13 @@ func HandleAddMember(c *gin.Context) {
 		return
 	}
 
-	if data.Role(req.Role) == data.RoleOwner {
+	if domain.Role(req.Role) == domain.RoleOwner {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("cannot assign owner role")))
 
 		return
 	}
 
-	if data.Role(req.Role) != data.RoleAdministrator && data.Role(req.Role) != data.RoleMember {
+	if domain.Role(req.Role) != domain.RoleAdministrator && domain.Role(req.Role) != domain.RoleMember {
 		c.JSON(
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),
@@ -342,10 +342,10 @@ func HandleAddMember(c *gin.Context) {
 		return
 	}
 
-	member := data.OrganizationMember{
+	member := domain.OrganizationMember{
 		MemberID:       req.UserID,
 		OrganizationID: orgID,
-		Role:           data.Role(req.Role),
+		Role:           domain.Role(req.Role),
 		JoinedAt:       time.Now(),
 	}
 
@@ -390,19 +390,19 @@ func HandleUpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	if targetMember.Role == data.RoleOwner {
+	if targetMember.Role == domain.RoleOwner {
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("cannot change owner role")))
 
 		return
 	}
 
-	if data.Role(req.Role) == data.RoleOwner {
+	if domain.Role(req.Role) == domain.RoleOwner {
 		c.JSON(http.StatusBadRequest, dto.Error(errors.New("cannot assign owner role")))
 
 		return
 	}
 
-	if data.Role(req.Role) != data.RoleAdministrator && data.Role(req.Role) != data.RoleMember {
+	if domain.Role(req.Role) != domain.RoleAdministrator && domain.Role(req.Role) != domain.RoleMember {
 		c.JSON(
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),
@@ -411,7 +411,7 @@ func HandleUpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	if err := data.UpdateMemberRole(orgID, userID, data.Role(req.Role)); err != nil {
+	if err := data.UpdateMemberRole(orgID, userID, domain.Role(req.Role)); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
@@ -432,7 +432,7 @@ func HandleRemoveMember(c *gin.Context) {
 		return
 	}
 
-	if currentMember.Role != data.RoleOwner && currentMember.Role != data.RoleAdministrator {
+	if currentMember.Role != domain.RoleOwner && currentMember.Role != domain.RoleAdministrator {
 		c.JSON(
 			http.StatusForbidden,
 			dto.Error(
@@ -450,7 +450,7 @@ func HandleRemoveMember(c *gin.Context) {
 		return
 	}
 
-	if targetMember.Role == data.RoleOwner {
+	if targetMember.Role == domain.RoleOwner {
 		c.JSON(http.StatusForbidden, dto.Error(ErrRemovingOwner))
 
 		return

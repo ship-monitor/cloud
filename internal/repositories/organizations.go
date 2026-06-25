@@ -11,7 +11,6 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 )
 
 type OrganizationID = uuid.UUID
@@ -32,9 +31,9 @@ func NewOrgs(db *sql.DB) *OrganizationsRepo {
 
 func (r *OrganizationsRepo) Migrate(ctx context.Context) error {
 	models := []any{
-		&data.Organization{},
+		&domain.Organization{},
 		&domain.OrganizationInvitation{},
-		&data.OrganizationMember{},
+		&domain.OrganizationMember{},
 		&domain.OrganizationDevice{},
 	}
 
@@ -59,7 +58,7 @@ func (r *OrganizationsRepo) CreateOrganization(
 	orgID := uuid.New()
 
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		err := insertOrganization(ctx, tx, &data.Organization{
+		err := insertOrganization(ctx, tx, &domain.Organization{
 			ID:        orgID,
 			Name:      name,
 			CreatorID: creatorID,
@@ -70,11 +69,11 @@ func (r *OrganizationsRepo) CreateOrganization(
 			return err
 		}
 
-		err = insertMember(ctx, tx, &data.OrganizationMember{
+		err = insertMember(ctx, tx, &domain.OrganizationMember{
 			MemberID:       creatorID,
 			OrganizationID: orgID,
 			JoinedAt:       time.Now(),
-			Role:           data.RoleOwner,
+			Role:           domain.RoleOwner,
 		})
 		if err != nil {
 			return err
@@ -89,7 +88,7 @@ func (r *OrganizationsRepo) CreateOrganization(
 	return orgID, nil
 }
 
-func insertOrganization(ctx context.Context, db bun.IDB, org *data.Organization) error {
+func insertOrganization(ctx context.Context, db bun.IDB, org *domain.Organization) error {
 	_, err := db.NewInsert().Model(org).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert organization: %w", err)
@@ -98,7 +97,7 @@ func insertOrganization(ctx context.Context, db bun.IDB, org *data.Organization)
 	return nil
 }
 
-func insertMember(ctx context.Context, db bun.IDB, member *data.OrganizationMember) error {
+func insertMember(ctx context.Context, db bun.IDB, member *domain.OrganizationMember) error {
 	_, err := db.NewInsert().Model(member).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert member: %w", err)
@@ -110,8 +109,8 @@ func insertMember(ctx context.Context, db bun.IDB, member *data.OrganizationMemb
 func (r *OrganizationsRepo) GetOrganizationByID(
 	ctx context.Context,
 	id uuid.UUID,
-) (*data.Organization, error) {
-	org := data.Organization{}
+) (*domain.Organization, error) {
+	org := domain.Organization{}
 
 	err := r.db.NewSelect().Model(&org).Where("id = ?", id).Scan(ctx)
 	if err != nil {
@@ -127,7 +126,7 @@ func (r *OrganizationsRepo) UserIsMember(
 	orgID OrganizationID,
 ) (bool, error) {
 	exists, err := r.db.NewSelect().
-		Model(&data.OrganizationMember{}).
+		Model(&domain.OrganizationMember{}).
 		Where("member_id = ?", userID).
 		Where("organization_id = ?", orgID).
 		Exists(ctx)
@@ -142,8 +141,8 @@ func (r *OrganizationsRepo) UserIsMember(
 func (r *OrganizationsRepo) GetUsersOrganizations(
 	ctx context.Context,
 	userID uuid.UUID, p paging.Paging,
-) ([]*data.Organization, error) {
-	var orgs []*data.Organization
+) ([]*domain.Organization, error) {
+	var orgs []*domain.Organization
 
 	err := r.db.NewSelect().
 		Model(&orgs).

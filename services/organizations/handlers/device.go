@@ -76,7 +76,7 @@ func HandlePatchDevice(c *gin.Context) {
 		return
 	}
 
-	if member.Role != data.RoleOwner && member.Role != data.RoleAdministrator {
+	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdministrator {
 		c.JSON(
 			http.StatusForbidden,
 			dto.Error(errors.New("only owner or administrator can connect devices")),
