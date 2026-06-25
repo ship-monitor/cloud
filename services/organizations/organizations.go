@@ -18,7 +18,7 @@ import (
 
 var (
 	_ intservices.OrganizationsRepository = (*repository.OrganizationsRepo)(nil)
-	_ handlers.DevicesService             = (*services.DevicesService)(nil)
+	_ handlers.OrgDevicesService          = (*services.OrgDevicesService)(nil)
 )
 
 func SetupRoutes(router gin.IRouter) {

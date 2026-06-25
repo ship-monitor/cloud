@@ -37,7 +37,7 @@ type OrganizationService interface {
 		page int,
 	) ([]*data.Organization, error)
 }
-type DevicesService interface {
+type OrgDevicesService interface {
 	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error
 	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
 	RenameDevice(ctx context.Context, deviceID, userID uuid.UUID, name string) error
@@ -55,10 +55,10 @@ type DevicesService interface {
 
 type HTTPHandler struct {
 	orgs    OrganizationService
-	devices DevicesService
+	devices OrgDevicesService
 }
 
-func New(orgs OrganizationService, devices DevicesService) *HTTPHandler {
+func New(orgs OrganizationService, devices OrgDevicesService) *HTTPHandler {
 	return &HTTPHandler{
 		orgs:    orgs,
 		devices: devices,

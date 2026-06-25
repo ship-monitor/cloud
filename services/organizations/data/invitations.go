@@ -6,28 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
-
-type InvitationStatus string
-
-const (
-	StatusPending  InvitationStatus = "pending"
-	StatusAccepted InvitationStatus = "accepted"
-	StatusDeclined InvitationStatus = "declined"
-)
-
-type OrganizationInvitation struct {
-	*bun.BaseModel `bun:"table:organization_invitations"`
-
-	ID             uuid.UUID        `bun:",pk,type:varchar"      json:"id"`
-	OrganizationID uuid.UUID        `bun:",notnull,type:varchar" json:"organizationId"`
-	InviteeEmail   string           `bun:",notnull"              json:"inviteeEmail"`
-	Status         InvitationStatus `bun:",notnull"              json:"status"`
-	CreatedAt      time.Time        `bun:",nullzero,notnull"     json:"createdAt"`
-	ExpiresAt      time.Time        `bun:",nullzero,notnull"     json:"expiresAt"`
-}
 
 type OrgInvitationInput struct {
 	OrganizationID uuid.UUID
@@ -35,12 +16,12 @@ type OrgInvitationInput struct {
 	ExpiresAt      time.Time
 }
 
-func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
-	invitation := OrganizationInvitation{
+func CreateInvitation(inv OrgInvitationInput) (*domain.OrganizationInvitation, error) {
+	invitation := domain.OrganizationInvitation{
 		ID:             uuid.New(),
 		OrganizationID: inv.OrganizationID,
 		InviteeEmail:   inv.InviteeEmail,
-		Status:         StatusPending,
+		Status:         domain.InvStatusPending,
 		CreatedAt:      time.Now(),
 		ExpiresAt:      inv.ExpiresAt,
 	}
@@ -53,8 +34,8 @@ func CreateInvitation(inv OrgInvitationInput) (*OrganizationInvitation, error) {
 	return &invitation, nil
 }
 
-func GetInvitationByID(ctx context.Context, id uuid.UUID) (*OrganizationInvitation, error) {
-	var inv OrganizationInvitation
+func GetInvitationByID(ctx context.Context, id uuid.UUID) (*domain.OrganizationInvitation, error) {
+	var inv domain.OrganizationInvitation
 
 	err := db.DB.NewSelect().
 		Model(&inv).
@@ -69,8 +50,10 @@ func GetInvitationByID(ctx context.Context, id uuid.UUID) (*OrganizationInvitati
 
 func HasPendingInvitation(orgID uuid.UUID, email string) (bool, error) {
 	exists, err := db.DB.NewSelect().
-		Model((*OrganizationInvitation)(nil)).
-		Where("organization_id = ? AND invitee_email = ? AND status = ?", orgID, email, StatusPending).
+		Model((*domain.OrganizationInvitation)(nil)).
+		Where("invitee_email = ?", email).
+		Where("status = ?", domain.InvStatusPending).
+		Where("organization_id = ?", orgID).
 		Exists(context.Background())
 	if err != nil {
 		return false, fmt.Errorf("select invitations: %w", err)
@@ -79,20 +62,20 @@ func HasPendingInvitation(orgID uuid.UUID, email string) (bool, error) {
 	return exists, nil
 }
 
-func ListInvitationsForUser(email string) ([]OrganizationInvitation, error) {
-	var invs []OrganizationInvitation
+func ListInvitationsForUser(email string) ([]domain.OrganizationInvitation, error) {
+	var invs []domain.OrganizationInvitation
 
 	err := db.DB.NewSelect().
 		Model(&invs).
-		Where("invitee_email = ? AND status = ?", email, StatusPending).
+		Where("invitee_email = ? AND status = ?", email, domain.InvStatusPending).
 		Order("created_at DESC").
 		Scan(context.Background())
 
 	return invs, fmt.Errorf("select invitations: %w", err)
 }
 
-func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
-	var invs []OrganizationInvitation
+func ListInvitationsForOrg(orgID uuid.UUID) ([]domain.OrganizationInvitation, error) {
+	var invs []domain.OrganizationInvitation
 
 	err := db.DB.NewSelect().
 		Model(&invs).
@@ -106,9 +89,9 @@ func ListInvitationsForOrg(orgID uuid.UUID) ([]OrganizationInvitation, error) {
 	return invs, nil
 }
 
-func UpdateInvitationStatus(id uuid.UUID, status InvitationStatus) error {
+func UpdateInvitationStatus(id uuid.UUID, status domain.InvitationStatus) error {
 	_, err := db.DB.NewUpdate().
-		Model((*OrganizationInvitation)(nil)).
+		Model((*domain.OrganizationInvitation)(nil)).
 		Set("status = ?", status).
 		Where("id = ?", id).
 		Exec(context.Background())

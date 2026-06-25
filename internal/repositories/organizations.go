@@ -33,7 +33,7 @@ func NewOrgs(db *sql.DB) *OrganizationsRepo {
 func (r *OrganizationsRepo) Migrate(ctx context.Context) error {
 	models := []any{
 		&data.Organization{},
-		&data.OrganizationInvitation{},
+		&domain.OrganizationInvitation{},
 		&data.OrganizationMember{},
 		&domain.OrganizationDevice{},
 	}

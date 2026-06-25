@@ -40,16 +40,18 @@ func Setup(ctx context.Context, r gin.IRouter) {
 	connServer.AddHandler(websocketHandler(q))
 
 	go func(ctx context.Context) {
-		connServer.Serve(ctx)
-	}(ctx)
+		go func(ctx context.Context) {
+			connServer.Serve(ctx)
+		}(ctx)
 
-	go func(ctx context.Context) {
-		if err := q.Serve(ctx); err != nil {
-			log.Fatal("failed serve queue", "error", err)
-		}
-	}(ctx)
+		go func(ctx context.Context) {
+			if err := q.Serve(ctx); err != nil {
+				log.Fatal("failed serve queue", "error", err)
+			}
+		}(ctx)
 
-	<-ctx.Done()
+		<-ctx.Done()
+	}(ctx)
 }
 
 var (

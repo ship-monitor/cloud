@@ -26,20 +26,20 @@ type OrgDevicesRepo interface {
 	DeviceExists(ctx context.Context, deviceID uuid.UUID) (bool, error)
 }
 
-type DevicesService struct {
+type OrgDevicesService struct {
 	orgs *OrganizationsService
 	repo OrgDevicesRepo
 }
 
-func NewDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *DevicesService {
-	return &DevicesService{
+func NewDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *OrgDevicesService {
+	return &OrgDevicesService{
 		orgs: orgs,
 		repo: devRepo,
 	}
 }
 
 // ConnectDevice implements [handlers.DevicesService].
-func (d *DevicesService) ConnectDevice(
+func (d *OrgDevicesService) ConnectDevice(
 	ctx context.Context,
 	deviceID, organizationID, userID uuid.UUID,
 ) error {
@@ -70,7 +70,10 @@ func (d *DevicesService) ConnectDevice(
 }
 
 // DisconnectDevice implements [handlers.DevicesService].
-func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error {
+func (d *OrgDevicesService) DisconnectDevice(
+	ctx context.Context,
+	deviceID, userID uuid.UUID,
+) error {
 	dev, err := d.repo.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf("get device: %w", err)
@@ -90,7 +93,7 @@ func (d *DevicesService) DisconnectDevice(ctx context.Context, deviceID, userID 
 }
 
 // GetDevice implements [handlers.DevicesService].
-func (d *DevicesService) GetDevice(
+func (d *OrgDevicesService) GetDevice(
 	ctx context.Context,
 	deviceID, userID uuid.UUID,
 ) (*domain.OrganizationDevice, error) {
@@ -109,7 +112,7 @@ func (d *DevicesService) GetDevice(
 }
 
 // GetDevices implements [handlers.DevicesService].
-func (d *DevicesService) GetDevices(
+func (d *OrgDevicesService) GetDevices(
 	ctx context.Context,
 	organizationID, userID uuid.UUID,
 ) ([]domain.OrganizationDevice, error) {
@@ -128,7 +131,7 @@ func (d *DevicesService) GetDevices(
 }
 
 // RenameDevice implements [handlers.DevicesService].
-func (d *DevicesService) RenameDevice(
+func (d *OrgDevicesService) RenameDevice(
 	ctx context.Context,
 	deviceID, userID uuid.UUID,
 	name string,
@@ -157,7 +160,7 @@ func (d *DevicesService) RenameDevice(
 }
 
 // SendCommand implements [handlers.DevicesService].
-func (d *DevicesService) SendCommand(
+func (d *OrgDevicesService) SendCommand(
 	ctx context.Context,
 	deviceID, userID uuid.UUID, command string,
 	args map[string]any,

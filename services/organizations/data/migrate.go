@@ -15,7 +15,7 @@ func Migrate() {
 	// Создаём таблицы, если их нет
 	models := []any{
 		(*Organization)(nil),
-		(*OrganizationInvitation)(nil),
+		(*domain.OrganizationInvitation)(nil),
 		(*OrganizationMember)(nil),
 		(*domain.OrganizationDevice)(nil),
 	}

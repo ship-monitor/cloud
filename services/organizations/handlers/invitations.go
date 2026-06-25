@@ -9,6 +9,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
@@ -85,7 +86,7 @@ func HandleCreateInvitation(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"invitations": created, "errors": errs.Error()})
 }
 
-func createInvitation(orgID uuid.UUID, email string) (*data.OrganizationInvitation, error) {
+func createInvitation(orgID uuid.UUID, email string) (*domain.OrganizationInvitation, error) {
 	exists, err := data.HasPendingInvitation(orgID, email)
 	if err != nil {
 		return nil, fmt.Errorf("check pending invitations: %w", err)
@@ -174,7 +175,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 		return
 	}
 
-	if inv.Status != data.StatusPending {
+	if inv.Status != domain.InvStatusPending {
 		c.JSON(http.StatusBadRequest, dto.Error(ErrAlreadyProcessed))
 
 		return
@@ -205,7 +206,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 		return
 	}
 
-	if err := data.UpdateInvitationStatus(invID, data.StatusAccepted); err != nil {
+	if err := data.UpdateInvitationStatus(invID, domain.InvStatusAccepted); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
@@ -236,7 +237,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 		return
 	}
 
-	if inv.Status != data.StatusPending {
+	if inv.Status != domain.InvStatusPending {
 		log.Warn(
 			"Attempt to decline already processed invitation",
 			"invitation",
@@ -265,7 +266,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 		return
 	}
 
-	if err := data.UpdateInvitationStatus(invID, data.StatusDeclined); err != nil {
+	if err := data.UpdateInvitationStatus(invID, domain.InvStatusDeclined); err != nil {
 		log.Error(
 			"Failed to update invitation status to declined",
 			"error",
@@ -281,7 +282,7 @@ func HandleDeclineInvitation(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func invitationToDTO(inv *data.OrganizationInvitation) dto.InvitationResponse {
+func invitationToDTO(inv *domain.OrganizationInvitation) dto.InvitationResponse {
 	org, err := data.GetOrganization(inv.OrganizationID)
 
 	orgName := ""
