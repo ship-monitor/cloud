@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
@@ -22,7 +23,7 @@ const (
 )
 
 type registerUserResponse struct {
-	User *data.User `json:"user"`
+	User *domain.User `json:"user"`
 }
 
 func (a *AuthHandlers) HandleRegister(c *gin.Context) {
@@ -70,7 +71,7 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	if !user.CheckPassword(request.Password) {
+	if !data.CheckPassword(user, request.Password) {
 		log.Error("Invalid password", "email", request.Email)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseBad("invalid credentials"))
 

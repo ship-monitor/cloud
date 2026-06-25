@@ -146,7 +146,7 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 		return
 	}
 
-	err = user.SetPassword(request.Password)
+	err = data.SetPassword(user, request.Password)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 
@@ -186,7 +186,7 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 		return
 	}
 
-	err = user.SetEmail(request.Email)
+	err = data.SetEmail(user, request.Email)
 	if err != nil {
 		ctx.AbortWithStatusJSON(
 			http.StatusInternalServerError,
@@ -216,7 +216,7 @@ func (a *AuthHandlers) HandleUserBlock(ctx *gin.Context) {
 		return
 	}
 
-	err = user.Block()
+	err = data.Block(user)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 

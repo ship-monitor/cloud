@@ -42,7 +42,7 @@ func (a *AuthService) GetUserEmail(ctx context.Context, userID uuid.UUID) (strin
 	return user.Email, nil
 }
 
-func (a *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*data.User, error) {
+func (a *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
 	user, err := data.GetUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)

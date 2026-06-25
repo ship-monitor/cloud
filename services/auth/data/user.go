@@ -8,31 +8,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/uptrace/bun"
 	"golang.org/x/crypto/bcrypt"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 const PageLimit = 20
 
 var ErrEmailAlreadyTaken = errors.New("email already taken")
 
-type User struct {
-	*bun.BaseModel `bun:"table:users"`
-
-	ID            uuid.UUID `bun:",pk,type:varchar" json:"id"`
-	Name          string    `bun:",notnull" json:"name"`
-	Email         string    `bun:",unique" json:"email"`
-	EmailVerified bool      `bun:",notnull,default:false" json:"emailVerified"`
-	PasswordHash  []byte    `bun:",notnull" json:"-"`
-	Blocked       bool      `bun:",notnull,default:false" json:"blocked"`
-	CreatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"createdAt"`
-	UpdatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"updatedAt"`
-}
-
 // NewUser creates new user in database.
 // Returns [ErrEmailAlreadyTaken].
-func NewUser(name, email, password string) (*User, error) {
+func NewUser(name, email, password string) (*domain.User, error) {
 	if name == "" || email == "" || password == "" {
 		return nil, errors.New("name, email and password are required")
 	}
@@ -43,7 +30,7 @@ func NewUser(name, email, password string) (*User, error) {
 		return nil, fmt.Errorf("new user: %w", ErrEmailAlreadyTaken)
 	}
 
-	user := User{
+	user := domain.User{
 		ID:            uuid.New(),
 		Name:          name,
 		Email:         normalizeEmail(email),
@@ -74,8 +61,8 @@ func hashPassword(password string) []byte {
 	return hash
 }
 
-func GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
-	var user User
+func GetUser(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	var user domain.User
 
 	err := db.DB.NewSelect().Model(&user).Where("id = ?", id).Scan(ctx)
 	if err != nil {
@@ -85,10 +72,10 @@ func GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
-func GetUserByEmail(email string) (*User, error) {
+func GetUserByEmail(email string) (*domain.User, error) {
 	email = normalizeEmail(email)
 
-	var user User
+	var user domain.User
 
 	err := db.DB.NewSelect().Model(&user).Where("email = ?", email).Scan(context.TODO())
 	if err != nil {
@@ -98,13 +85,13 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (u *User) CheckPassword(password string) bool {
+func CheckPassword(u *domain.User, password string) bool {
 	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(password)) == nil
 }
 
 func checkEmailTaken(email string) (bool, error) {
 	taken, err := db.DB.NewSelect().
-		Model((*User)(nil)).
+		Model((*domain.User)(nil)).
 		Column("email").
 		Where("email = ?", normalizeEmail(email)).
 		Exists(context.TODO())
@@ -115,7 +102,7 @@ func checkEmailTaken(email string) (bool, error) {
 	return taken, nil
 }
 
-func (u *User) SetPassword(password string) error {
+func SetPassword(u *domain.User, password string) error {
 	u.UpdatedAt = time.Now()
 	u.PasswordHash = hashPassword(password)
 
@@ -131,7 +118,7 @@ func (u *User) SetPassword(password string) error {
 	return nil
 }
 
-func (u *User) SetEmail(email string) error {
+func SetEmail(u *domain.User, email string) error {
 	u.UpdatedAt = time.Now()
 	u.Email = normalizeEmail(email)
 	u.EmailVerified = false
@@ -148,7 +135,7 @@ func (u *User) SetEmail(email string) error {
 	return nil
 }
 
-func (u *User) Block() error {
+func Block(u *domain.User) error {
 	u.UpdatedAt = time.Now()
 	u.Blocked = true
 
@@ -166,7 +153,7 @@ func (u *User) Block() error {
 
 func SetEmailVerified(ctx context.Context, userID uuid.UUID) error {
 	_, err := db.DB.NewUpdate().
-		Model(&User{
+		Model(&domain.User{
 			ID:            userID,
 			EmailVerified: true,
 			UpdatedAt:     time.Now(),
@@ -181,12 +168,12 @@ func SetEmailVerified(ctx context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func GetUsersList(page int) ([]User, error) {
+func GetUsersList(page int) ([]domain.User, error) {
 	if page < 0 {
 		return nil, fmt.Errorf("invalid page value '%d'", page)
 	}
 
-	var users []User
+	var users []domain.User
 
 	err := db.DB.NewSelect().
 		Model(&users).
