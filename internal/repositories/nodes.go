@@ -54,7 +54,7 @@ func (n *NodesRepo) GetNodes(ctx context.Context, organizationID uuid.UUID) ([]d
 	err := n.db.NewSelect().
 		Model(&nodes).
 		Where("organization_id = ?", organizationID).
-		Scan(context.TODO())
+		Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nodes for organization %s: %w", organizationID, err)
 	}

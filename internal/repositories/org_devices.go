@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
@@ -26,7 +25,7 @@ func (r *OrgDevicesRepo) ListDevices(
 ) ([]domain.OrganizationDevice, error) {
 	var devices []domain.OrganizationDevice
 
-	err := db.DB.NewSelect().
+	err := r.db.NewSelect().
 		Model(&devices).
 		Where("organization_id = ?", organizationID).
 		Order("created_at ASC").
@@ -44,7 +43,7 @@ func (r *OrgDevicesRepo) GetDevice(
 ) (*domain.OrganizationDevice, error) {
 	var device domain.OrganizationDevice
 
-	err := db.DB.NewSelect().
+	err := r.db.NewSelect().
 		Model(&device).
 		Where("id = ?", deviceID).
 		Scan(ctx)
@@ -59,7 +58,7 @@ func (r *OrgDevicesRepo) CreateDevice(
 	ctx context.Context,
 	device *domain.OrganizationDevice,
 ) error {
-	_, err := db.DB.NewInsert().Model(&device).Exec(ctx)
+	_, err := r.db.NewInsert().Model(&device).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
 	}
@@ -68,7 +67,7 @@ func (r *OrgDevicesRepo) CreateDevice(
 }
 
 func (r *OrgDevicesRepo) DeleteDevice(ctx context.Context, deviceID uuid.UUID) error {
-	_, err := db.DB.NewDelete().
+	_, err := r.db.NewDelete().
 		Model(&domain.OrganizationDevice{ID: deviceID}).
 		WherePK().
 		Exec(ctx)
@@ -80,7 +79,7 @@ func (r *OrgDevicesRepo) DeleteDevice(ctx context.Context, deviceID uuid.UUID) e
 }
 
 func (r *OrgDevicesRepo) SetName(ctx context.Context, deviceID uuid.UUID, name string) error {
-	_, err := db.DB.NewUpdate().
+	_, err := r.db.NewUpdate().
 		Model(&domain.OrganizationDevice{ID: deviceID, Name: name}).
 		Column("name").
 		WherePK().
@@ -93,7 +92,7 @@ func (r *OrgDevicesRepo) SetName(ctx context.Context, deviceID uuid.UUID, name s
 }
 
 func (r *OrgDevicesRepo) DeviceExists(ctx context.Context, deviceID uuid.UUID) (bool, error) {
-	exists, err := db.DB.NewSelect().
+	exists, err := r.db.NewSelect().
 		Model(&domain.OrganizationDevice{}).
 		Where("id = ?", deviceID).
 		Exists(ctx)

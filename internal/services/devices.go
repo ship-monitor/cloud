@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 )
@@ -28,11 +27,11 @@ type OrgDevicesRepo interface {
 }
 
 type DevicesService struct {
-	orgs *services.OrganizationsService
+	orgs *OrganizationsService
 	repo OrgDevicesRepo
 }
 
-func NewDevices(devRepo OrgDevicesRepo, orgs *services.OrganizationsService) *DevicesService {
+func NewDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *DevicesService {
 	return &DevicesService{
 		orgs: orgs,
 		repo: devRepo,

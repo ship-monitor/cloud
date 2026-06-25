@@ -9,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/services"
 )
 
 func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
