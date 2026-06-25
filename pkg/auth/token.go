@@ -8,6 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var ErrInvalidToken = errors.New("invalid token")
+
 // ParseToken returns error if token is invalid or expired.
 func (m *Middleware) ParseToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, m.keyFunc)
@@ -24,12 +26,12 @@ func (m *Middleware) ParseToken(tokenStr string) (*Claims, error) {
 	}
 
 	if !token.Valid {
-		return nil, errors.New("token invalid")
+		return nil, ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*Claims)
 	if !ok {
-		return nil, errors.New("invalid claims type")
+		return nil, fmt.Errorf("invalid claims type: %w", ErrInvalidToken)
 	}
 
 	return claims, nil

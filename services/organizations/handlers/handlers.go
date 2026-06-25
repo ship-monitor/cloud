@@ -322,7 +322,8 @@ func HandleAddMember(c *gin.Context) {
 		return
 	}
 
-	if domain.Role(req.Role) != domain.RoleAdministrator && domain.Role(req.Role) != domain.RoleMember {
+	if domain.Role(req.Role) != domain.RoleAdministrator &&
+		domain.Role(req.Role) != domain.RoleMember {
 		c.JSON(
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),
@@ -402,7 +403,8 @@ func HandleUpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	if domain.Role(req.Role) != domain.RoleAdministrator && domain.Role(req.Role) != domain.RoleMember {
+	if domain.Role(req.Role) != domain.RoleAdministrator &&
+		domain.Role(req.Role) != domain.RoleMember {
 		c.JSON(
 			http.StatusBadRequest,
 			dto.Error(errors.New("invalid role, allowed: administrator, member")),

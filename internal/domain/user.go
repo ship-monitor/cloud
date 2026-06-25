@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,4 +19,14 @@ type User struct {
 	Blocked       bool      `bun:",notnull,default:false" json:"blocked"`
 	CreatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"createdAt"`
 	UpdatedAt     time.Time `bun:",nullzero,notnull,type:varchar" json:"updatedAt"`
+}
+
+func NormalizeEmail(email string) string {
+	return strings.ToLower(email)
+}
+
+type RegisterUserData struct {
+	Name     string `json:"name" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=5"`
 }

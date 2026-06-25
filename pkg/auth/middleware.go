@@ -81,6 +81,7 @@ type MiddlewareConfig struct {
 }
 
 type Middleware struct {
+	log     *log.Logger
 	spice   *authzed.Client
 	keyFunc jwt.Keyfunc
 }
@@ -100,7 +101,7 @@ func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
 		return nil, fmt.Errorf("failed connect to SpiceDB: %w", err)
 	}
 
-	return &Middleware{spiceClient, config.SecurityKeyFunc}, nil
+	return &Middleware{log.WithPrefix("auth_middleware"), spiceClient, config.SecurityKeyFunc}, nil
 }
 
 func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
@@ -137,7 +138,7 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 
 	if header == "" {
 		err := fmt.Errorf("bad token specified: %w", ErrNoAuthHeader)
-		log.Error("No authorization header", "error", err)
+		m.log.Error("No authorization header", "error", err)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseErr(err))
 
 		return
@@ -145,6 +146,7 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 
 	if strings.Contains(header, "Bearer") {
 		err := fmt.Errorf("bad token specified: %w", ErrArmenUsedBearer)
+		m.log.Error("Bad token specified", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
 			requests.ResponseArmenErr(err, "Армен, пиши авторизацию не через ИИ"),
@@ -155,7 +157,7 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 
 	claims, err := m.ParseToken(header)
 	if err != nil {
-		log.Error("Failed parse JWT", "error", err)
+		m.log.Error("Failed parse JWT", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
 			requests.ResponseErr(fmt.Errorf("bad credentials: %w", err)),

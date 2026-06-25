@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 )
@@ -25,7 +24,7 @@ func NewOrgs(db *sql.DB) *OrganizationsRepo {
 	}
 
 	return &OrganizationsRepo{
-		db: bun.NewDB(db, sqlitedialect.New()),
+		db: newBunDB(db),
 	}
 }
 

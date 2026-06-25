@@ -1,22 +1,23 @@
 package auth
 
 import (
+	"context"
+
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
+	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	intservices "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/data"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth/services"
 )
 
 var _ handlers.AuthService = (*services.AuthService)(nil)
 
 func SetupRoutes(router gin.IRouter) {
-	data.Migrate()
-
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	rdb := redis.NewClient(&redis.Options{
@@ -34,7 +35,17 @@ func SetupRoutes(router gin.IRouter) {
 		panic(err)
 	}
 
-	authService := services.NewAuthService(log.Default(), rdb, email)
+	usersRepo := repository.NewUsers(db.DB.DB)
+	if err := usersRepo.Migrate(context.Background()); err != nil {
+		panic(err)
+	}
+
+	authService := services.NewAuthService(
+		log.Default(),
+		rdb,
+		email,
+		usersRepo,
+	)
 	h := handlers.NewAuthHandlers(authService)
 
 	auth := router.Group("/api/auth")
@@ -44,10 +55,8 @@ func SetupRoutes(router gin.IRouter) {
 
 	users := router.Group("/api/users", middleware.WithAuthenticationRequired)
 	users.GET("/:id", h.HandleGetUser)
-	users.GET("/", h.HandleGetUsersList)
 	users.POST("/:id/set-password", h.HandleUserSetPassword)
 	users.POST("/:id/set-email", h.HandleUserSetEmail)
-	users.POST("/:id/block", h.HandleUserBlock)
 	users.POST("/start-email-confirmation", h.HandleStartEmailConfirmation)
 	users.POST("/confirm-email/:token", h.HandleConfirmEmail)
 }
