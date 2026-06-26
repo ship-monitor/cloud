@@ -82,7 +82,7 @@ func (a *AuthService) Register(ctx context.Context, data domain.RegisterUserData
 		ID:            userID,
 		Name:          data.Name,
 		Email:         data.Email,
-		PasswordHash:  hashPassword(data.Password),
+		PasswordHash:  HashPassword(data.Password),
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 		Blocked:       false,
@@ -223,7 +223,7 @@ func (a *AuthService) Login(ctx context.Context, email, password string) (*domai
 		return nil, ErrBadCredentials
 	}
 
-	if !checkPassword(user, password) {
+	if !CheckPassword(user.PasswordHash, password) {
 		return nil, ErrBadCredentials
 	}
 
@@ -242,11 +242,11 @@ func (a *AuthService) ChangePassword(
 		return fmt.Errorf("get user by id: %w", err)
 	}
 
-	if !checkPassword(user, oldPassword) {
+	if !CheckPassword(user.PasswordHash, oldPassword) {
 		return ErrWrongOldPassword
 	}
 
-	hashed := hashPassword(newPassword)
+	hashed := HashPassword(newPassword)
 	if err := a.users.SetPassword(ctx, userID, hashed); err != nil {
 		return fmt.Errorf("update password: %w", err)
 	}
@@ -273,7 +273,7 @@ func (a *AuthService) ChangeEmail(ctx context.Context, userID uuid.UUID, newEmai
 	return nil
 }
 
-func hashPassword(password string) []byte {
+func HashPassword(password string) []byte {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
@@ -282,6 +282,6 @@ func hashPassword(password string) []byte {
 	return hashed
 }
 
-func checkPassword(user *domain.User, password string) bool {
-	return bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password)) == nil
+func CheckPassword(hashedPassword []byte, password string) bool {
+	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)) == nil
 }
