@@ -10,15 +10,23 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
+type StatesRepository interface {
+	GetStates(
+		ctx context.Context,
+		deviceID, state string,
+		historyLength int,
+	) ([]domain.StateRecord, error)
+}
+
 type DevicesService struct {
-	states     *DeviceStatesService
+	states     StatesRepository
 	orgDevices *OrgDevicesService
 	logger     *log.Logger
 	orgs       *OrganizationsService
 }
 
 func NewDevices(
-	states *DeviceStatesService,
+	states StatesRepository,
 	orgDevices *OrgDevicesService,
 	logger *log.Logger,
 	orgs *OrganizationsService,
@@ -57,5 +65,5 @@ func (d *DevicesService) GetStates(
 		return nil, fmt.Errorf("get states: %w", err)
 	}
 
-	return states, err
+	return states, nil
 }

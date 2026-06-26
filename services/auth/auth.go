@@ -2,50 +2,21 @@ package auth
 
 import (
 	"context"
-	"fmt"
 
-	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 )
 
 var _ handlers.AuthService = (*services.AuthService)(nil)
 
-func SetupRoutes(ctx context.Context, router gin.IRouter) error {
+func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Container) error {
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: "redis:6379",
-	})
-
-	email, err := services.NewEmailService(services.EmailServiceConfig{
-		SMTPHost:     viper.GetString("email.smtp-host"),
-		SMTPPort:     viper.GetUint("email.smtp-port"),
-		SenderName:   viper.GetString("email.sender-name"),
-		AuthEmail:    viper.GetString("email.email"),
-		AuthPassword: viper.GetString("email.password"),
-	})
-	if err != nil {
-		return fmt.Errorf("new email service: %w", err)
-	}
-
-	usersRepo := repository.NewUsers(db.DB.DB)
-	if err := usersRepo.Migrate(context.Background()); err != nil {
-		panic(err)
-	}
-
-	authService := services.NewAuthService(
-		log.Default(),
-		rdb,
-		email,
-		usersRepo,
-	)
+	authService := container.AuthService()
 	h := handlers.NewAuthHandlers(authService)
 
 	auth := router.Group("/api/auth")

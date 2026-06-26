@@ -10,15 +10,15 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
-type Users struct {
+type UsersRepo struct {
 	db *bun.DB
 }
 
-func NewUsers(db *sql.DB) *Users {
-	return &Users{db: newBunDB(db)}
+func NewUsers(db *sql.DB) *UsersRepo {
+	return &UsersRepo{db: newBunDB(db)}
 }
 
-func (u *Users) Migrate(ctx context.Context) error {
+func (u *UsersRepo) Migrate(ctx context.Context) error {
 	_, err := u.db.NewCreateTable().
 		Model((*domain.User)(nil)).
 		IfNotExists().Exec(ctx)
@@ -39,7 +39,7 @@ func (u *Users) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (u *Users) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
+func (u *UsersRepo) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
 	var user domain.User
 
 	err := u.db.NewSelect().
@@ -53,7 +53,7 @@ func (u *Users) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, er
 	return &user, nil
 }
 
-func (u *Users) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (u *UsersRepo) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 
 	err := u.db.NewSelect().
@@ -67,7 +67,7 @@ func (u *Users) GetUserByEmail(ctx context.Context, email string) (*domain.User,
 	return &user, nil
 }
 
-func (u *Users) CreateUser(ctx context.Context, user *domain.User) error {
+func (u *UsersRepo) CreateUser(ctx context.Context, user *domain.User) error {
 	_, err := u.db.NewInsert().Model(user).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert user: %w", err)
@@ -76,7 +76,7 @@ func (u *Users) CreateUser(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (u *Users) SetEmailVerified(ctx context.Context, userID uuid.UUID, verified bool) error {
+func (u *UsersRepo) SetEmailVerified(ctx context.Context, userID uuid.UUID, verified bool) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -89,7 +89,7 @@ func (u *Users) SetEmailVerified(ctx context.Context, userID uuid.UUID, verified
 	return nil
 }
 
-func (u *Users) SetPassword(ctx context.Context, userID uuid.UUID, hashed []byte) error {
+func (u *UsersRepo) SetPassword(ctx context.Context, userID uuid.UUID, hashed []byte) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -102,7 +102,7 @@ func (u *Users) SetPassword(ctx context.Context, userID uuid.UUID, hashed []byte
 	return nil
 }
 
-func (u *Users) SetEmail(ctx context.Context, userID uuid.UUID, email string) error {
+func (u *UsersRepo) SetEmail(ctx context.Context, userID uuid.UUID, email string) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -116,7 +116,7 @@ func (u *Users) SetEmail(ctx context.Context, userID uuid.UUID, email string) er
 	return nil
 }
 
-func (u *Users) EmailTaken(ctx context.Context, email string) (bool, error) {
+func (u *UsersRepo) EmailTaken(ctx context.Context, email string) (bool, error) {
 	taken, err := u.db.NewSelect().
 		Model((*domain.User)(nil)).
 		Column("email").

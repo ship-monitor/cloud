@@ -2,11 +2,9 @@ package organizations
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
 	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
@@ -20,18 +18,9 @@ var (
 )
 
 func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Container) error {
-	// Запускаем миграции
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
-
-	// TODO: remove migrations
-	orgsRepository := repository.NewOrgs(db.DB.DB)
-
-	err := orgsRepository.Migrate(ctx)
-	if err != nil {
-		return fmt.Errorf("migrate organizations schema: %w", err)
-	}
 
 	orgsService := container.OrganizationsService()
 	orgDevicesService := container.OrgDevicesService()

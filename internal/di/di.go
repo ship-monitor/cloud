@@ -19,12 +19,19 @@ type Container struct {
 
 	db *sql.DB
 
-	rabbitMQ             *amqp091.Connection
-	redis                *redis.Client
+	rabbitMQ *amqp091.Connection
+	redis    *redis.Client
+
+	deviceStates   *repository.DeviceStatesRepository
+	orgsRepository *repository.OrganizationsRepo
+	orgDevicesRepo *repository.OrgDevicesRepo
+	usersRepo      *repository.UsersRepo
+
 	organizationsService *services.OrganizationsService
-	deviceStates         *services.DeviceStatesService
 	devicesService       *services.DevicesService
 	orgDevicesService    *services.OrgDevicesService
+	authService          *services.AuthService
+	emailService         *services.EmailService
 
 	devicesHandlers *handlers.DevicesHandlers
 }
@@ -79,11 +86,11 @@ func (c *Container) RabbitMQ() *amqp091.Connection {
 
 const MaxHistoryLength = 100
 
-func (c *Container) DeviceStates() *services.DeviceStatesService {
+func (c *Container) DeviceStates() *repository.DeviceStatesRepository {
 	if c.deviceStates == nil {
-		c.deviceStates = services.NewDeviceStatesCache(
+		c.deviceStates = repository.NewDeviceStatesRepo(
 			c.redis,
-			services.DeviceStatesConfig{
+			repository.DeviceStatesConfig{
 				MaxHistoryLength: MaxHistoryLength,
 			},
 			c.logger,
@@ -93,18 +100,65 @@ func (c *Container) DeviceStates() *services.DeviceStatesService {
 	return c.deviceStates
 }
 
+func (c *Container) OrganizationsRepo() *repository.OrganizationsRepo {
+	if c.orgsRepository == nil {
+		c.orgsRepository = repository.NewOrgs(c.DB())
+	}
+
+	return c.orgsRepository
+}
+
+func (c *Container) OrgDevicesRepo() *repository.OrgDevicesRepo {
+	if c.orgDevicesRepo == nil {
+		c.orgDevicesRepo = repository.NewOrgDevices(c.DB())
+	}
+
+	return c.orgDevicesRepo
+}
+
 func (c *Container) OrganizationsService() *services.OrganizationsService {
 	if c.organizationsService == nil {
-		c.organizationsService = services.NewOrganizations(repository.NewOrgs(c.DB()))
+		c.organizationsService = services.NewOrganizations(c.OrganizationsRepo())
 	}
 
 	return c.organizationsService
 }
 
+func (c *Container) EmailService() *services.EmailService {
+	if c.emailService == nil {
+		email, err := services.NewEmailService(services.EmailServiceConfig{
+			SMTPHost:     viper.GetString("email.smtp-host"),
+			SMTPPort:     viper.GetUint("email.smtp-port"),
+			SenderName:   viper.GetString("email.sender-name"),
+			AuthEmail:    viper.GetString("email.email"),
+			AuthPassword: viper.GetString("email.password"),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		c.emailService = email
+	}
+
+	return c.emailService
+}
+
+func (c *Container) AuthService() *services.AuthService {
+	if c.authService == nil {
+		c.authService = services.NewAuthService(
+			c.Logger(),
+			c.Redis(),
+			c.EmailService(),
+			c.UsersRepo())
+	}
+
+	return c.authService
+}
+
 func (c *Container) OrgDevicesService() *services.OrgDevicesService {
 	if c.orgDevicesService == nil {
 		c.orgDevicesService = services.NewOrgDevices(
-			repository.NewOrgDevices(c.DB()),
+			c.OrgDevicesRepo(),
 			c.OrganizationsService(),
 		)
 	}
@@ -123,6 +177,14 @@ func (c *Container) DevicesService() *services.DevicesService {
 	}
 
 	return c.devicesService
+}
+
+func (c *Container) UsersRepo() *repository.UsersRepo {
+	if c.usersRepo == nil {
+		c.usersRepo = repository.NewUsers(c.DB())
+	}
+
+	return c.usersRepo
 }
 
 func (c *Container) DevicesHandlers() *handlers.DevicesHandlers {

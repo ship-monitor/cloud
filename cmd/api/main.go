@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
@@ -29,8 +28,6 @@ func main() {
 
 	config.Setup()
 
-	db.Setup()
-
 	if viper.GetBool("devel") {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -40,6 +37,13 @@ func main() {
 	log.SetReportCaller(true)
 
 	container := di.NewContainer(viper.GetViper(), log.Default())
+
+	err := migrate(ctx, container)
+	if err != nil {
+		log.Error("Failed migrate database", "error", err)
+
+		return
+	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
 
@@ -58,10 +62,22 @@ func main() {
 		return q.Serve(groupCtx)
 	})
 
-	err := group.Wait()
+	err = group.Wait()
 	if err != nil {
 		log.Error("Failed start", "error", err)
 	}
+}
+
+func migrate(ctx context.Context, c *di.Container) error {
+	if err := c.OrganizationsRepo().Migrate(ctx); err != nil {
+		return fmt.Errorf("failed migrate organizations: %w", err)
+	}
+
+	if err := c.UsersRepo().Migrate(ctx); err != nil {
+		return fmt.Errorf("failed migrate users: %w", err)
+	}
+
+	return nil
 }
 
 func runServer(ctx context.Context, container *di.Container) error {
@@ -90,7 +106,7 @@ func runServer(ctx context.Context, container *di.Container) error {
 		ctx.Status(http.StatusOK)
 	})
 
-	err := auth.SetupRoutes(ctx, server)
+	err := auth.SetupRoutes(ctx, server, container)
 	if err != nil {
 		return fmt.Errorf("setup auth routes: %w", err)
 	}
