@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
@@ -35,6 +36,7 @@ type OrganizationService interface {
 		userID uuid.UUID,
 		page int,
 	) ([]*domain.Organization, error)
+	RenameOrganization(ctx context.Context, orgID uuid.UUID, name string, userID uuid.UUID) error
 }
 type OrgDevicesService interface {
 	ConnectDevice(ctx context.Context, deviceID, organizationID, userID uuid.UUID) error
@@ -181,7 +183,7 @@ func HandleGetOrganization(c *gin.Context) {
 	})
 }
 
-func HandleUpdateOrganization(c *gin.Context) {
+func (h *HTTPHandler) HandleUpdateOrganization(c *gin.Context) {
 	id := requests.MustGetParamUUID(c, "id")
 
 	var req dto.UpdateOrganizationRequest
@@ -193,42 +195,15 @@ func HandleUpdateOrganization(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	member, err := data.GetMember(id, session.UserID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
-
-		return
+	err := h.orgs.RenameOrganization(c.Request.Context(), id, req.Name, session.UserID)
+	switch {
+	case errors.Is(err, services.ErrUserIsNotMember):
+		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		c.Status(http.StatusOK)
 	}
-
-	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdministrator {
-		c.JSON(
-			http.StatusForbidden,
-			dto.Error(errors.New("only owner or administrator can update organization")),
-		)
-
-		return
-	}
-
-	org, err := data.GetOrganization(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Error(errors.New("organization not found")))
-
-		return
-	}
-
-	org, err = data.UpdateOrganization(org, req.Name)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
-
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.OrganizationResponse{
-		ID:        org.ID,
-		Name:      org.Name,
-		CreatedAt: org.CreatedAt,
-		UpdatedAt: org.UpdatedAt,
-	})
 }
 
 func HandleDeleteOrganization(c *gin.Context) {

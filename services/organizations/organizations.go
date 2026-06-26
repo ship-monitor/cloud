@@ -33,7 +33,7 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	orgs.POST("/", webHandler.HandleCreateOrganization)
 	orgs.GET("/my", handlers.HandleGetMyOrganizations)
 	orgs.GET("/:id", webHandler.HandleGetOrganization)
-	orgs.PATCH("/:id", handlers.HandleUpdateOrganization)
+	orgs.PATCH("/:id", webHandler.HandleUpdateOrganization)
 	orgs.DELETE("/:id", handlers.HandleDeleteOrganization)
 
 	// Роуты участников организации

@@ -92,23 +92,6 @@ type MemberWithUser struct {
 	Email          string      `json:"email"`
 }
 
-// UpdateOrganization обновляет название организации.
-func UpdateOrganization(org *domain.Organization, name string) (*domain.Organization, error) {
-	org.Name = name
-	org.UpdatedAt = time.Now()
-
-	_, err := db.DB.NewUpdate().
-		Model(org).
-		Column("name", "updated_at").
-		Where("id = ?", org.ID).
-		Exec(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("update organization: %w", err)
-	}
-
-	return GetOrganization(org.ID)
-}
-
 // DeleteOrganization удаляет организацию.
 func DeleteOrganization(id uuid.UUID) error {
 	_, err := db.DB.NewDelete().

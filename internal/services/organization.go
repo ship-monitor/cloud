@@ -23,6 +23,7 @@ type OrganizationsRepository interface {
 		userID uuid.UUID,
 		p paging.Paging,
 	) ([]*domain.Organization, error)
+	RenameOrganization(ctx context.Context, orgID uuid.UUID, name string) error
 }
 
 type OrganizationsService struct {
@@ -94,4 +95,24 @@ func (s *OrganizationsService) IsMember(
 	}
 
 	return isMember, nil
+}
+
+func (s *OrganizationsService) RenameOrganization(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	name string,
+	userID uuid.UUID,
+) error {
+	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
+		return fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
+	} else if !isMember {
+		return ErrUserIsNotMember
+	}
+
+	err := s.repo.RenameOrganization(ctx, organizationID, name)
+	if err != nil {
+		return fmt.Errorf("rename organization: %w", err)
+	}
+
+	return nil
 }

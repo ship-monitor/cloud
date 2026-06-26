@@ -157,3 +157,21 @@ func (r *OrganizationsRepo) GetUsersOrganizations(
 
 	return orgs, nil
 }
+
+func (r *OrganizationsRepo) RenameOrganization(
+	ctx context.Context,
+	orgID uuid.UUID,
+	name string,
+) error {
+	_, err := r.db.NewUpdate().
+		Model(&domain.Organization{ID: orgID}).
+		WherePK().
+		SetColumn("name", name).
+		SetColumn("updated_at", time.Now().String()).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("update organization: %w", err)
+	}
+
+	return nil
+}
