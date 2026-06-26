@@ -19,9 +19,6 @@ linters:
     - err113
 
   settings:
-    staticcheck:
-      checks:
-        - "-SA1019" # deprecated methods
     depguard:
       rules:
         prevent_bad_architecture:
@@ -30,8 +27,8 @@ linters:
             - $all
             - "!$test"
           deny:
-            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db
-              desc: "Should not be used directly, and be replaced by repositories"
+            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/*
+              desc: "Should be replaced"
         prevent_unmaintained_packages:
           list-mode: lax
           files:

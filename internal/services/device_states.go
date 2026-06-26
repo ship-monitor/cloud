@@ -11,25 +11,28 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
-type DeviceStateCacheConfig struct {
+type DeviceStatesConfig struct {
 	MaxHistoryLength int64 `validate:"required,gt=0"`
 }
 
-type DeviceStatesCache struct {
+// DeviceStatesService manages state records in redis.
+//
+// TODO: Move to repository.
+type DeviceStatesService struct {
 	rdb    *redis.Client
-	config DeviceStateCacheConfig
+	config DeviceStatesConfig
 	logger *log.Logger
 }
 
 func NewDeviceStatesCache(
 	rdb *redis.Client,
-	config DeviceStateCacheConfig,
+	config DeviceStatesConfig,
 	logger *log.Logger,
-) *DeviceStatesCache {
-	return &DeviceStatesCache{rdb: rdb, config: config, logger: logger.WithPrefix("state_cache")}
+) *DeviceStatesService {
+	return &DeviceStatesService{rdb: rdb, config: config, logger: logger.WithPrefix("state_cache")}
 }
 
-func (c *DeviceStatesCache) AddRecord(ctx context.Context, record domain.StateRecord) error {
+func (c *DeviceStatesService) AddRecord(ctx context.Context, record domain.StateRecord) error {
 	if err := validator.New().Struct(record); err != nil {
 		return fmt.Errorf("invalid state record: %w", err)
 	}
@@ -57,13 +60,47 @@ func (c *DeviceStatesCache) AddRecord(ctx context.Context, record domain.StateRe
 	return nil
 }
 
-func (c *DeviceStatesCache) TrimRecords(ctx context.Context, deviceID, state string) error {
+func (c *DeviceStatesService) TrimRecords(ctx context.Context, deviceID, state string) error {
 	key := getStateKey(deviceID, state)
 	if err := c.rdb.LTrim(ctx, key, 0, c.config.MaxHistoryLength).Err(); err != nil {
 		return fmt.Errorf("failed to trim records for %s: %w", key, err)
 	}
 
 	return nil
+}
+
+func (c *DeviceStatesService) GetStates(
+	ctx context.Context,
+	deviceID, state string,
+	historyLength int,
+) ([]domain.StateRecord, error) {
+	key := getStateKey(deviceID, state)
+
+	if historyLength == 0 {
+		historyLength = int(c.config.MaxHistoryLength)
+	}
+
+	values, err := c.rdb.LRange(ctx, key, 0, int64(historyLength)).Result()
+	if err != nil {
+		return nil, fmt.Errorf("get record from redis: %w", err)
+	}
+
+	records := make([]domain.StateRecord, 0, len(values))
+
+	for _, val := range values {
+		var r domain.StateRecord
+
+		err := json.Unmarshal([]byte(val), &r)
+		if err != nil {
+			log.Error("Failed unmarshal record", "error", err)
+
+			continue
+		}
+
+		records = append(records, r)
+	}
+
+	return records, nil
 }
 
 func getStateKey(deviceID, state string) string {

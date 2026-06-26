@@ -31,7 +31,7 @@ type OrgDevicesService struct {
 	repo OrgDevicesRepo
 }
 
-func NewDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *OrgDevicesService {
+func NewOrgDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *OrgDevicesService {
 	return &OrgDevicesService{
 		orgs: orgs,
 		repo: devRepo,
@@ -160,6 +160,8 @@ func (d *OrgDevicesService) RenameDevice(
 }
 
 // SendCommand implements [handlers.DevicesService].
+//
+// Deprecated: commands should be sent via [DevicesService].
 func (d *OrgDevicesService) SendCommand(
 	ctx context.Context,
 	deviceID, userID uuid.UUID, command string,
@@ -180,4 +182,22 @@ func (d *OrgDevicesService) SendCommand(
 	result := commands.SendCommand(ctx, cmd)
 
 	return &result, nil
+}
+
+func (d *OrgDevicesService) UserCanGetState(
+	ctx context.Context,
+	userID, deviceID uuid.UUID,
+) (bool, error) {
+	dev, err := d.repo.GetDevice(ctx, deviceID)
+	if err != nil {
+		return false, fmt.Errorf("get device: %w", err)
+	}
+
+	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+		return false, fmt.Errorf("is member: %w", err)
+	} else if !isMember {
+		return false, ErrNotMember
+	}
+
+	return true, nil
 }

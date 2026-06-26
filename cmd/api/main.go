@@ -95,7 +95,7 @@ func runServer(ctx context.Context, container *di.Container) error {
 		return fmt.Errorf("setup auth routes: %w", err)
 	}
 
-	err = organizations.SetupRoutes(ctx, server)
+	err = organizations.SetupRoutes(ctx, server, container)
 	if err != nil {
 		return fmt.Errorf("setup organizations routes: %w", err)
 	}

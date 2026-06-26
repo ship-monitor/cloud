@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -13,9 +14,9 @@ type OrgDevicesRepo struct {
 	db *bun.DB
 }
 
-func NewOrgDevices(db *bun.DB) *OrgDevicesRepo {
+func NewOrgDevices(db *sql.DB) *OrgDevicesRepo {
 	return &OrgDevicesRepo{
-		db: db,
+		db: newBunDB(db),
 	}
 }
 
