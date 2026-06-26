@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 )
 
 var (
@@ -157,31 +156,6 @@ func (d *OrgDevicesService) RenameDevice(
 	}
 
 	return nil
-}
-
-// SendCommand implements [handlers.DevicesService].
-//
-// Deprecated: commands should be sent via [DevicesService].
-func (d *OrgDevicesService) SendCommand(
-	ctx context.Context,
-	deviceID, userID uuid.UUID, command string,
-	args map[string]any,
-) (*commands.CommandResponse, error) {
-	dev, err := d.repo.GetDevice(ctx, deviceID)
-	if err != nil {
-		return nil, fmt.Errorf("get device: %w", err)
-	}
-
-	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
-		return nil, fmt.Errorf("is member: %w", err)
-	} else if !isMember {
-		return nil, ErrNotMember
-	}
-
-	cmd := commands.NewCommand(deviceID.String(), command, args)
-	result := commands.SendCommand(ctx, cmd)
-
-	return &result, nil
 }
 
 func (d *OrgDevicesService) UserCanGetState(

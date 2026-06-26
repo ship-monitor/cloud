@@ -12,7 +12,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/data"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
@@ -320,85 +319,6 @@ func HandleDisconnectDevice(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (h *HTTPHandler) HandleSendCommand(c *gin.Context) {
-	deviceID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
-
-	var req dto.SendCommandRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
-
-		return
-	}
-
-	resp, err := h.devices.SendCommand(
-		c.Request.Context(),
-		deviceID,
-		session.UserID,
-		req.Command,
-		req.Args,
-	)
-
-	switch {
-	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
-	case err != nil:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
-	case resp.RequestError != "" || resp.CommandError != "":
-		c.AbortWithStatusJSON(http.StatusBadRequest, resp)
-	default:
-		c.JSON(http.StatusOK, resp)
-	}
-}
-
-// HandleSendCommand
-//
-// Deprecated: use [HTTPHandler.HandleSendCommand].
-func HandleSendCommand(c *gin.Context) {
-	orgID := requests.MustGetParamUUID(c, "id")
-	deviceID := requests.MustGetParamUUID(c, "deviceId")
-	session := auth.GetSession(c)
-
-	if _, err := data.GetMember(orgID, session.UserID); err != nil {
-		c.JSON(
-			http.StatusForbidden,
-			dto.Error(errors.New("access denied: not a member of organization")),
-		)
-
-		return
-	}
-
-	device, err := data.GetDeviceDTO(c.Request.Context(), deviceID)
-	if err != nil || device.OrganizationID != orgID {
-		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
-
-		return
-	}
-
-	var req dto.SendCommandRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
-
-		return
-	}
-
-	cmd := commands.NewCommand(deviceID.String(), req.Command, req.Args)
-	result := commands.SendCommand(c.Request.Context(), cmd)
-
-	if result.RequestError != "" {
-		c.JSON(http.StatusBadGateway, dto.SendCommandResponse{
-			RequestError: result.RequestError,
-		})
-
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.SendCommandResponse{
-		CommandError: result.CommandError,
-		Data:         result.Data,
-	})
 }
 
 func deviceToDTO(d *domain.OrganizationDevice) dto.DeviceResponse {

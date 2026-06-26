@@ -11,7 +11,6 @@ import (
 	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/commands"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
 )
 
@@ -22,11 +21,6 @@ var (
 
 func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Container) error {
 	// Запускаем миграции
-	err := commands.Connect()
-	if err != nil {
-		return fmt.Errorf("connect to commands queue: %w", err)
-	}
-
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
@@ -34,7 +28,7 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	// TODO: remove migrations
 	orgsRepository := repository.NewOrgs(db.DB.DB)
 
-	err = orgsRepository.Migrate(ctx)
+	err := orgsRepository.Migrate(ctx)
 	if err != nil {
 		return fmt.Errorf("migrate organizations schema: %w", err)
 	}
@@ -65,7 +59,6 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	orgs.GET("/:id/devices/:deviceId", handlers.HandleGetDevice)
 	orgs.PATCH("/:id/devices/:deviceId", handlers.HandlePatchDevice)
 	orgs.DELETE("/:id/devices/:deviceId", handlers.HandleDisconnectDevice)
-	orgs.POST("/:id/devices/:deviceId/command", handlers.HandleSendCommand)
 
 	// Invitation routes
 	orgs.POST("/:id/invitations", handlers.HandleCreateInvitation)
@@ -78,7 +71,6 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	api.GET("/devices/:id", webHandler.HandleGetDevice)
 	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
 	api.DELETE("/devices/:id", webHandler.HandleDisconnectDevice)
-	api.POST("/devices/:id/command", webHandler.HandleSendCommand)
 
 	api.GET(
 		"/v2/devices/:id/state/:state",
