@@ -70,8 +70,11 @@ func ListInvitationsForUser(email string) ([]domain.OrganizationInvitation, erro
 		Where("invitee_email = ? AND status = ?", email, domain.InvStatusPending).
 		Order("created_at DESC").
 		Scan(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("select invitations: %w", err)
+	}
 
-	return invs, fmt.Errorf("select invitations: %w", err)
+	return invs, nil
 }
 
 func ListInvitationsForOrg(orgID uuid.UUID) ([]domain.OrganizationInvitation, error) {
