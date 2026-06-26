@@ -145,27 +145,11 @@ func (h *HTTPHandler) HandleConnectDevice(c *gin.Context) {
 }
 
 func HandleListDevices(c *gin.Context) {
-	orgID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		log.Warn("Invalid organization id in list devices request", "id", c.Param("id"))
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid organization id")))
-
-		return
-	}
-
+	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
 	isMember, err := data.IsMember(session.UserID, orgID)
 	if err != nil {
-		log.Error(
-			"Failed to check membership for list devices",
-			"error",
-			err,
-			"organization",
-			orgID,
-			"user",
-			session.UserID,
-		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return

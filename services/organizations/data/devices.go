@@ -106,8 +106,11 @@ func ListDevices(ctx context.Context, orgID uuid.UUID) ([]domain.OrganizationDev
 		Where("organization_id = ?", orgID).
 		Order("created_at ASC").
 		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("select devices: %w", err)
+	}
 
-	return devices, fmt.Errorf("select devices: %w", err)
+	return devices, nil
 }
 
 func DisconnectDevice(ctx context.Context, id uuid.UUID) error {
