@@ -2,23 +2,31 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"charm.land/log/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/connector"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
 
 const maxAge = 12 * time.Hour
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
 	config.Setup()
 
 	db.Setup()
@@ -29,6 +37,34 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
+	log.SetReportCaller(true)
+
+	container := di.NewContainer(viper.GetViper(), log.Default())
+
+	group, groupCtx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		return runServer(groupCtx, container)
+	})
+
+	group.Go(func() error {
+		q := workers.NewQueue(
+			container.RabbitMQ(),
+			container.Redis(),
+			container.DeviceStates(),
+			container.Logger(),
+		)
+
+		return q.Serve(groupCtx)
+	})
+
+	err := group.Wait()
+	if err != nil {
+		log.Error("Failed start", "error", err)
+	}
+}
+
+func runServer(ctx context.Context, container *di.Container) error {
 	server := gin.Default()
 
 	if viper.GetBool("devel") {
@@ -51,23 +87,22 @@ func main() {
 	}))
 
 	server.GET("/api/health", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"healthy": true,
-		})
+		ctx.Status(http.StatusOK)
 	})
 
-	auth.SetupRoutes(server)
-	organizations.SetupRoutes(server)
-
-	if viper.GetBool("services.connector.enable") {
-		log.Info("Connector service enabled")
-		connector.Setup(context.Background(), server)
-	} else {
-		log.Warn("Connector service disabled")
-	}
-
-	err := server.Run(":8080")
+	err := auth.SetupRoutes(ctx, server)
 	if err != nil {
-		log.Error("failed to start server", "error", err)
+		return fmt.Errorf("setup auth routes: %w", err)
 	}
+
+	err = organizations.SetupRoutes(ctx, server)
+	if err != nil {
+		return fmt.Errorf("setup organizations routes: %w", err)
+	}
+
+	if err := server.Run(":8080"); err != nil {
+		return fmt.Errorf("run server: %w", err)
+	}
+
+	return nil
 }

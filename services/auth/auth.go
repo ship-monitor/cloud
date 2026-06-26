@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ import (
 
 var _ handlers.AuthService = (*services.AuthService)(nil)
 
-func SetupRoutes(router gin.IRouter) {
+func SetupRoutes(ctx context.Context, router gin.IRouter) error {
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	rdb := redis.NewClient(&redis.Options{
@@ -31,7 +32,7 @@ func SetupRoutes(router gin.IRouter) {
 		AuthPassword: viper.GetString("email.password"),
 	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("new email service: %w", err)
 	}
 
 	usersRepo := repository.NewUsers(db.DB.DB)
@@ -58,4 +59,6 @@ func SetupRoutes(router gin.IRouter) {
 	users.POST("/:id/set-email", h.HandleUserSetEmail)
 	users.POST("/start-email-confirmation", h.HandleStartEmailConfirmation)
 	users.POST("/confirm-email/:token", h.HandleConfirmEmail)
+
+	return nil
 }

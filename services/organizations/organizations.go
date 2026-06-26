@@ -2,8 +2,8 @@ package organizations
 
 import (
 	"context"
+	"fmt"
 
-	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
@@ -20,12 +20,11 @@ var (
 	_ handlers.OrgDevicesService          = (*services.OrgDevicesService)(nil)
 )
 
-func SetupRoutes(router gin.IRouter) {
+func SetupRoutes(ctx context.Context, router gin.IRouter) error {
 	// Запускаем миграции
-
 	err := commands.Connect()
 	if err != nil {
-		log.Fatal("Failed connect to commands queue", "error", err)
+		return fmt.Errorf("connect to commands queue: %w", err)
 	}
 
 	middleware := auth.DefaultMiddleware(viper.GetViper())
@@ -37,7 +36,7 @@ func SetupRoutes(router gin.IRouter) {
 
 	err = orgsRepository.Migrate(context.Background())
 	if err != nil {
-		log.Fatal("Failed migrate organizations schema")
+		return fmt.Errorf("migrate organizations schema: %w", err)
 	}
 
 	orgsService := intservices.NewOrganizations(orgsRepository)
@@ -79,4 +78,6 @@ func SetupRoutes(router gin.IRouter) {
 	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
 	api.DELETE("/devices/:id", webHandler.HandleDisconnectDevice)
 	api.POST("/devices/:id/command", webHandler.HandleSendCommand)
+
+	return nil
 }
