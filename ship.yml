@@ -19,3 +19,8 @@ rabbitmq-url: "amqp://guest:guest@rabbitmq:5672/"
 redis:
   url: redis:6379
   password: ""
+
+frontend:
+  host: ship-monitor.ru:3000
+  email-confirmation-path: "/confirm-email"
+  email-confirmation-query: token=%s

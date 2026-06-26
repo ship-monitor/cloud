@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"charm.land/log/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
@@ -152,16 +154,25 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
+	confirmationURL := url.URL{
+		Scheme: "http",
+		Host:   viper.GetString("frontend.host"),
+		Path:   viper.GetString("frontend.email-confiramtion-path"),
+		RawQuery: url.QueryEscape(
+			fmt.Sprintf(viper.GetString("frontend.email-confirmation-query"), token),
+		),
+	}
 	e := email.Email{
 		To:      user.Email,
 		Subject: "Email confirmation",
 		Lang:    "en",
-		Body: fmt.Appendf(nil, `
+		Body: fmt.Appendf(nil,
+			`
 			<h1>Confirm email</h1>
 			<p>Click link below to go to email confirmation page</p>
-			<a href="%s/confirm-email?token=%s">Confirm</a>
+			<a href="%s"><em>Confirm</em></a>
 			<p>Link is valid till %s</p>`,
-			FrontendBaseURL, token, time.Now().Add(EmailConfirmationTTL).Format(time.DateTime)),
+			confirmationURL.String(), time.Now().Add(EmailConfirmationTTL).Format(time.DateTime)),
 	}
 
 	if err := a.email.SendEmail(ctx, e); err != nil {
