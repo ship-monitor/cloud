@@ -219,11 +219,9 @@ func (a *AuthService) Login(ctx context.Context, email, password string) (*domai
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
-	if user == nil {
-		return nil, ErrBadCredentials
-	}
-
 	if !CheckPassword(user.PasswordHash, password) {
+		a.logger.Error("Password don't match hash", "user", user.ID, "email", user.Email)
+
 		return nil, ErrBadCredentials
 	}
 
