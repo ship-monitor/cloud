@@ -31,7 +31,7 @@ func (h *HTTPHandler) HandleCreateInvitation(c *gin.Context) {
 	}
 
 	if req.InviteeEmail != "" {
-		inv, err := h.orgs.CreateInvitation(
+		inv, err := h.invitations.CreateInvitation(
 			c.Request.Context(),
 			orgID,
 			session.UserID,
@@ -53,7 +53,12 @@ func (h *HTTPHandler) HandleCreateInvitation(c *gin.Context) {
 	var errs error
 
 	for _, email := range req.InviteeEmails {
-		inv, err := h.orgs.CreateInvitation(c.Request.Context(), orgID, session.UserID, email)
+		inv, err := h.invitations.CreateInvitation(
+			c.Request.Context(),
+			orgID,
+			session.UserID,
+			email,
+		)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("invite %q: %w", email, err))
 		} else {
@@ -89,7 +94,7 @@ func writeCreateInvitationResponse(
 func (h *HTTPHandler) HandleListMyInvitations(c *gin.Context) {
 	session := auth.GetSession(c)
 
-	invs, err := h.orgs.ListMyInvitations(c.Request.Context(), session.Email)
+	invs, err := h.invitations.ListMyInvitations(c.Request.Context(), session.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
@@ -108,7 +113,7 @@ func (h *HTTPHandler) HandleListOrgInvitations(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	invs, err := h.orgs.ListOrgInvitations(c.Request.Context(), orgID, session.UserID)
+	invs, err := h.invitations.ListOrgInvitations(c.Request.Context(), orgID, session.UserID)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember), errors.Is(err, services.ErrNotAllowed):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
@@ -128,7 +133,7 @@ func (h *HTTPHandler) HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	err := h.orgs.AcceptInvitation(c.Request.Context(), invID, session.UserID, session.Email)
+	err := h.invitations.AcceptInvitation(c.Request.Context(), invID, session.UserID, session.Email)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))
@@ -151,7 +156,7 @@ func (h *HTTPHandler) HandleDeclineInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	err := h.orgs.DeclineInvitation(c.Request.Context(), invID, session.Email)
+	err := h.invitations.DeclineInvitation(c.Request.Context(), invID, session.Email)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))

@@ -41,6 +41,9 @@ type OrganizationService interface {
 		userID uuid.UUID,
 	) error
 	DeleteOrganization(ctx context.Context, organizationID, userID uuid.UUID) error
+}
+
+type OrganizationMembersService interface {
 	GetMembers(
 		ctx context.Context,
 		organizationID uuid.UUID,
@@ -66,6 +69,9 @@ type OrganizationService interface {
 		actorID uuid.UUID,
 		userID uuid.UUID,
 	) error
+}
+
+type OrganizationInvitationsService interface {
 	CreateInvitation(
 		ctx context.Context,
 		organizationID uuid.UUID,
@@ -103,14 +109,23 @@ type OrgDevicesService interface {
 }
 
 type HTTPHandler struct {
-	orgs    OrganizationService
-	devices OrgDevicesService
+	orgs        OrganizationService
+	members     OrganizationMembersService
+	invitations OrganizationInvitationsService
+	devices     OrgDevicesService
 }
 
-func New(orgs OrganizationService, devices OrgDevicesService) *HTTPHandler {
+func New(
+	orgs OrganizationService,
+	members OrganizationMembersService,
+	invitations OrganizationInvitationsService,
+	devices OrgDevicesService,
+) *HTTPHandler {
 	return &HTTPHandler{
-		orgs:    orgs,
-		devices: devices,
+		orgs:        orgs,
+		members:     members,
+		invitations: invitations,
+		devices:     devices,
 	}
 }
 
@@ -223,7 +238,7 @@ func (h *HTTPHandler) HandleGetMembers(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	members, err := h.orgs.GetMembers(c.Request.Context(), orgID, session.UserID)
+	members, err := h.members.GetMembers(c.Request.Context(), orgID, session.UserID)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
@@ -245,7 +260,7 @@ func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
 		return
 	}
 
-	member, err := h.orgs.AddMember(
+	member, err := h.members.AddMember(
 		c.Request.Context(),
 		orgID,
 		session.UserID,
@@ -285,7 +300,7 @@ func (h *HTTPHandler) HandleUpdateMemberRole(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	err := h.orgs.UpdateMemberRole(
+	err := h.members.UpdateMemberRole(
 		c.Request.Context(),
 		orgID,
 		session.UserID,
@@ -314,7 +329,7 @@ func (h *HTTPHandler) HandleRemoveMember(c *gin.Context) {
 	userID := requests.MustGetParamUUID(c, "userId")
 	session := auth.GetSession(c)
 
-	err := h.orgs.RemoveMember(c.Request.Context(), orgID, session.UserID, userID)
+	err := h.members.RemoveMember(c.Request.Context(), orgID, session.UserID, userID)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))

@@ -23,6 +23,8 @@ func createDB(t *testing.T) *sql.DB {
 		t.Fatalf("failed to open database: %v", err)
 	}
 
+	db.SetMaxOpenConns(1)
+
 	return db
 }
 
