@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
@@ -41,6 +42,7 @@ func NewOrgDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *OrgDevic
 func (d *OrgDevicesService) ConnectDevice(
 	ctx context.Context,
 	deviceID, organizationID, userID uuid.UUID,
+	name string,
 ) error {
 	if isMember, err := d.orgs.IsMember(ctx, userID, organizationID); err != nil {
 		return fmt.Errorf("check is member: %w", err)
@@ -54,12 +56,15 @@ func (d *OrgDevicesService) ConnectDevice(
 		return ErrAlreadyConnected
 	}
 
-	name := names.Gen()
+	if name == "" {
+		name = names.Gen()
+	}
 
 	err := d.repo.CreateDevice(ctx, &domain.OrganizationDevice{
 		ID:             deviceID,
 		Name:           name,
 		OrganizationID: organizationID,
+		CreatedAt:      time.Now(),
 	})
 	if err != nil {
 		return fmt.Errorf("create device: %w", err)

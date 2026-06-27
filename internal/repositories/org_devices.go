@@ -59,7 +59,7 @@ func (r *OrgDevicesRepo) CreateDevice(
 	ctx context.Context,
 	device *domain.OrganizationDevice,
 ) error {
-	_, err := r.db.NewInsert().Model(&device).Exec(ctx)
+	_, err := r.db.NewInsert().Model(device).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
 	}

@@ -31,30 +31,30 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	// Роуты с проверкой аутентификации
 	orgs := api.Group("/organizations")
 	orgs.POST("/", webHandler.HandleCreateOrganization)
-	orgs.GET("/my", handlers.HandleGetMyOrganizations)
+	orgs.GET("/my", webHandler.HandleGetMyOrganizations)
 	orgs.GET("/:id", webHandler.HandleGetOrganization)
 	orgs.PATCH("/:id", webHandler.HandleUpdateOrganization)
-	orgs.DELETE("/:id", handlers.HandleDeleteOrganization)
+	orgs.DELETE("/:id", webHandler.HandleDeleteOrganization)
 
 	// Роуты участников организации
-	orgs.GET("/:id/members", handlers.HandleGetMembers)
-	orgs.POST("/:id/members", handlers.HandleAddMember)
-	orgs.PATCH("/:id/members/:userId", handlers.HandleUpdateMemberRole)
-	orgs.DELETE("/:id/members/:userId", handlers.HandleRemoveMember)
+	orgs.GET("/:id/members", webHandler.HandleGetMembers)
+	orgs.POST("/:id/members", webHandler.HandleAddMember)
+	orgs.PATCH("/:id/members/:userId", webHandler.HandleUpdateMemberRole)
+	orgs.DELETE("/:id/members/:userId", webHandler.HandleRemoveMember)
 
 	// Device routes
 	orgs.POST("/:id/devices", webHandler.HandleConnectDevice)
-	orgs.GET("/:id/devices", handlers.HandleListDevices)
-	orgs.GET("/:id/devices/:deviceId", handlers.HandleGetDevice)
-	orgs.PATCH("/:id/devices/:deviceId", handlers.HandlePatchDevice)
-	orgs.DELETE("/:id/devices/:deviceId", handlers.HandleDisconnectDevice)
+	orgs.GET("/:id/devices", webHandler.HandleListDevices)
+	orgs.GET("/:id/devices/:deviceId", webHandler.HandleGetDevice)
+	orgs.PATCH("/:id/devices/:deviceId", webHandler.HandlePatchDevice)
+	orgs.DELETE("/:id/devices/:deviceId", webHandler.HandleDisconnectDevice)
 
 	// Invitation routes
-	orgs.POST("/:id/invitations", handlers.HandleCreateInvitation)
-	orgs.GET("/:id/invitations", handlers.HandleListOrgInvitations)
-	api.GET("/invitations", handlers.HandleListMyInvitations)
-	api.POST("/invitations/:id/accept", handlers.HandleAcceptInvitation)
-	api.POST("/invitations/:id/decline", handlers.HandleDeclineInvitation)
+	orgs.POST("/:id/invitations", webHandler.HandleCreateInvitation)
+	orgs.GET("/:id/invitations", webHandler.HandleListOrgInvitations)
+	api.GET("/invitations", webHandler.HandleListMyInvitations)
+	api.POST("/invitations/:id/accept", webHandler.HandleAcceptInvitation)
+	api.POST("/invitations/:id/decline", webHandler.HandleDeclineInvitation)
 
 	// Devices separate routes
 	api.GET("/devices/:id", webHandler.HandleGetDevice)
