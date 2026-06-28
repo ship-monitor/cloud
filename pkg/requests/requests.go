@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -49,6 +50,8 @@ type BadResponse struct {
 }
 
 func ResponseErr(err error) BadResponse {
+	log.Error("Sending bad response", "details", err.Error())
+
 	return BadResponse{
 		Details:         err.Error(),
 		MessageForArmen: "",
@@ -56,6 +59,8 @@ func ResponseErr(err error) BadResponse {
 }
 
 func ResponseBad(details string) BadResponse {
+	log.Error("Sending bad response", "details", details)
+
 	return BadResponse{
 		Details:         details,
 		MessageForArmen: "",
@@ -63,6 +68,12 @@ func ResponseBad(details string) BadResponse {
 }
 
 func ResponseArmenErr(err error, msg string) BadResponse {
+	log.Error(
+		"Sending bad response",
+		"details", err.Error(),
+		"messageForArmen", msg,
+	)
+
 	return BadResponse{
 		Details:         err.Error(),
 		MessageForArmen: msg,

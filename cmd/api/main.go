@@ -87,6 +87,19 @@ func runServer(ctx context.Context, container *di.Container) error {
 		gin.SetMode(gin.DebugMode)
 	}
 
+	server.Use(func(ctx *gin.Context) {
+		logger := container.Logger().WithPrefix("HTTP Middleware")
+
+		ctx.Next()
+
+		if ctx.Writer.Status() >= http.StatusBadRequest {
+			logger.Error("Handled error",
+				"status", ctx.Writer.Status(),
+				"path", ctx.Request.URL.Path,
+				"method", ctx.Request.Method,
+			)
+		}
+	})
 	server.Use(cors.New(cors.Config{
 		AllowOrigins: viper.GetStringSlice("cors.allow-origins"),
 		AllowMethods: []string{
