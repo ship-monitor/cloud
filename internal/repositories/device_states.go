@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"charm.land/log/v2"
 	"github.com/go-playground/validator/v10"
@@ -30,7 +31,7 @@ func NewDeviceStatesRepo(
 	return &DeviceStatesRepository{
 		rdb:    rdb,
 		config: config,
-		logger: logger.WithPrefix("state_cache"),
+		logger: logger.WithPrefix("Device States Repository"),
 	}
 }
 
@@ -55,7 +56,13 @@ func (c *DeviceStatesRepository) AddRecord(
 	}
 
 	if length > c.config.MaxHistoryLength {
-		go func() {
+		trimCtx, cancel := context.WithTimeout(
+			ctx,
+			TrimRecordsTimeout,
+		)
+		defer cancel()
+
+		go func(ctx context.Context) {
 			if err := c.TrimRecords(
 				ctx,
 				record.DeviceID,
@@ -63,11 +70,13 @@ func (c *DeviceStatesRepository) AddRecord(
 			); err != nil {
 				c.logger.Warn("Failed to trim records", "error", err)
 			}
-		}()
+		}(trimCtx)
 	}
 
 	return nil
 }
+
+const TrimRecordsTimeout = time.Second * 5
 
 func (c *DeviceStatesRepository) TrimRecords(
 	ctx context.Context,
