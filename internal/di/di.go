@@ -183,6 +183,7 @@ func (c *Container) DevicesService() *services.DevicesService {
 			c.OrgDevicesService(),
 			c.Logger(),
 			c.OrganizationsService(),
+			c.TopicPublisher(),
 		)
 	}
 
