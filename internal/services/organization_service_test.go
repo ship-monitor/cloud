@@ -42,12 +42,20 @@ func TestOrganizationsServiceOrganizationWorkflow(t *testing.T) {
 		t.Fatalf("expected ErrUserIsNotMember, got %v", err)
 	}
 
-	if err := svc.RenameOrganization(ctx, orgID, "Renamed", memberID); err != nil {
+	if err := svc.RenameOrganization(
+		ctx,
+		orgID,
+		"Renamed",
+		memberID,
+	); err != nil {
 		t.Fatalf("rename organization: %v", err)
 	}
 
 	if repo.orgs[orgID].Name != "Renamed" {
-		t.Fatalf("expected organization to be renamed, got %q", repo.orgs[orgID].Name)
+		t.Fatalf(
+			"expected organization to be renamed, got %q",
+			repo.orgs[orgID].Name,
+		)
 	}
 
 	err = svc.DeleteOrganization(ctx, orgID, memberID)
@@ -94,12 +102,19 @@ func TestOrganizationsServiceMemberWorkflow(t *testing.T) {
 
 	svc := services.NewOrganizations(repo)
 
-	created, err := svc.AddMember(ctx, orgID, ownerID, newMemberID, domain.RoleAdministrator)
+	created, err := svc.AddMember(
+		ctx,
+		orgID,
+		ownerID,
+		newMemberID,
+		domain.RoleAdministrator,
+	)
 	if err != nil {
 		t.Fatalf("add member: %v", err)
 	}
 
-	if created.MemberID != newMemberID || created.Role != domain.RoleAdministrator {
+	if created.MemberID != newMemberID ||
+		created.Role != domain.RoleAdministrator {
 		t.Fatalf("unexpected created member: %+v", created)
 	}
 
@@ -113,7 +128,13 @@ func TestOrganizationsServiceMemberWorkflow(t *testing.T) {
 		t.Fatalf("expected ErrCannotAssignOwnerRole, got %v", err)
 	}
 
-	_, err = svc.AddMember(ctx, orgID, outsiderID, uuid.New(), domain.RoleMember)
+	_, err = svc.AddMember(
+		ctx,
+		orgID,
+		outsiderID,
+		uuid.New(),
+		domain.RoleMember,
+	)
 	if !errors.Is(err, services.ErrUserIsNotMember) {
 		t.Fatalf("expected ErrUserIsNotMember, got %v", err)
 	}
@@ -137,7 +158,13 @@ func TestOrganizationsServiceMemberWorkflow(t *testing.T) {
 		t.Fatalf("expected ErrCannotChangeOwnerRole, got %v", err)
 	}
 
-	err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, domain.Role("captain"))
+	err = svc.UpdateMemberRole(
+		ctx,
+		orgID,
+		ownerID,
+		memberID,
+		domain.Role("captain"),
+	)
 	if !errors.Is(err, services.ErrInvalidMemberRole) {
 		t.Fatalf("expected ErrInvalidMemberRole, got %v", err)
 	}
@@ -189,7 +216,10 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 	}
 
 	if inv.OrganizationName != "Acme" {
-		t.Fatalf("expected organization name in invitation details, got %q", inv.OrganizationName)
+		t.Fatalf(
+			"expected organization name in invitation details, got %q",
+			inv.OrganizationName,
+		)
 	}
 
 	if inv.Invitation.InviteeEmail != inviteeEmail ||
@@ -202,7 +232,12 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 		t.Fatalf("expected ErrInvitationAlreadyPending, got %v", err)
 	}
 
-	_, err = svc.CreateInvitation(ctx, orgID, uuid.New(), "outsider@example.com")
+	_, err = svc.CreateInvitation(
+		ctx,
+		orgID,
+		uuid.New(),
+		"outsider@example.com",
+	)
 	if !errors.Is(err, services.ErrUserIsNotMember) {
 		t.Fatalf("expected ErrUserIsNotMember, got %v", err)
 	}
@@ -222,7 +257,10 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 	}
 
 	if len(orgInvs) != 1 || orgInvs[0].Invitation.ID != inv.Invitation.ID {
-		t.Fatalf("expected created invitation in organization list, got %+v", orgInvs)
+		t.Fatalf(
+			"expected created invitation in organization list, got %+v",
+			orgInvs,
+		)
 	}
 
 	_, err = svc.ListOrgInvitations(ctx, orgID, memberID)
@@ -236,7 +274,10 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 	}
 
 	if repo.invitations[inv.Invitation.ID].Status != domain.InvStatusAccepted {
-		t.Fatalf("expected accepted invitation, got %q", repo.invitations[inv.Invitation.ID].Status)
+		t.Fatalf(
+			"expected accepted invitation, got %q",
+			repo.invitations[inv.Invitation.ID].Status,
+		)
 	}
 
 	if repo.members[memberKey{orgID: orgID, userID: inviteeID}].Role != domain.RoleMember {
@@ -254,7 +295,12 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 		time.Now().Add(time.Hour),
 	)
 
-	err = svc.AcceptInvitation(ctx, wrongInvitee, uuid.New(), "other@example.com")
+	err = svc.AcceptInvitation(
+		ctx,
+		wrongInvitee,
+		uuid.New(),
+		"other@example.com",
+	)
 	if !errors.Is(err, services.ErrNotInvitee) {
 		t.Fatalf("expected ErrNotInvitee, got %v", err)
 	}
@@ -286,12 +332,19 @@ func TestOrganizationsServiceInvitationWorkflow(t *testing.T) {
 		"decline@example.com",
 		time.Now().Add(time.Hour),
 	)
-	if err := svc.DeclineInvitation(ctx, declined, "decline@example.com"); err != nil {
+	if err := svc.DeclineInvitation(
+		ctx,
+		declined,
+		"decline@example.com",
+	); err != nil {
 		t.Fatalf("decline invitation: %v", err)
 	}
 
 	if repo.invitations[declined].Status != domain.InvStatusDeclined {
-		t.Fatalf("expected declined invitation, got %q", repo.invitations[declined].Status)
+		t.Fatalf(
+			"expected declined invitation, got %q",
+			repo.invitations[declined].Status,
+		)
 	}
 
 	err = svc.DeclineInvitation(ctx, uuid.New(), "missing@example.com")
@@ -317,12 +370,19 @@ func TestOrgDevicesServiceWorkflow(t *testing.T) {
 	orgs := services.NewOrganizations(orgRepo)
 	devices := services.NewOrgDevices(devRepo, orgs)
 
-	if err := devices.ConnectDevice(ctx, deviceID, orgID, memberID, "Bridge"); err != nil {
+	if err := devices.ConnectDevice(
+		ctx,
+		deviceID,
+		orgID,
+		memberID,
+		"Bridge",
+	); err != nil {
 		t.Fatalf("connect device: %v", err)
 	}
 
 	device := devRepo.devices[deviceID]
-	if device.Name != "Bridge" || device.OrganizationID != orgID || device.CreatedAt.IsZero() {
+	if device.Name != "Bridge" || device.OrganizationID != orgID ||
+		device.CreatedAt.IsZero() {
 		t.Fatalf("unexpected connected device: %+v", device)
 	}
 
@@ -350,12 +410,20 @@ func TestOrgDevicesServiceWorkflow(t *testing.T) {
 		t.Fatalf("expected ErrEmptyDeviceName, got %v", err)
 	}
 
-	if err := devices.RenameDevice(ctx, deviceID, memberID, "Engine Room"); err != nil {
+	if err := devices.RenameDevice(
+		ctx,
+		deviceID,
+		memberID,
+		"Engine Room",
+	); err != nil {
 		t.Fatalf("rename device: %v", err)
 	}
 
 	if devRepo.devices[deviceID].Name != "Engine Room" {
-		t.Fatalf("expected renamed device, got %q", devRepo.devices[deviceID].Name)
+		t.Fatalf(
+			"expected renamed device, got %q",
+			devRepo.devices[deviceID].Name,
+		)
 	}
 
 	_, err = devices.GetDevice(ctx, deviceID, outsiderID)
@@ -672,7 +740,11 @@ func (r *fakeOrganizationsRepository) UpdateInvitationStatus(
 	return nil
 }
 
-func (r *fakeOrganizationsRepository) addOrg(id uuid.UUID, name string, creatorID uuid.UUID) {
+func (r *fakeOrganizationsRepository) addOrg(
+	id uuid.UUID,
+	name string,
+	creatorID uuid.UUID,
+) {
 	now := time.Now()
 	r.orgs[id] = &domain.Organization{
 		ID:        id,
@@ -719,7 +791,9 @@ type fakeOrgDevicesRepository struct {
 }
 
 func newFakeOrgDevicesRepository() *fakeOrgDevicesRepository {
-	return &fakeOrgDevicesRepository{devices: make(map[uuid.UUID]*domain.OrganizationDevice)}
+	return &fakeOrgDevicesRepository{
+		devices: make(map[uuid.UUID]*domain.OrganizationDevice),
+	}
 }
 
 func (r *fakeOrgDevicesRepository) ListDevices(
@@ -765,7 +839,10 @@ func (r *fakeOrgDevicesRepository) CreateDevice(
 	return nil
 }
 
-func (r *fakeOrgDevicesRepository) DeleteDevice(ctx context.Context, deviceID uuid.UUID) error {
+func (r *fakeOrgDevicesRepository) DeleteDevice(
+	ctx context.Context,
+	deviceID uuid.UUID,
+) error {
 	_ = ctx
 
 	delete(r.devices, deviceID)

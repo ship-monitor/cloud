@@ -31,7 +31,10 @@ func TestEmailServiceConfig(t *testing.T) {
 		if err == nil && testCase.shouldReturnError {
 			t.Fatalf("Validation should fails but there is no error")
 		} else if err != nil && !testCase.shouldReturnError {
-			t.Fatalf("Validation should be successful, but there error: %s", err)
+			t.Fatalf(
+				"Validation should be successful, but there error: %s",
+				err,
+			)
 		}
 	}
 }

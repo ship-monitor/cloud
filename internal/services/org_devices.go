@@ -12,14 +12,22 @@ import (
 )
 
 var (
-	ErrNotMember        = errors.New("access denied: user is not member of organization")
+	ErrNotMember = errors.New(
+		"access denied: user is not member of organization",
+	)
 	ErrEmptyDeviceName  = errors.New("empty device name")
 	ErrAlreadyConnected = errors.New("device already connected to organization")
 )
 
 type OrgDevicesRepo interface {
-	ListDevices(ctx context.Context, organizationID uuid.UUID) ([]domain.OrganizationDevice, error)
-	GetDevice(ctx context.Context, deviceID uuid.UUID) (*domain.OrganizationDevice, error)
+	ListDevices(
+		ctx context.Context,
+		organizationID uuid.UUID,
+	) ([]domain.OrganizationDevice, error)
+	GetDevice(
+		ctx context.Context,
+		deviceID uuid.UUID,
+	) (*domain.OrganizationDevice, error)
 	CreateDevice(ctx context.Context, device *domain.OrganizationDevice) error
 	DeleteDevice(ctx context.Context, deviceID uuid.UUID) error
 	SetName(ctx context.Context, deviceID uuid.UUID, name string) error
@@ -31,7 +39,10 @@ type OrgDevicesService struct {
 	repo OrgDevicesRepo
 }
 
-func NewOrgDevices(devRepo OrgDevicesRepo, orgs *OrganizationsService) *OrgDevicesService {
+func NewOrgDevices(
+	devRepo OrgDevicesRepo,
+	orgs *OrganizationsService,
+) *OrgDevicesService {
 	return &OrgDevicesService{
 		orgs: orgs,
 		repo: devRepo,
@@ -44,7 +55,11 @@ func (d *OrgDevicesService) ConnectDevice(
 	deviceID, organizationID, userID uuid.UUID,
 	name string,
 ) error {
-	if isMember, err := d.orgs.IsMember(ctx, userID, organizationID); err != nil {
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		organizationID,
+	); err != nil {
 		return fmt.Errorf("check is member: %w", err)
 	} else if !isMember {
 		return ErrNotMember
@@ -83,7 +98,11 @@ func (d *OrgDevicesService) DisconnectDevice(
 		return fmt.Errorf("get device: %w", err)
 	}
 
-	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		dev.OrganizationID,
+	); err != nil {
 		return fmt.Errorf("check is member: %w", err)
 	} else if !isMember {
 		return ErrNotMember
@@ -106,7 +125,11 @@ func (d *OrgDevicesService) GetDevice(
 		return nil, fmt.Errorf("get device: %w", err)
 	}
 
-	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		dev.OrganizationID,
+	); err != nil {
 		return nil, fmt.Errorf("check is member: %w", err)
 	} else if !isMember {
 		return nil, ErrNotMember
@@ -120,7 +143,11 @@ func (d *OrgDevicesService) GetDevices(
 	ctx context.Context,
 	organizationID, userID uuid.UUID,
 ) ([]domain.OrganizationDevice, error) {
-	if isMember, err := d.orgs.IsMember(ctx, userID, organizationID); err != nil {
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		organizationID,
+	); err != nil {
 		return nil, fmt.Errorf("check is member: %w", err)
 	} else if !isMember {
 		return nil, ErrNotMember
@@ -172,7 +199,36 @@ func (d *OrgDevicesService) UserCanGetState(
 		return false, fmt.Errorf("get device: %w", err)
 	}
 
-	if isMember, err := d.orgs.IsMember(ctx, userID, dev.OrganizationID); err != nil {
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		dev.OrganizationID,
+	); err != nil {
+		return false, fmt.Errorf("is member: %w", err)
+	} else if !isMember {
+		return false, ErrNotMember
+	}
+
+	return true, nil
+}
+
+// UserCanSendCommand returns whether the user can send a command to the device.
+// Currently, all members can send commands, same as
+// [OrgDevicesService.UserCanGetState].
+func (d *OrgDevicesService) UserCanSendCommand(
+	ctx context.Context,
+	userID, deviceID uuid.UUID,
+) (bool, error) {
+	dev, err := d.repo.GetDevice(ctx, deviceID)
+	if err != nil {
+		return false, fmt.Errorf("get device: %w", err)
+	}
+
+	if isMember, err := d.orgs.IsMember(
+		ctx,
+		userID,
+		dev.OrganizationID,
+	); err != nil {
 		return false, fmt.Errorf("is member: %w", err)
 	} else if !isMember {
 		return false, ErrNotMember

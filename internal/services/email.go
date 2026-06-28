@@ -33,7 +33,12 @@ func NewEmailService(conf EmailServiceConfig) (*EmailService, error) {
 	}
 
 	return &EmailService{
-		auth: smtp.PlainAuth("", conf.AuthEmail, conf.AuthPassword, conf.SMTPHost),
+		auth: smtp.PlainAuth(
+			"",
+			conf.AuthEmail,
+			conf.AuthPassword,
+			conf.SMTPHost,
+		),
 		conf: conf,
 	}, nil
 }

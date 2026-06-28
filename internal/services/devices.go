@@ -19,10 +19,11 @@ type StatesRepository interface {
 }
 
 type DevicesService struct {
-	states     StatesRepository
-	orgDevices *OrgDevicesService
-	logger     *log.Logger
-	orgs       *OrganizationsService
+	states         StatesRepository
+	orgDevices     *OrgDevicesService
+	logger         *log.Logger
+	orgs           *OrganizationsService
+	topicPublisher *TopicPublisher
 }
 
 func NewDevices(
@@ -30,17 +31,19 @@ func NewDevices(
 	orgDevices *OrgDevicesService,
 	logger *log.Logger,
 	orgs *OrganizationsService,
+	topicPublisher *TopicPublisher,
 ) *DevicesService {
 	return &DevicesService{
-		states:     states,
-		orgDevices: orgDevices,
-		logger:     logger,
-		orgs:       orgs,
+		states:         states,
+		orgDevices:     orgDevices,
+		logger:         logger,
+		orgs:           orgs,
+		topicPublisher: topicPublisher,
 	}
 }
 
 var (
-	ErrUserCantGetState     = errors.New("user can't get device state")
+	ErrForbidden            = errors.New("this action forbidden")
 	ErrInvalidHistoryLength = errors.New("invalid history length specified")
 )
 
@@ -54,16 +57,67 @@ func (d *DevicesService) GetStates(
 		return nil, ErrInvalidHistoryLength
 	}
 
-	if can, err := d.orgDevices.UserCanGetState(ctx, userID, deviceID); err != nil {
+	if can, err := d.orgDevices.UserCanGetState(
+		ctx,
+		userID,
+		deviceID,
+	); err != nil {
 		return nil, fmt.Errorf("check user can get state: %w", err)
 	} else if !can {
-		return nil, ErrUserCantGetState
+		return nil, fmt.Errorf("user can't get state: %w", ErrForbidden)
 	}
 
-	states, err := d.states.GetStates(ctx, deviceID.String(), state, historyLength)
+	states, err := d.states.GetStates(
+		ctx,
+		deviceID.String(),
+		state,
+		historyLength,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get states: %w", err)
 	}
 
 	return states, nil
+}
+
+func (d *DevicesService) SendCommand(
+	ctx context.Context,
+	deviceID, userID uuid.UUID,
+	command string,
+	args any,
+) error {
+	if can, err := d.orgDevices.UserCanSendCommand(
+		ctx,
+		userID,
+		deviceID,
+	); err != nil {
+		return fmt.Errorf("check user can send command: %w", err)
+	} else if !can {
+		return fmt.Errorf("user can't get state: %w", ErrForbidden)
+	}
+
+	cmd := Command{
+		Command: command,
+		Args:    args,
+	}
+
+	err := d.topicPublisher.PublishJSON(
+		ctx,
+		getDeeviceCommandTopic(deviceID),
+		cmd,
+	)
+	if err != nil {
+		return fmt.Errorf("publish command: %w", err)
+	}
+
+	return nil
+}
+
+type Command struct {
+	Command string `json:"command"`
+	Args    any    `json:"args"`
+}
+
+func getDeeviceCommandTopic(deviceID uuid.UUID) string {
+	return fmt.Sprintf("devices/%s/commands", deviceID.String())
 }

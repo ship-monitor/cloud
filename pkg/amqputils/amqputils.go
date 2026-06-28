@@ -10,6 +10,16 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const (
+	// ContentJSON is a Content-Type header for [amqp.Publishing.ContentType].
+	ContentJSON = "application/json"
+	// ContentEncodingUTF8 is a Content-Encoding for [amqp.Publishing.ContentEncoding].
+	ContentEncodingUTF8 = "UTF-8"
+
+	// DefaultExchange is any exchange.
+	DefaultExchange = ""
+)
+
 // PublishJSON publishes content to channel as JSON and returns correlation ID.
 func PublishJSON(
 	ctx context.Context,
@@ -55,14 +65,15 @@ func publishJSON(
 
 	if err := ch.PublishWithContext(
 		ctx,
-		"",         // default exchange
+		DefaultExchange,
 		queue.Name, // routing key
 		false,      // mandatory
 		false,      // immediate
 		amqp.Publishing{
-			ContentType:   "application/json",
-			Body:          body,
-			CorrelationId: correlationID,
+			ContentType:     ContentJSON,
+			ContentEncoding: ContentEncodingUTF8,
+			Body:            body,
+			CorrelationId:   correlationID,
 		},
 	); err != nil {
 		return fmt.Errorf("publish to channel: %w", err)

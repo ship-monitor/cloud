@@ -64,7 +64,10 @@ var (
 // if the email is already taken ([ErrEmailTaken]),
 // if the data invalid ([ErrInvalidRegisterData])
 // or if there is an error while creating the user.
-func (a *AuthService) Register(ctx context.Context, data domain.RegisterUserData) error {
+func (a *AuthService) Register(
+	ctx context.Context,
+	data domain.RegisterUserData,
+) error {
 	if err := validator.New().Struct(data); err != nil {
 		return fmt.Errorf("invalid input: %w", err)
 	}
@@ -101,7 +104,10 @@ func (a *AuthService) Register(ctx context.Context, data domain.RegisterUserData
 	return nil
 }
 
-func (a *AuthService) GetUserEmail(ctx context.Context, userID uuid.UUID) (string, error) {
+func (a *AuthService) GetUserEmail(
+	ctx context.Context,
+	userID uuid.UUID,
+) (string, error) {
 	user, err := a.users.GetUser(ctx, userID)
 	if err != nil {
 		return "", fmt.Errorf("user not found: %w", err)
@@ -110,7 +116,10 @@ func (a *AuthService) GetUserEmail(ctx context.Context, userID uuid.UUID) (strin
 	return user.Email, nil
 }
 
-func (a *AuthService) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
+func (a *AuthService) GetUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*domain.User, error) {
 	user, err := a.users.GetUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -130,7 +139,10 @@ func genEmailConfirmationToken() string {
 
 // StartEmailConfirmation implements [handlers.AuthService].
 // Returns [ErrEmailAlreadyConfirmed] if it is so.
-func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UUID) error {
+func (a *AuthService) StartEmailConfirmation(
+	ctx context.Context,
+	userID uuid.UUID,
+) error {
 	user, err := a.GetUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)
@@ -150,7 +162,8 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 		return fmt.Errorf("failed marshal data: %w", err)
 	}
 
-	if err := a.redis.Set(ctx, token, data, EmailConfirmationTTL).Err(); err != nil {
+	if err := a.redis.Set(ctx, token, data, EmailConfirmationTTL).
+		Err(); err != nil {
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
@@ -159,20 +172,26 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 		Host:   viper.GetString("frontend.host"),
 		Path:   viper.GetString("frontend.email-confiramtion-path"),
 		RawQuery: url.QueryEscape(
-			fmt.Sprintf(viper.GetString("frontend.email-confirmation-query"), token),
+			fmt.Sprintf(
+				viper.GetString("frontend.email-confirmation-query"),
+				token,
+			),
 		),
 	}
 	e := email.Email{
 		To:      user.Email,
 		Subject: "Email confirmation",
 		Lang:    "en",
-		Body: fmt.Appendf(nil,
+		Body: fmt.Appendf(
+			nil,
 			`
 			<h1>Confirm email</h1>
 			<p>Click link below to go to email confirmation page</p>
 			<a href="%s"><em>Confirm</em></a>
 			<p>Link is valid till %s</p>`,
-			confirmationURL.String(), time.Now().Add(EmailConfirmationTTL).Format(time.DateTime)),
+			confirmationURL.String(),
+			time.Now().Add(EmailConfirmationTTL).Format(time.DateTime),
+		),
 	}
 
 	if err := a.email.SendEmail(ctx, e); err != nil {
@@ -184,8 +203,13 @@ func (a *AuthService) StartEmailConfirmation(ctx context.Context, userID uuid.UU
 
 var ErrEmailAlreadyConfirmed = errors.New("user email already confirmed")
 
-// ConfirmEmail try to confirm email by token. Returns [ErrEmailAlreadyConfirmed] if it is so.
-func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token string) error {
+// ConfirmEmail try to confirm email by token. Returns
+// [ErrEmailAlreadyConfirmed] if it is so.
+func (a *AuthService) ConfirmEmail(
+	ctx context.Context,
+	userID uuid.UUID,
+	token string,
+) error {
 	value, err := a.redis.Get(ctx, token).Result()
 	if err != nil {
 		return fmt.Errorf("get confirmation data: %w", err)
@@ -221,17 +245,27 @@ func (a *AuthService) ConfirmEmail(ctx context.Context, userID uuid.UUID, token 
 	return nil
 }
 
-// ErrBadCredentials is returned when the user provides invalid credentials (email or password).
+// ErrBadCredentials is returned when the user provides invalid credentials
+// (email or password).
 var ErrBadCredentials = errors.New("wrong password")
 
-func (a *AuthService) Login(ctx context.Context, email, password string) (*domain.User, error) {
+func (a *AuthService) Login(
+	ctx context.Context,
+	email, password string,
+) (*domain.User, error) {
 	user, err := a.users.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
 	if !CheckPassword(user.PasswordHash, password) {
-		a.logger.Error("Password don't match hash", "user", user.ID, "email", user.Email)
+		a.logger.Error(
+			"Password don't match hash",
+			"user",
+			user.ID,
+			"email",
+			user.Email,
+		)
 
 		return nil, ErrBadCredentials
 	}
@@ -263,7 +297,11 @@ func (a *AuthService) ChangePassword(
 	return nil
 }
 
-func (a *AuthService) ChangeEmail(ctx context.Context, userID uuid.UUID, newEmail string) error {
+func (a *AuthService) ChangeEmail(
+	ctx context.Context,
+	userID uuid.UUID,
+	newEmail string,
+) error {
 	_, err := a.users.GetUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get user by id: %w", err)
@@ -283,7 +321,10 @@ func (a *AuthService) ChangeEmail(ctx context.Context, userID uuid.UUID, newEmai
 }
 
 func HashPassword(password string) []byte {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -292,5 +333,8 @@ func HashPassword(password string) []byte {
 }
 
 func CheckPassword(hashedPassword []byte, password string) bool {
-	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)) == nil
+	return bcrypt.CompareHashAndPassword(
+		hashedPassword,
+		[]byte(password),
+	) == nil
 }

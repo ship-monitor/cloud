@@ -52,7 +52,7 @@ formatters:
     gofumpt:
       extra-rules: true
     golines:
-      max-len: 100
+      max-len: 80
       tab-len: 4
       shorten-comments: true
       reformat-tags: false

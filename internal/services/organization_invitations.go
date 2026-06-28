@@ -15,9 +15,11 @@ const InvitationsTTL = 48 * time.Hour
 var (
 	ErrInvitationAlreadyProcessed = errors.New("invitation already processed")
 	ErrInvitationNotFound         = errors.New("invitation not found")
-	ErrInvitationAlreadyPending   = errors.New("invitation already exists and is pending")
-	ErrInvitationExpired          = errors.New("invitation expired")
-	ErrNotInvitee                 = errors.New("user is not invitee")
+	ErrInvitationAlreadyPending   = errors.New(
+		"invitation already exists and is pending",
+	)
+	ErrInvitationExpired = errors.New("invitation expired")
+	ErrNotInvitee        = errors.New("user is not invitee")
 )
 
 type InvitationDetails struct {
@@ -35,7 +37,11 @@ func (s *OrganizationsService) CreateInvitation(
 		return nil, ErrUserIsNotMember
 	}
 
-	exists, err := s.repo.HasPendingInvitation(ctx, organizationID, inviteeEmail)
+	exists, err := s.repo.HasPendingInvitation(
+		ctx,
+		organizationID,
+		inviteeEmail,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("check pending invitations: %w", err)
 	}
@@ -79,7 +85,8 @@ func (s *OrganizationsService) ListOrgInvitations(
 		return nil, ErrUserIsNotMember
 	}
 
-	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdministrator {
+	if member.Role != domain.RoleOwner &&
+		member.Role != domain.RoleAdministrator {
 		return nil, ErrNotAllowed
 	}
 
@@ -189,7 +196,10 @@ func (s *OrganizationsService) invitationDetails(
 	inv *domain.OrganizationInvitation,
 ) *InvitationDetails {
 	orgName := ""
-	if org, err := s.repo.GetOrganizationByID(ctx, inv.OrganizationID); err == nil {
+	if org, err := s.repo.GetOrganizationByID(
+		ctx,
+		inv.OrganizationID,
+	); err == nil {
 		orgName = org.Name
 	}
 

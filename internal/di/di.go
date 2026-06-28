@@ -33,6 +33,8 @@ type Container struct {
 	authService          *services.AuthService
 	emailService         *services.EmailService
 
+	topicPublisher *services.TopicPublisher
+
 	devicesHandlers *handlers.DevicesHandlers
 }
 
@@ -45,6 +47,14 @@ func NewContainer(config *viper.Viper, logger *log.Logger) *Container {
 
 func (c *Container) Logger() *log.Logger {
 	return c.logger
+}
+
+func (c *Container) TopicPublisher() *services.TopicPublisher {
+	if c.topicPublisher == nil {
+		c.topicPublisher = services.NewTopicPublisher(c.RabbitMQ(), c.Logger())
+	}
+
+	return c.topicPublisher
 }
 
 func (c *Container) DB() *sql.DB {

@@ -14,15 +14,21 @@ import (
 const PageSize = 100
 
 var (
-	ErrUserIsNotMember           = errors.New("user is not member of organization")
-	ErrOrganizationNotFound      = errors.New("organization not found")
-	ErrOnlyOwnerCanDelete        = errors.New("only owner can delete organization")
-	ErrNotAllowed                = errors.New("not allowed")
-	ErrMemberNotFound            = errors.New("member not found")
-	ErrMemberAlreadyExists       = errors.New("user is already a member")
-	ErrCannotAssignOwnerRole     = errors.New("cannot assign owner role")
-	ErrCannotChangeOwnerRole     = errors.New("cannot change owner role")
-	ErrInvalidMemberRole         = errors.New("invalid role, allowed: administrator, member")
+	ErrUserIsNotMember = errors.New(
+		"user is not member of organization",
+	)
+	ErrOrganizationNotFound = errors.New("organization not found")
+	ErrOnlyOwnerCanDelete   = errors.New(
+		"only owner can delete organization",
+	)
+	ErrNotAllowed            = errors.New("not allowed")
+	ErrMemberNotFound        = errors.New("member not found")
+	ErrMemberAlreadyExists   = errors.New("user is already a member")
+	ErrCannotAssignOwnerRole = errors.New("cannot assign owner role")
+	ErrCannotChangeOwnerRole = errors.New("cannot change owner role")
+	ErrInvalidMemberRole     = errors.New(
+		"invalid role, allowed: administrator, member",
+	)
 	ErrRemovingOrganizationOwner = errors.New("removing owner of organization")
 )
 
@@ -33,8 +39,15 @@ type OrganizationsRepository interface {
 }
 
 type OrganizationRepository interface {
-	CreateOrganization(ctx context.Context, name string, creatorID uuid.UUID) (uuid.UUID, error)
-	GetOrganizationByID(ctx context.Context, id uuid.UUID) (*domain.Organization, error)
+	CreateOrganization(
+		ctx context.Context,
+		name string,
+		creatorID uuid.UUID,
+	) (uuid.UUID, error)
+	GetOrganizationByID(
+		ctx context.Context,
+		id uuid.UUID,
+	) (*domain.Organization, error)
 	UserIsMember(ctx context.Context, userID, orgID uuid.UUID) (bool, error)
 	GetUsersOrganizations(
 		ctx context.Context,
@@ -47,9 +60,16 @@ type OrganizationRepository interface {
 
 type OrganizationMembersRepository interface {
 	AddMember(ctx context.Context, member *domain.OrganizationMember) error
-	UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role domain.Role) error
+	UpdateMemberRole(
+		ctx context.Context,
+		orgID, userID uuid.UUID,
+		role domain.Role,
+	) error
 	RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error
-	GetMember(ctx context.Context, orgID, userID uuid.UUID) (*domain.OrganizationMember, error)
+	GetMember(
+		ctx context.Context,
+		orgID, userID uuid.UUID,
+	) (*domain.OrganizationMember, error)
 	GetMembersWithUserInfo(
 		ctx context.Context,
 		orgID uuid.UUID,
@@ -63,8 +83,15 @@ type OrganizationInvitationsRepository interface {
 		inviteeEmail string,
 		expiresAt time.Time,
 	) (*domain.OrganizationInvitation, error)
-	GetInvitationByID(ctx context.Context, id uuid.UUID) (*domain.OrganizationInvitation, error)
-	HasPendingInvitation(ctx context.Context, orgID uuid.UUID, email string) (bool, error)
+	GetInvitationByID(
+		ctx context.Context,
+		id uuid.UUID,
+	) (*domain.OrganizationInvitation, error)
+	HasPendingInvitation(
+		ctx context.Context,
+		orgID uuid.UUID,
+		email string,
+	) (bool, error)
 	ListInvitationsForUser(
 		ctx context.Context,
 		email string,
@@ -73,7 +100,11 @@ type OrganizationInvitationsRepository interface {
 		ctx context.Context,
 		orgID uuid.UUID,
 	) ([]domain.OrganizationInvitation, error)
-	UpdateInvitationStatus(ctx context.Context, id uuid.UUID, status domain.InvitationStatus) error
+	UpdateInvitationStatus(
+		ctx context.Context,
+		id uuid.UUID,
+		status domain.InvitationStatus,
+	) error
 }
 
 type OrganizationsService struct {
@@ -104,8 +135,16 @@ func (s *OrganizationsService) GetOrganization(
 	organizationID uuid.UUID,
 	userID uuid.UUID,
 ) (*domain.Organization, error) {
-	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
-		return nil, fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
+	if isMember, err := s.repo.UserIsMember(
+		ctx,
+		userID,
+		organizationID,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"failed check user membership of %q: %w",
+			organizationID,
+			err,
+		)
 	} else if !isMember {
 		return nil, ErrUserIsNotMember
 	}
@@ -141,7 +180,11 @@ func (s *OrganizationsService) IsMember(
 ) (bool, error) {
 	isMember, err := s.repo.UserIsMember(ctx, userID, orgID)
 	if err != nil {
-		return false, fmt.Errorf("failed check user membership of %q: %w", orgID, err)
+		return false, fmt.Errorf(
+			"failed check user membership of %q: %w",
+			orgID,
+			err,
+		)
 	}
 
 	return isMember, nil
@@ -153,8 +196,16 @@ func (s *OrganizationsService) RenameOrganization(
 	name string,
 	userID uuid.UUID,
 ) error {
-	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
-		return fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
+	if isMember, err := s.repo.UserIsMember(
+		ctx,
+		userID,
+		organizationID,
+	); err != nil {
+		return fmt.Errorf(
+			"failed check user membership of %q: %w",
+			organizationID,
+			err,
+		)
 	} else if !isMember {
 		return ErrUserIsNotMember
 	}
@@ -193,8 +244,16 @@ func (s *OrganizationsService) GetMembers(
 	organizationID uuid.UUID,
 	userID uuid.UUID,
 ) ([]domain.OrganizationMemberWithUser, error) {
-	if isMember, err := s.repo.UserIsMember(ctx, userID, organizationID); err != nil {
-		return nil, fmt.Errorf("failed check user membership of %q: %w", organizationID, err)
+	if isMember, err := s.repo.UserIsMember(
+		ctx,
+		userID,
+		organizationID,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"failed check user membership of %q: %w",
+			organizationID,
+			err,
+		)
 	} else if !isMember {
 		return nil, ErrUserIsNotMember
 	}
@@ -269,7 +328,12 @@ func (s *OrganizationsService) UpdateMemberRole(
 		return err
 	}
 
-	if err := s.repo.UpdateMemberRole(ctx, organizationID, userID, role); err != nil {
+	if err := s.repo.UpdateMemberRole(
+		ctx,
+		organizationID,
+		userID,
+		role,
+	); err != nil {
 		return fmt.Errorf("update member role: %w", err)
 	}
 
@@ -287,8 +351,12 @@ func (s *OrganizationsService) RemoveMember(
 		return ErrUserIsNotMember
 	}
 
-	if currentMember.Role != domain.RoleOwner && currentMember.Role != domain.RoleAdministrator {
-		return fmt.Errorf("only owner or administrator can remove members: %w", ErrNotAllowed)
+	if currentMember.Role != domain.RoleOwner &&
+		currentMember.Role != domain.RoleAdministrator {
+		return fmt.Errorf(
+			"only owner or administrator can remove members: %w",
+			ErrNotAllowed,
+		)
 	}
 
 	targetMember, err := s.repo.GetMember(ctx, organizationID, userID)
