@@ -52,7 +52,9 @@ func (d *DevicesHandlers) HandleGetState(c *gin.Context) {
 		if err != nil {
 			c.JSON(
 				http.StatusBadRequest,
-				requests.ResponseErr(fmt.Errorf("history query param: %w", err)),
+				requests.ResponseErr(
+					fmt.Errorf("history query param: %w", err),
+				),
 			)
 		} else {
 			historyLength = int(length)
@@ -80,8 +82,8 @@ func (d *DevicesHandlers) HandleSendCommand(c *gin.Context) {
 	session := auth.GetSession(c)
 
 	var req struct {
-		Command string `json:"command"`
-		Args    any    `json:"args"`
+		Command string         `json:"command" binding:"required"`
+		Args    map[string]any `json:"args"`
 	}
 
 	if err := c.BindJSON(&req); err != nil {
