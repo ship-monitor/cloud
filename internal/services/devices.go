@@ -101,7 +101,12 @@ func (d *DevicesService) SendCommand(
 		Args:    args,
 	}
 
-	d.logger.Info("Sending command", "deviceID", deviceID, "command", command)
+	d.logger.Info(
+		"Sending command",
+		"deviceID", deviceID,
+		"command", command,
+		"topic", getDeeviceCommandTopic(deviceID),
+	)
 
 	err := d.topicPublisher.PublishJSON(
 		ctx,
