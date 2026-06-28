@@ -106,16 +106,19 @@ func (q *QueueWorker) Serve(ctx context.Context) error {
 	return nil
 }
 
-const MessageHandlerTimeout = time.Second * 5
+const MessageHandlerTimeout = time.Second * 10
 
 func (q *QueueWorker) handleDelivery(
 	ctx context.Context,
 	msg amqp.Delivery,
 ) error {
-	ctx, cancel := context.WithTimeout(ctx, MessageHandlerTimeout)
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		MessageHandlerTimeout)
 	defer cancel()
 
 	done := make(chan error)
+	defer close(done)
 
 	go func() {
 		if err := q.handleMessage(ctx, msg); err != nil {
