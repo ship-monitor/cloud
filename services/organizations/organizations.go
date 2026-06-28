@@ -88,6 +88,11 @@ func SetupRoutes(
 		middleware.WithAuthenticationRequired,
 		devicesHandler.HandleGetState,
 	)
+	api.POST(
+		"/v2/devices/:id/command",
+		middleware.WithAuthenticationRequired,
+		devicesHandler.HandleSendCommand,
+	)
 
 	return nil
 }
