@@ -87,7 +87,11 @@ func (r *OrganizationsRepo) CreateOrganization(
 	return orgID, nil
 }
 
-func insertOrganization(ctx context.Context, db bun.IDB, org *domain.Organization) error {
+func insertOrganization(
+	ctx context.Context,
+	db bun.IDB,
+	org *domain.Organization,
+) error {
 	_, err := db.NewInsert().Model(org).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert organization: %w", err)
@@ -96,7 +100,11 @@ func insertOrganization(ctx context.Context, db bun.IDB, org *domain.Organizatio
 	return nil
 }
 
-func insertMember(ctx context.Context, db bun.IDB, member *domain.OrganizationMember) error {
+func insertMember(
+	ctx context.Context,
+	db bun.IDB,
+	member *domain.OrganizationMember,
+) error {
 	_, err := db.NewInsert().Model(member).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert member: %w", err)

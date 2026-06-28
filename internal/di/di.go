@@ -128,7 +128,9 @@ func (c *Container) OrgDevicesRepo() *repository.OrgDevicesRepo {
 
 func (c *Container) OrganizationsService() *services.OrganizationsService {
 	if c.organizationsService == nil {
-		c.organizationsService = services.NewOrganizations(c.OrganizationsRepo())
+		c.organizationsService = services.NewOrganizations(
+			c.OrganizationsRepo(),
+		)
 	}
 
 	return c.organizationsService

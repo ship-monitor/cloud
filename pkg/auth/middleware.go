@@ -23,17 +23,29 @@ const (
 )
 
 var (
-	ErrArmenUsedBearer         = errors.New("someone (Armen) included 'Bearer ' in token header")
-	ErrNoAuthHeader            = fmt.Errorf("header %q not specified", AuthorizationHeader)
+	ErrArmenUsedBearer = errors.New(
+		"someone (Armen) included 'Bearer ' in token header",
+	)
+	ErrNoAuthHeader = fmt.Errorf(
+		"header %q not specified",
+		AuthorizationHeader,
+	)
 	ErrUnsupportedSigninMethod = errors.New("unsupported signing method")
 
-	ErrNoSessionInCtx           = errors.New("no session in context, probably not authenticated")
-	ErrUnexpectedSessionType    = errors.New("session in context is of unexpected type")
+	ErrNoSessionInCtx = errors.New(
+		"no session in context, probably not authenticated",
+	)
+	ErrUnexpectedSessionType = errors.New(
+		"session in context is of unexpected type",
+	)
 	ErrNoMiddlewareInCtx        = errors.New("no middleware in context")
-	ErrUnexpectedMiddlewareType = errors.New("middleware in context is of unexpected type")
+	ErrUnexpectedMiddlewareType = errors.New(
+		"middleware in context is of unexpected type",
+	)
 )
 
-// DefaultMiddleware returns a new Middleware with the default Redis configuration from viper.
+// DefaultMiddleware returns a new Middleware with the default Redis
+// configuration from viper.
 //
 // It uses the following viper configuration keys:
 //
@@ -65,7 +77,11 @@ func tokenKeyFunc(config *viper.Viper) jwt.Keyfunc {
 		case jwt.SigningMethodHS512:
 			return []byte(config.GetString("security-key")), nil
 		default:
-			return nil, fmt.Errorf("method %s: %w", token.Method.Alg(), ErrUnsupportedSigninMethod)
+			return nil, fmt.Errorf(
+				"method %s: %w",
+				token.Method.Alg(),
+				ErrUnsupportedSigninMethod,
+			)
 		}
 	}
 }
@@ -101,7 +117,11 @@ func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
 		return nil, fmt.Errorf("failed connect to SpiceDB: %w", err)
 	}
 
-	return &Middleware{log.WithPrefix("auth_middleware"), spiceClient, config.SecurityKeyFunc}, nil
+	return &Middleware{
+		log.WithPrefix("auth_middleware"),
+		spiceClient,
+		config.SecurityKeyFunc,
+	}, nil
 }
 
 func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
@@ -139,7 +159,10 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	if header == "" {
 		err := fmt.Errorf("bad token specified: %w", ErrNoAuthHeader)
 		m.log.Error("No authorization header", "error", err)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseErr(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			requests.ResponseErr(err),
+		)
 
 		return
 	}
@@ -149,7 +172,10 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 		m.log.Error("Bad token specified", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
-			requests.ResponseArmenErr(err, "Армен, пиши авторизацию не через ИИ"),
+			requests.ResponseArmenErr(
+				err,
+				"Армен, пиши авторизацию не через ИИ",
+			),
 		)
 
 		return

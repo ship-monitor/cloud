@@ -19,7 +19,8 @@ type Session struct {
 
 // SpiceDB returns client.
 //
-// Warning: Do not rely on this method; it will be removed in a future release. Not deprecated, but
+// Warning: Do not rely on this method; it will be removed in a future release.
+// Not deprecated, but
 // should not be used directly.
 func (s *Session) SpiceDB() *authzed.Client {
 	log.Warn("Usage of Session.SpiceDB()")
@@ -31,20 +32,25 @@ const (
 	UserObjectType = "user"
 )
 
-func (s *Session) CheckPermission(resource, resourceID, permission string) (bool, error) {
-	response, err := s.spiceDB.CheckPermission(s.c.Request.Context(), &api.CheckPermissionRequest{
-		Resource: &api.ObjectReference{
-			ObjectType: resource,
-			ObjectId:   resourceID,
-		},
-		Subject: &api.SubjectReference{
-			Object: &api.ObjectReference{
-				ObjectType: UserObjectType,
-				ObjectId:   s.UserID.String(),
+func (s *Session) CheckPermission(
+	resource, resourceID, permission string,
+) (bool, error) {
+	response, err := s.spiceDB.CheckPermission(
+		s.c.Request.Context(),
+		&api.CheckPermissionRequest{
+			Resource: &api.ObjectReference{
+				ObjectType: resource,
+				ObjectId:   resourceID,
 			},
+			Subject: &api.SubjectReference{
+				Object: &api.ObjectReference{
+					ObjectType: UserObjectType,
+					ObjectId:   s.UserID.String(),
+				},
+			},
+			Permission: permission,
 		},
-		Permission: permission,
-	})
+	)
 	if err != nil {
 		log.Error("Failed to check permission", "error", err)
 

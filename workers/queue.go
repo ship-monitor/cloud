@@ -108,7 +108,10 @@ func (q *QueueWorker) Serve(ctx context.Context) error {
 
 const MessageHandlerTimeout = time.Second * 5
 
-func (q *QueueWorker) handleDelivery(ctx context.Context, msg amqp.Delivery) error {
+func (q *QueueWorker) handleDelivery(
+	ctx context.Context,
+	msg amqp.Delivery,
+) error {
 	ctx, cancel := context.WithTimeout(ctx, MessageHandlerTimeout)
 	defer cancel()
 
@@ -148,7 +151,10 @@ func (q *QueueWorker) handleDelivery(ctx context.Context, msg amqp.Delivery) err
 	return nil
 }
 
-func (q *QueueWorker) handleMessage(ctx context.Context, msg amqp.Delivery) error {
+func (q *QueueWorker) handleMessage(
+	ctx context.Context,
+	msg amqp.Delivery,
+) error {
 	deviceID, err := getDeviceIDFromRoutingKey(msg.RoutingKey)
 	if err != nil {
 		return fmt.Errorf("get sender device id: %w", err)

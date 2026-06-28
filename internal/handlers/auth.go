@@ -30,7 +30,11 @@ type AuthService interface {
 	Register(ctx context.Context, data domain.RegisterUserData) error
 	Login(ctx context.Context, email, password string) (*domain.User, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error)
-	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
+	ChangePassword(
+		ctx context.Context,
+		userID uuid.UUID,
+		oldPassword, newPassword string,
+	) error
 	ChangeEmail(ctx context.Context, userID uuid.UUID, newEmail string) error
 }
 
@@ -57,7 +61,10 @@ func (a *AuthHandlers) HandleRegister(c *gin.Context) {
 	case errors.Is(err, services.ErrInvalidRegisterData):
 		c.AbortWithStatusJSON(http.StatusBadRequest, requests.ResponseErr(err))
 	case err != nil:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
 	default:
 		c.Status(http.StatusCreated)
 	}
@@ -70,16 +77,32 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 	}
 	a.bindJSON(c, &request)
 
-	user, err := a.authService.Login(c.Request.Context(), request.Email, request.Password)
+	user, err := a.authService.Login(
+		c.Request.Context(),
+		request.Email,
+		request.Password,
+	)
 	switch {
 	case errors.Is(err, services.ErrBadCredentials):
 		log.Error("Invalid credentials", "email", request.Email)
-		c.JSON(http.StatusUnauthorized, requests.ResponseBad("invalid credentials"))
+		c.JSON(
+			http.StatusUnauthorized,
+			requests.ResponseBad("invalid credentials"),
+		)
 
 		return
 	case err != nil:
-		log.Error("Failed get user by email", "error", err, "email", request.Email)
-		c.JSON(http.StatusUnauthorized, requests.ResponseBad("invalid credentials"))
+		log.Error(
+			"Failed get user by email",
+			"error",
+			err,
+			"email",
+			request.Email,
+		)
+		c.JSON(
+			http.StatusUnauthorized,
+			requests.ResponseBad("invalid credentials"),
+		)
 
 		return
 	}
@@ -103,7 +126,10 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 
 	claims, err := middleware.ParseToken(request.RefreshToken)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, requests.ResponseErr(err))
+		c.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			requests.ResponseErr(err),
+		)
 
 		return
 	}
@@ -129,12 +155,18 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
 	session := auth.GetSession(ctx)
 
-	err := a.authService.StartEmailConfirmation(ctx.Request.Context(), session.UserID)
+	err := a.authService.StartEmailConfirmation(
+		ctx.Request.Context(),
+		session.UserID,
+	)
 	switch {
 	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
 		ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
 	default:
 		ctx.Status(http.StatusOK)
 	}
@@ -145,12 +177,19 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
 
 	token := ctx.Param("token")
 
-	err := a.authService.ConfirmEmail(ctx.Request.Context(), session.UserID, token)
+	err := a.authService.ConfirmEmail(
+		ctx.Request.Context(),
+		session.UserID,
+		token,
+	)
 	switch {
 	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
 		ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
 	default:
 		ctx.Status(http.StatusOK)
 	}
@@ -199,7 +238,10 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 		request.Password,
 	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, requests.ResponseErr(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			requests.ResponseErr(err),
+		)
 
 		return
 	}
@@ -214,7 +256,9 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	if session.UserID != id {
 		ctx.AbortWithStatusJSON(
 			http.StatusForbidden,
-			requests.ResponseErr(errors.New("not allowed to set email for this user")),
+			requests.ResponseErr(
+				errors.New("not allowed to set email for this user"),
+			),
 		)
 
 		return
@@ -231,7 +275,10 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 		request.Email,
 	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, requests.ResponseErr(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			requests.ResponseErr(err),
+		)
 
 		return
 	}

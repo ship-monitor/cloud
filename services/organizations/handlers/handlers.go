@@ -40,7 +40,10 @@ type OrganizationService interface {
 		name string,
 		userID uuid.UUID,
 	) error
-	DeleteOrganization(ctx context.Context, organizationID, userID uuid.UUID) error
+	DeleteOrganization(
+		ctx context.Context,
+		organizationID, userID uuid.UUID,
+	) error
 }
 
 type OrganizationMembersService interface {
@@ -78,7 +81,10 @@ type OrganizationInvitationsService interface {
 		inviterID uuid.UUID,
 		inviteeEmail string,
 	) (*services.InvitationDetails, error)
-	ListMyInvitations(ctx context.Context, email string) ([]services.InvitationDetails, error)
+	ListMyInvitations(
+		ctx context.Context,
+		email string,
+	) ([]services.InvitationDetails, error)
 	ListOrgInvitations(
 		ctx context.Context,
 		organizationID uuid.UUID,
@@ -90,7 +96,11 @@ type OrganizationInvitationsService interface {
 		userID uuid.UUID,
 		userEmail string,
 	) error
-	DeclineInvitation(ctx context.Context, invitationID uuid.UUID, userEmail string) error
+	DeclineInvitation(
+		ctx context.Context,
+		invitationID uuid.UUID,
+		userEmail string,
+	) error
 }
 
 type OrgDevicesService interface {
@@ -100,8 +110,15 @@ type OrgDevicesService interface {
 		name string,
 	) error
 	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
-	RenameDevice(ctx context.Context, deviceID, userID uuid.UUID, name string) error
-	GetDevice(ctx context.Context, deviceID, userID uuid.UUID) (*domain.OrganizationDevice, error)
+	RenameDevice(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+		name string,
+	) error
+	GetDevice(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+	) (*domain.OrganizationDevice, error)
 	GetDevices(
 		ctx context.Context,
 		organizationID, userID uuid.UUID,
@@ -133,14 +150,21 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid create organization request", "error", err)
-		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
+		c.JSON(
+			http.StatusBadRequest,
+			dto.Error(fmt.Errorf("invalid request: %w", err)),
+		)
 
 		return
 	}
 
 	session := auth.GetSession(c)
 
-	id, err := h.orgs.CreateOrganization(c.Request.Context(), req.Name, session.UserID)
+	id, err := h.orgs.CreateOrganization(
+		c.Request.Context(),
+		req.Name,
+		session.UserID,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
@@ -155,9 +179,19 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 func (h *HTTPHandler) HandleGetMyOrganizations(c *gin.Context) {
 	session := auth.GetSession(c)
 
-	orgs, err := h.orgs.GetUsersOrganizations(c.Request.Context(), session.UserID, 0)
+	orgs, err := h.orgs.GetUsersOrganizations(
+		c.Request.Context(),
+		session.UserID,
+		0,
+	)
 	if err != nil {
-		log.Error("Failed to get organizations for member", "error", err, "user", session.UserID)
+		log.Error(
+			"Failed to get organizations for member",
+			"error",
+			err,
+			"user",
+			session.UserID,
+		)
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
 		return
@@ -206,7 +240,12 @@ func (h *HTTPHandler) HandleUpdateOrganization(c *gin.Context) {
 
 	session := auth.GetSession(c)
 
-	err := h.orgs.RenameOrganization(c.Request.Context(), id, req.Name, session.UserID)
+	err := h.orgs.RenameOrganization(
+		c.Request.Context(),
+		id,
+		req.Name,
+		session.UserID,
+	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
 		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
@@ -238,7 +277,11 @@ func (h *HTTPHandler) HandleGetMembers(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	members, err := h.members.GetMembers(c.Request.Context(), orgID, session.UserID)
+	members, err := h.members.GetMembers(
+		c.Request.Context(),
+		orgID,
+		session.UserID,
+	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
@@ -255,7 +298,10 @@ func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
 
 	var req dto.AddMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request: "+err.Error())))
+		c.JSON(
+			http.StatusBadRequest,
+			dto.Error(errors.New("invalid request: "+err.Error())),
+		)
 
 		return
 	}
@@ -293,7 +339,10 @@ func (h *HTTPHandler) HandleUpdateMemberRole(c *gin.Context) {
 
 	var req dto.UpdateMemberRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(fmt.Errorf("invalid request: %w", err)))
+		c.JSON(
+			http.StatusBadRequest,
+			dto.Error(fmt.Errorf("invalid request: %w", err)),
+		)
 
 		return
 	}
@@ -329,7 +378,12 @@ func (h *HTTPHandler) HandleRemoveMember(c *gin.Context) {
 	userID := requests.MustGetParamUUID(c, "userId")
 	session := auth.GetSession(c)
 
-	err := h.members.RemoveMember(c.Request.Context(), orgID, session.UserID, userID)
+	err := h.members.RemoveMember(
+		c.Request.Context(),
+		orgID,
+		session.UserID,
+		userID,
+	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))

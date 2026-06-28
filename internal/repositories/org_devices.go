@@ -67,7 +67,10 @@ func (r *OrgDevicesRepo) CreateDevice(
 	return nil
 }
 
-func (r *OrgDevicesRepo) DeleteDevice(ctx context.Context, deviceID uuid.UUID) error {
+func (r *OrgDevicesRepo) DeleteDevice(
+	ctx context.Context,
+	deviceID uuid.UUID,
+) error {
 	_, err := r.db.NewDelete().
 		Model(&domain.OrganizationDevice{ID: deviceID}).
 		WherePK().
@@ -79,7 +82,11 @@ func (r *OrgDevicesRepo) DeleteDevice(ctx context.Context, deviceID uuid.UUID) e
 	return nil
 }
 
-func (r *OrgDevicesRepo) SetName(ctx context.Context, deviceID uuid.UUID, name string) error {
+func (r *OrgDevicesRepo) SetName(
+	ctx context.Context,
+	deviceID uuid.UUID,
+	name string,
+) error {
 	_, err := r.db.NewUpdate().
 		Model(&domain.OrganizationDevice{ID: deviceID, Name: name}).
 		Column("name").
@@ -92,7 +99,10 @@ func (r *OrgDevicesRepo) SetName(ctx context.Context, deviceID uuid.UUID, name s
 	return nil
 }
 
-func (r *OrgDevicesRepo) DeviceExists(ctx context.Context, deviceID uuid.UUID) (bool, error) {
+func (r *OrgDevicesRepo) DeviceExists(
+	ctx context.Context,
+	deviceID uuid.UUID,
+) (bool, error) {
 	exists, err := r.db.NewSelect().
 		Model(&domain.OrganizationDevice{}).
 		Where("id = ?", deviceID).

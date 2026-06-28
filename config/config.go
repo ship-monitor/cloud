@@ -20,7 +20,11 @@ func Setup() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Warn("Failed to read config file, using environment variables only", "error", err)
+		log.Warn(
+			"Failed to read config file, using environment variables only",
+			"error",
+			err,
+		)
 	}
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))

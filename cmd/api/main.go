@@ -89,7 +89,14 @@ func runServer(ctx context.Context, container *di.Container) error {
 
 	server.Use(cors.New(cors.Config{
 		AllowOrigins: viper.GetStringSlice("cors.allow-origins"),
-		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
 		AllowHeaders: []string{
 			"Origin",
 			"Content-Type",

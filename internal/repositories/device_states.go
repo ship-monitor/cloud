@@ -34,7 +34,10 @@ func NewDeviceStatesRepo(
 	}
 }
 
-func (c *DeviceStatesRepository) AddRecord(ctx context.Context, record domain.StateRecord) error {
+func (c *DeviceStatesRepository) AddRecord(
+	ctx context.Context,
+	record domain.StateRecord,
+) error {
 	if err := validator.New().Struct(record); err != nil {
 		return fmt.Errorf("invalid state record: %w", err)
 	}
@@ -53,7 +56,11 @@ func (c *DeviceStatesRepository) AddRecord(ctx context.Context, record domain.St
 
 	if length > c.config.MaxHistoryLength {
 		go func() {
-			if err := c.TrimRecords(ctx, record.DeviceID, record.State); err != nil {
+			if err := c.TrimRecords(
+				ctx,
+				record.DeviceID,
+				record.State,
+			); err != nil {
 				c.logger.Warn("Failed to trim records", "error", err)
 			}
 		}()
@@ -62,9 +69,13 @@ func (c *DeviceStatesRepository) AddRecord(ctx context.Context, record domain.St
 	return nil
 }
 
-func (c *DeviceStatesRepository) TrimRecords(ctx context.Context, deviceID, state string) error {
+func (c *DeviceStatesRepository) TrimRecords(
+	ctx context.Context,
+	deviceID, state string,
+) error {
 	key := getStateKey(deviceID, state)
-	if err := c.rdb.LTrim(ctx, key, 0, c.config.MaxHistoryLength).Err(); err != nil {
+	if err := c.rdb.LTrim(ctx, key, 0, c.config.MaxHistoryLength).
+		Err(); err != nil {
 		return fmt.Errorf("failed to trim records for %s: %w", key, err)
 	}
 

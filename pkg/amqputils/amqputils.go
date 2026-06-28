@@ -13,7 +13,8 @@ import (
 const (
 	// ContentJSON is a Content-Type header for [amqp.Publishing.ContentType].
 	ContentJSON = "application/json"
-	// ContentEncodingUTF8 is a Content-Encoding for [amqp.Publishing.ContentEncoding].
+	// ContentEncodingUTF8 is a Content-Encoding for
+	// [amqp.Publishing.ContentEncoding].
 	ContentEncodingUTF8 = "UTF-8"
 
 	// DefaultExchange is any exchange.
@@ -108,7 +109,13 @@ func ConsumeMessages(
 	cancel := func() {
 		err := ch.Cancel(consumerID, false)
 		if err != nil {
-			log.Error("Failed to cancel consumer", "consumerID", consumerID, "error", err)
+			log.Error(
+				"Failed to cancel consumer",
+				"consumerID",
+				consumerID,
+				"error",
+				err,
+			)
 		}
 	}
 

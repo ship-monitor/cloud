@@ -8,7 +8,9 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-var ErrNoConnectionString = errors.New("connection string not specified (key database-url)")
+var ErrNoConnectionString = errors.New(
+	"connection string not specified (key database-url)",
+)
 
 func Connect() (*sql.DB, error) {
 	dsn := viper.GetString("database-url")

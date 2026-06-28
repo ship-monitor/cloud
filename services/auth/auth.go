@@ -13,7 +13,11 @@ import (
 
 var _ handlers.AuthService = (*services.AuthService)(nil)
 
-func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Container) error {
+func SetupRoutes(
+	ctx context.Context,
+	router gin.IRouter,
+	container *di.Container,
+) error {
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	authService := container.AuthService()

@@ -13,14 +13,28 @@ import (
 )
 
 var (
-	_ services.OrganizationsRepository        = (*repository.OrganizationsRepo)(nil)
-	_ handlers.OrganizationService            = (*services.OrganizationsService)(nil)
-	_ handlers.OrganizationMembersService     = (*services.OrganizationsService)(nil)
-	_ handlers.OrganizationInvitationsService = (*services.OrganizationsService)(nil)
-	_ handlers.OrgDevicesService              = (*services.OrgDevicesService)(nil)
+	_ services.OrganizationsRepository = (*repository.OrganizationsRepo)(
+		nil,
+	)
+	_ handlers.OrganizationService = (*services.OrganizationsService)(
+		nil,
+	)
+	_ handlers.OrganizationMembersService = (*services.OrganizationsService)(
+		nil,
+	)
+	_ handlers.OrganizationInvitationsService = (*services.OrganizationsService)(
+		nil,
+	)
+	_ handlers.OrgDevicesService = (*services.OrgDevicesService)(
+		nil,
+	)
 )
 
-func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Container) error {
+func SetupRoutes(
+	ctx context.Context,
+	router gin.IRouter,
+	container *di.Container,
+) error {
 	middleware := auth.DefaultMiddleware(viper.GetViper())
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
@@ -28,7 +42,12 @@ func SetupRoutes(ctx context.Context, router gin.IRouter, container *di.Containe
 	orgsService := container.OrganizationsService()
 	orgDevicesService := container.OrgDevicesService()
 
-	webHandler := handlers.New(orgsService, orgsService, orgsService, orgDevicesService)
+	webHandler := handlers.New(
+		orgsService,
+		orgsService,
+		orgsService,
+		orgDevicesService,
+	)
 	devicesHandler := container.DevicesHandlers()
 
 	// Роуты с проверкой аутентификации

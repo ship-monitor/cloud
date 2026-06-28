@@ -94,7 +94,10 @@ func writeCreateInvitationResponse(
 func (h *HTTPHandler) HandleListMyInvitations(c *gin.Context) {
 	session := auth.GetSession(c)
 
-	invs, err := h.invitations.ListMyInvitations(c.Request.Context(), session.Email)
+	invs, err := h.invitations.ListMyInvitations(
+		c.Request.Context(),
+		session.Email,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 
@@ -113,9 +116,14 @@ func (h *HTTPHandler) HandleListOrgInvitations(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	invs, err := h.invitations.ListOrgInvitations(c.Request.Context(), orgID, session.UserID)
+	invs, err := h.invitations.ListOrgInvitations(
+		c.Request.Context(),
+		orgID,
+		session.UserID,
+	)
 	switch {
-	case errors.Is(err, services.ErrUserIsNotMember), errors.Is(err, services.ErrNotAllowed):
+	case errors.Is(err, services.ErrUserIsNotMember),
+		errors.Is(err, services.ErrNotAllowed):
 		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
 	case err != nil:
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
@@ -133,7 +141,12 @@ func (h *HTTPHandler) HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	err := h.invitations.AcceptInvitation(c.Request.Context(), invID, session.UserID, session.Email)
+	err := h.invitations.AcceptInvitation(
+		c.Request.Context(),
+		invID,
+		session.UserID,
+		session.Email,
+	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))
@@ -156,7 +169,11 @@ func (h *HTTPHandler) HandleDeclineInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	err := h.invitations.DeclineInvitation(c.Request.Context(), invID, session.Email)
+	err := h.invitations.DeclineInvitation(
+		c.Request.Context(),
+		invID,
+		session.Email,
+	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))

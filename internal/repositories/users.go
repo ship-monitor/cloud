@@ -39,7 +39,10 @@ func (u *UsersRepo) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (u *UsersRepo) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
+func (u *UsersRepo) GetUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*domain.User, error) {
 	var user domain.User
 
 	err := u.db.NewSelect().
@@ -53,7 +56,10 @@ func (u *UsersRepo) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User
 	return &user, nil
 }
 
-func (u *UsersRepo) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (u *UsersRepo) GetUserByEmail(
+	ctx context.Context,
+	email string,
+) (*domain.User, error) {
 	var user domain.User
 
 	err := u.db.NewSelect().
@@ -76,7 +82,11 @@ func (u *UsersRepo) CreateUser(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (u *UsersRepo) SetEmailVerified(ctx context.Context, userID uuid.UUID, verified bool) error {
+func (u *UsersRepo) SetEmailVerified(
+	ctx context.Context,
+	userID uuid.UUID,
+	verified bool,
+) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -89,7 +99,11 @@ func (u *UsersRepo) SetEmailVerified(ctx context.Context, userID uuid.UUID, veri
 	return nil
 }
 
-func (u *UsersRepo) SetPassword(ctx context.Context, userID uuid.UUID, hashed []byte) error {
+func (u *UsersRepo) SetPassword(
+	ctx context.Context,
+	userID uuid.UUID,
+	hashed []byte,
+) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -102,7 +116,11 @@ func (u *UsersRepo) SetPassword(ctx context.Context, userID uuid.UUID, hashed []
 	return nil
 }
 
-func (u *UsersRepo) SetEmail(ctx context.Context, userID uuid.UUID, email string) error {
+func (u *UsersRepo) SetEmail(
+	ctx context.Context,
+	userID uuid.UUID,
+	email string,
+) error {
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
@@ -116,7 +134,10 @@ func (u *UsersRepo) SetEmail(ctx context.Context, userID uuid.UUID, email string
 	return nil
 }
 
-func (u *UsersRepo) EmailTaken(ctx context.Context, email string) (bool, error) {
+func (u *UsersRepo) EmailTaken(
+	ctx context.Context,
+	email string,
+) (bool, error) {
 	taken, err := u.db.NewSelect().
 		Model((*domain.User)(nil)).
 		Column("email").

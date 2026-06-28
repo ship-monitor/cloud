@@ -37,7 +37,8 @@ type OrganizationMember struct {
 	JoinedAt       time.Time `bun:",nullzero,notnull"     json:"joinedAt"`
 }
 
-// OrganizationMemberWithUser is an organization member enriched with user profile data.
+// OrganizationMemberWithUser is an organization member enriched with user
+// profile data.
 type OrganizationMemberWithUser struct {
 	MemberID       uuid.UUID `bun:"member_id"       json:"memberId"`
 	OrganizationID uuid.UUID `bun:"organization_id" json:"organizationId"`

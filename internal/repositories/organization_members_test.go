@@ -84,7 +84,12 @@ func TestOrganizationsRepoMemberMethods(t *testing.T) {
 		t.Fatal("expected user to be organization member")
 	}
 
-	if err := orgs.UpdateMemberRole(ctx, orgID, memberID, domain.RoleMember); err != nil {
+	if err := orgs.UpdateMemberRole(
+		ctx,
+		orgID,
+		memberID,
+		domain.RoleMember,
+	); err != nil {
 		t.Fatalf("update member role: %v", err)
 	}
 
@@ -106,13 +111,19 @@ func TestOrganizationsRepoMemberMethods(t *testing.T) {
 		t.Fatalf("expected owner and member, got %d members", len(members))
 	}
 
-	membersByID := make(map[uuid.UUID]domain.OrganizationMemberWithUser, len(members))
+	membersByID := make(
+		map[uuid.UUID]domain.OrganizationMemberWithUser,
+		len(members),
+	)
 	for _, member := range members {
 		membersByID[member.MemberID] = member
 	}
 
 	if membersByID[memberID].Email != "member@example.com" {
-		t.Fatalf("expected joined member email, got %q", membersByID[memberID].Email)
+		t.Fatalf(
+			"expected joined member email, got %q",
+			membersByID[memberID].Email,
+		)
 	}
 
 	if err := orgs.RemoveMember(ctx, orgID, memberID); err != nil {
@@ -173,7 +184,12 @@ func TestOrganizationsRepoInvitationMethods(t *testing.T) {
 
 	expiresAt := time.Now().Add(24 * time.Hour)
 
-	inv, err := orgs.CreateInvitation(ctx, orgID, "invitee@example.com", expiresAt)
+	inv, err := orgs.CreateInvitation(
+		ctx,
+		orgID,
+		"invitee@example.com",
+		expiresAt,
+	)
 	if err != nil {
 		t.Fatalf("create invitation: %v", err)
 	}
@@ -204,7 +220,10 @@ func TestOrganizationsRepoInvitationMethods(t *testing.T) {
 		t.Fatalf("expected invitee email, got %q", byID.InviteeEmail)
 	}
 
-	userInvitations, err := orgs.ListInvitationsForUser(ctx, "invitee@example.com")
+	userInvitations, err := orgs.ListInvitationsForUser(
+		ctx,
+		"invitee@example.com",
+	)
 	if err != nil {
 		t.Fatalf("list user invitations: %v", err)
 	}
@@ -219,10 +238,17 @@ func TestOrganizationsRepoInvitationMethods(t *testing.T) {
 	}
 
 	if len(orgInvitations) != 1 {
-		t.Fatalf("expected 1 organization invitation, got %d", len(orgInvitations))
+		t.Fatalf(
+			"expected 1 organization invitation, got %d",
+			len(orgInvitations),
+		)
 	}
 
-	if err := orgs.UpdateInvitationStatus(ctx, inv.ID, domain.InvStatusAccepted); err != nil {
+	if err := orgs.UpdateInvitationStatus(
+		ctx,
+		inv.ID,
+		domain.InvStatusAccepted,
+	); err != nil {
 		t.Fatalf("update invitation status: %v", err)
 	}
 
@@ -244,7 +270,10 @@ func TestOrganizationsRepoInvitationMethods(t *testing.T) {
 		t.Fatal("expected accepted invitation to no longer be pending")
 	}
 
-	userInvitations, err = orgs.ListInvitationsForUser(ctx, "invitee@example.com")
+	userInvitations, err = orgs.ListInvitationsForUser(
+		ctx,
+		"invitee@example.com",
+	)
 	if err != nil {
 		t.Fatalf("list user invitations after accept: %v", err)
 	}

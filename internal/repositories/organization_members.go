@@ -90,7 +90,10 @@ func (r *OrganizationsRepo) GetMembersWithUserInfo(
 	return members, nil
 }
 
-func (r *OrganizationsRepo) DeleteOrganization(ctx context.Context, id uuid.UUID) error {
+func (r *OrganizationsRepo) DeleteOrganization(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewDelete().
 			Model((*domain.OrganizationMember)(nil)).

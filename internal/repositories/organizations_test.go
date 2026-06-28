@@ -107,7 +107,11 @@ func TestGetUsersOrganizations(t *testing.T) {
 	}
 
 	// Test GetUsersOrganizations
-	organizations, err := repo.GetUsersOrganizations(ctx, userID, paging.Paging{Page: 0, Size: 10})
+	organizations, err := repo.GetUsersOrganizations(
+		ctx,
+		userID,
+		paging.Paging{Page: 0, Size: 10},
+	)
 	if err != nil {
 		t.Fatalf("GetUsersOrganizations failed: %v", err)
 	}
