@@ -43,12 +43,12 @@ func (q *TopicPublisher) PublishJSON(
 
 	exchangeName := "amq.topic"
 
-	_, err = ch.QueueDeclare(
-		topic,
-		QueueDurable, QueueDeleteWhenUnused, QueueExclusive, QueueNoWait, nil)
-	if err != nil {
-		return fmt.Errorf("declare queue: %w", err)
-	}
+	// _, err = ch.QueueDeclare(
+	// 	topic,
+	// 	QueueDurable, QueueDeleteWhenUnused, QueueExclusive, QueueNoWait, nil)
+	// if err != nil {
+	// 	return fmt.Errorf("declare queue: %w", err)
+	// }
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {

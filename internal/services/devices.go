@@ -126,5 +126,5 @@ type Command struct {
 }
 
 func getDeeviceCommandTopic(deviceID uuid.UUID) string {
-	return fmt.Sprintf("devices/%s/commands", deviceID.String())
+	return fmt.Sprintf("devices.%s.commands", deviceID.String())
 }
