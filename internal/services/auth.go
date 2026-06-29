@@ -174,7 +174,7 @@ func (a *AuthService) StartEmailConfirmation(
 	confirmationURL := url.URL{
 		Scheme:   "http",
 		Host:     viper.GetString("frontend.host"),
-		Path:     viper.GetString("frontend.email-confiramation-path"),
+		Path:     viper.GetString("frontend.email-confirmation-path"),
 		RawQuery: query.Encode(),
 	}
 	e := email.Email{
