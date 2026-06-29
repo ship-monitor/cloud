@@ -189,7 +189,7 @@ func (a *AuthService) StartEmailConfirmation(
 			<a href="%s"><em>Confirm</em></a>
 			<p>Link is valid till %s</p>`,
 			confirmationURL.String(),
-			time.Now().Add(EmailConfirmationTTL).Format(time.DateTime),
+			time.Now().UTC().Add(EmailConfirmationTTL).Format(time.DateTime),
 		),
 	}
 
