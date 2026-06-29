@@ -153,9 +153,9 @@ func (r *OrganizationsRepo) GetUsersOrganizations(
 
 	err := r.db.NewSelect().
 		Model(&orgs).
-		Relation("OrganizationMembers", func(q *bun.SelectQuery) *bun.SelectQuery {
-			return q.Where("member_id = ?", userID)
-		}).
+		Join("organization_members AS om").
+		JoinOn("organizations.id = om.organization_id").
+		Where("om.member_id = ?", userID).
 		Limit(p.Size).
 		Offset(p.Page * p.Size).
 		Distinct().Scan(ctx)
