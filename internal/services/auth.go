@@ -187,9 +187,10 @@ func (a *AuthService) StartEmailConfirmation(
 			<h1>Confirm email</h1>
 			<p>Click link below to go to email confirmation page</p>
 			<a href="%s"><em>Confirm</em></a>
-			<p>Link is valid till %s</p>`,
+			<p>Link is valid till %s (%s)</p>`,
 			confirmationURL.String(),
 			time.Now().UTC().Add(EmailConfirmationTTL).Format(time.DateTime),
+			EmailConfirmationTTL.String(),
 		),
 	}
 
