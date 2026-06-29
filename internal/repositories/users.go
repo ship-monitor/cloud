@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
@@ -87,12 +88,15 @@ func (u *UsersRepo) SetEmailVerified(
 	userID uuid.UUID,
 	verified bool,
 ) error {
-	_, err := u.db.NewUpdate().
+	query := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
-		Set("email_verified", verified).
-		Exec(ctx)
+		Set("email_verified = ?", verified)
+
+	_, err := query.Exec(ctx)
 	if err != nil {
+		log.Info("SetEmailVerified", "query", query.String())
+
 		return fmt.Errorf("update email verified: %w", err)
 	}
 
@@ -107,7 +111,7 @@ func (u *UsersRepo) SetPassword(
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
-		Set("password", hashed).
+		Set("password_hash = ?", hashed).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("update password: %w", err)
@@ -124,8 +128,8 @@ func (u *UsersRepo) SetEmail(
 	_, err := u.db.NewUpdate().
 		Model(&domain.User{ID: userID}).
 		WherePK().
-		Set("email", domain.NormalizeEmail(email)).
-		Set("email_verified", false).
+		Set("email = ?", domain.NormalizeEmail(email)).
+		Set("email_verified = ?", false).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("update email: %w", err)

@@ -15,6 +15,7 @@ func TestOrganizationsRepoMemberMethods(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("failed to close database: %v", err)
@@ -162,6 +163,7 @@ func TestOrganizationsRepoInvitationMethods(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("failed to close database: %v", err)
@@ -290,6 +292,7 @@ func TestOrgDevicesRepo(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("failed to close database: %v", err)

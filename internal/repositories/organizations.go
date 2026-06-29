@@ -174,8 +174,8 @@ func (r *OrganizationsRepo) RenameOrganization(
 	_, err := r.db.NewUpdate().
 		Model(&domain.Organization{ID: orgID}).
 		WherePK().
-		SetColumn("name", name).
-		SetColumn("updated_at", time.Now().String()).
+		Set("name = ?", name).
+		Set("updated_at = ?", time.Now()).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("update organization: %w", err)

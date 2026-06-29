@@ -89,7 +89,7 @@ func (r *OrgDevicesRepo) SetName(
 ) error {
 	_, err := r.db.NewUpdate().
 		Model(&domain.OrganizationDevice{ID: deviceID, Name: name}).
-		Column("name").
+		Set("name = ?", name).
 		WherePK().
 		Exec(ctx)
 	if err != nil {
