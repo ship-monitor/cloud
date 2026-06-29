@@ -167,16 +167,15 @@ func (a *AuthService) StartEmailConfirmation(
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
+	query := url.Values{
+		viper.GetString("frontend.email-confirmation-query"): {token},
+	}
+
 	confirmationURL := url.URL{
-		Scheme: "http",
-		Host:   viper.GetString("frontend.host"),
-		Path:   viper.GetString("frontend.email-confiramtion-path"),
-		RawQuery: url.QueryEscape(
-			fmt.Sprintf(
-				viper.GetString("frontend.email-confirmation-query"),
-				token,
-			),
-		),
+		Scheme:   "http",
+		Host:     viper.GetString("frontend.host"),
+		Path:     viper.GetString("frontend.email-confiramtion-path"),
+		RawQuery: query.Encode(),
 	}
 	e := email.Email{
 		To:      user.Email,

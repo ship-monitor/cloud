@@ -23,4 +23,4 @@ redis:
 frontend:
   host: ship-monitor.ru:3000
   email-confirmation-path: "/confirm-email"
-  email-confirmation-query: token=%s
+  email-confirmation-query: token
