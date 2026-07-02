@@ -94,7 +94,9 @@ func (c *Container) RabbitMQ() *amqp091.Connection {
 	return c.rabbitMQ
 }
 
-const MaxHistoryLength = 100
+// MaxHistoryLength, current value represents 3 days of every minute sended
+// state.
+const MaxHistoryLength = 4320
 
 func (c *Container) DeviceStates() *repository.DeviceStatesRepository {
 	if c.deviceStates == nil {
