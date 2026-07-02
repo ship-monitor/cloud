@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
@@ -151,14 +152,22 @@ func (r *OrganizationsRepo) GetUsersOrganizations(
 ) ([]*domain.Organization, error) {
 	var orgs []*domain.Organization
 
-	err := r.db.NewSelect().
+	query := r.db.NewSelect().
 		Model(&orgs).
 		Join("organization_members AS om ON organizations.id = om.organization_id").
 		Where("om.member_id = ?", userID).
 		Limit(p.Size).
 		Offset(p.Page * p.Size).
-		Distinct().Scan(ctx)
+		Distinct()
+
+	err := query.Scan(ctx)
 	if err != nil {
+		log.Error(
+			"Failed scan users organizations",
+			"query", query.String(),
+			"error", err,
+		)
+
 		return nil, fmt.Errorf("select users organization: %w", err)
 	}
 
