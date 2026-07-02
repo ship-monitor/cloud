@@ -154,7 +154,7 @@ func (r *OrganizationsRepo) GetUsersOrganizations(
 
 	query := r.db.NewSelect().
 		Model(&orgs).
-		Join("JOIN organization_members AS om ON organizations.id = om.organization_id").
+		Join("JOIN organization_members AS om ON organization.id = om.organization_id").
 		Where("om.member_id = ?", userID).
 		Limit(p.Size).
 		Offset(p.Page * p.Size).
