@@ -196,9 +196,13 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
 }
 
 func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
-	id := requests.MustGetParamUUID(ctx, "id")
-
 	session := auth.GetSession(ctx)
+
+	id, err := requests.GetParamUUID(ctx, "id")
+	if errors.Is(err, requests.ErrNoParam) {
+		id = session.UserID
+	}
+
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
 

@@ -29,6 +29,7 @@ func SetupRoutes(
 	auth.POST("/refresh", middleware.WithMiddleware, h.HandleRefresh)
 
 	users := router.Group("/api/users", middleware.WithAuthenticationRequired)
+	users.GET("/me", h.HandleGetUser)
 	users.GET("/:id", h.HandleGetUser)
 	users.POST("/:id/set-password", h.HandleUserSetPassword)
 	users.POST("/:id/set-email", h.HandleUserSetEmail)
