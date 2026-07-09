@@ -35,7 +35,14 @@ func SetupRoutes(
 	router gin.IRouter,
 	container *di.Container,
 ) error {
-	middleware := auth.DefaultMiddleware(viper.GetViper())
+	sessionStore := auth.NewRedisSessionStore(
+		container.Redis(),
+		auth.SessionTTL(viper.GetViper()),
+	)
+	middleware := auth.DefaultMiddleware(
+		viper.GetViper(),
+		sessionStore,
+	)
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 

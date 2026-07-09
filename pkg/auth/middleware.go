@@ -4,35 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"charm.land/log/v2"
-	authzed "github.com/authzed/authzed-go/v1"
-	"github.com/authzed/grpcutil"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
 const (
-	AuthorizationHeader = "Authorization"
-
-	sessionKey    = "ship-auth-session"
-	middlewareKey = "ship-auth-middleware"
+	sessionContextKey    = "ship-auth-session"
+	middlewareContextKey = "ship-auth-middleware"
 )
 
 var (
-	ErrArmenUsedBearer = errors.New(
-		"someone (Armen) included 'Bearer ' in token header",
-	)
-	ErrNoAuthHeader = fmt.Errorf(
-		"header %q not specified",
-		AuthorizationHeader,
-	)
-	ErrUnsupportedSigninMethod = errors.New("unsupported signing method")
-
-	ErrNoSessionInCtx = errors.New(
+	ErrNoSessionCookie = errors.New("session cookie not specified")
+	ErrNoSessionInCtx  = errors.New(
 		"no session in context, probably not authenticated",
 	)
 	ErrUnexpectedSessionType = errors.New(
@@ -44,83 +30,50 @@ var (
 	)
 )
 
-// DefaultMiddleware returns a new Middleware with the default Redis
-// configuration from viper.
+// DefaultMiddleware returns a new [Middleware] with the default session and
+// SpiceDB configuration from viper.
 //
 // It uses the following viper configuration keys:
 //
-//   - security-key string
-//   - spicedb.address string
-//   - spicedb.api-key string
-//
-// For quickest setup use:
-//
-// DefaultMiddleware(viper.Sub("auth"))
-// .
-func DefaultMiddleware(config *viper.Viper) *Middleware {
+//   - session.cookie-name string
+//   - session.ttl duration
+func DefaultMiddleware(
+	config *viper.Viper,
+	sessions SessionStore,
+) *Middleware {
+	config.SetDefault("session.cookie-name", DefaultSessionCookieName)
+
 	return MustNewMiddleware(&MiddlewareConfig{
-		&SpiceDBOptions{
-			Address: config.GetString("spicedb.address"),
-			APIKey:  config.GetString("spicedb.api-key"),
-		},
-		tokenKeyFunc(config),
+		Sessions:   sessions,
+		CookieName: config.GetString("session.cookie-name"),
 	})
 }
 
-func tokenKeyFunc(config *viper.Viper) jwt.Keyfunc {
-	return func(token *jwt.Token) (any, error) {
-		switch token.Method {
-		case jwt.SigningMethodHS256:
-			fallthrough
-		case jwt.SigningMethodHS384:
-			fallthrough
-		case jwt.SigningMethodHS512:
-			return []byte(config.GetString("security-key")), nil
-		default:
-			return nil, fmt.Errorf(
-				"method %s: %w",
-				token.Method.Alg(),
-				ErrUnsupportedSigninMethod,
-			)
-		}
-	}
-}
-
-type SpiceDBOptions struct {
-	Address string
-	APIKey  string
-}
-
 type MiddlewareConfig struct {
-	SpiceDB         *SpiceDBOptions
-	SecurityKeyFunc jwt.Keyfunc
+	Sessions   SessionStore
+	CookieName string
 }
 
 type Middleware struct {
-	log     *log.Logger
-	spice   *authzed.Client
-	keyFunc jwt.Keyfunc
+	log        *log.Logger
+	sessions   SessionStore
+	cookieName string
 }
 
 func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
-	systemCerts, err := grpcutil.WithSystemCerts(grpcutil.VerifyCA)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load system CA certificates: %w", err)
+	if config.Sessions == nil {
+		return nil, errors.New("session store is required")
 	}
 
-	spiceClient, err := authzed.NewClient(
-		config.SpiceDB.Address,
-		systemCerts,
-		grpcutil.WithBearerToken(config.SpiceDB.APIKey),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed connect to SpiceDB: %w", err)
+	cookieName := config.CookieName
+	if cookieName == "" {
+		cookieName = DefaultSessionCookieName
 	}
 
 	return &Middleware{
-		log.WithPrefix("auth_middleware"),
-		spiceClient,
-		config.SecurityKeyFunc,
+		log:        log.WithPrefix("auth_middleware"),
+		sessions:   config.Sessions,
+		cookieName: cookieName,
 	}, nil
 }
 
@@ -134,7 +87,7 @@ func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
 }
 
 func GetMiddleware(ctx *gin.Context) *Middleware {
-	middleware, ok := ctx.Get(middlewareKey)
+	middleware, ok := ctx.Get(middlewareContextKey)
 	if !ok {
 		abortRequest(ctx, ErrNoMiddlewareInCtx)
 	}
@@ -154,11 +107,10 @@ func (m *Middleware) WithMiddleware(ctx *gin.Context) {
 func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	m.addToContext(ctx)
 
-	header := ctx.GetHeader(AuthorizationHeader)
-
-	if header == "" {
-		err := fmt.Errorf("bad token specified: %w", ErrNoAuthHeader)
-		m.log.Error("No authorization header", "error", err)
+	sessionID, err := ctx.Cookie(m.cookieName)
+	if err != nil {
+		err := fmt.Errorf("bad credentials: %w", ErrNoSessionCookie)
+		m.log.Error("No session cookie", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
 			requests.ResponseErr(err),
@@ -167,23 +119,9 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 		return
 	}
 
-	if strings.Contains(header, "Bearer") {
-		err := fmt.Errorf("bad token specified: %w", ErrArmenUsedBearer)
-		m.log.Error("Bad token specified", "error", err)
-		ctx.AbortWithStatusJSON(
-			http.StatusUnauthorized,
-			requests.ResponseArmenErr(
-				err,
-				"Армен, пиши авторизацию не через ИИ",
-			),
-		)
-
-		return
-	}
-
-	claims, err := m.ParseToken(header)
+	stored, err := m.sessions.Get(ctx.Request.Context(), sessionID)
 	if err != nil {
-		m.log.Error("Failed parse JWT", "error", err)
+		m.log.Error("Failed load session", "error", err)
 		ctx.AbortWithStatusJSON(
 			http.StatusUnauthorized,
 			requests.ResponseErr(fmt.Errorf("bad credentials: %w", err)),
@@ -193,21 +131,21 @@ func (m *Middleware) WithAuthenticationRequired(ctx *gin.Context) {
 	}
 
 	session := &Session{
-		UserID:  claims.UserID,
-		Email:   claims.Email,
-		spiceDB: m.spice,
-		c:       ctx,
+		ID:     sessionID,
+		UserID: stored.UserID,
+		Email:  stored.Email,
+		c:      ctx,
 	}
 
-	ctx.Set(sessionKey, session)
+	ctx.Set(sessionContextKey, session)
 }
 
 func (m *Middleware) addToContext(ctx *gin.Context) {
-	ctx.Set(middlewareKey, m)
+	ctx.Set(middlewareContextKey, m)
 }
 
 func GetSession(ctx *gin.Context) *Session {
-	session, ok := ctx.Get(sessionKey)
+	session, ok := ctx.Get(sessionContextKey)
 	if !ok {
 		abortRequest(ctx, ErrNoSessionInCtx)
 	}

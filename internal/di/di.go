@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"database/sql"
 
 	"charm.land/log/v2"
@@ -8,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
@@ -72,10 +74,19 @@ func (c *Container) DB() *sql.DB {
 
 func (c *Container) Redis() *redis.Client {
 	if c.redis == nil {
+		c.logger.Warn(
+			"Redis connection creation",
+			"url",
+			c.config.GetString("redis.url"),
+		)
 		c.redis = redis.NewClient(&redis.Options{
 			Addr:     c.config.GetString("redis.url"),
 			Password: c.config.GetString("redis.password"),
 		})
+
+		if err := c.redis.Ping(context.Background()).Err(); err != nil {
+			log.Error("Bad redis connection", "error", err)
+		}
 	}
 
 	return c.redis
@@ -138,7 +149,11 @@ func (c *Container) OrganizationsService() *services.OrganizationsService {
 	return c.organizationsService
 }
 
-func (c *Container) EmailService() *services.EmailService {
+func (c *Container) EmailService() domain.EmailSender {
+	if c.config.GetBool("email.disabled") {
+		return services.NewDummyEmailService(c.logger)
+	}
+
 	if c.emailService == nil {
 		email, err := services.NewEmailService(services.EmailServiceConfig{
 			SMTPHost:     viper.GetString("email.smtp-host"),

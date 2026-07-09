@@ -16,8 +16,6 @@ func Setup() {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc")
 
-	viper.RegisterAlias("jwt-security-key", "security-key")
-
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Warn(
@@ -35,8 +33,4 @@ func Setup() {
 	if err := viper.BindPFlags(flag.CommandLine); err != nil {
 		log.Fatal("Failed to bind flags", "error", err)
 	}
-}
-
-func SecurityKey() []byte {
-	return []byte(viper.GetString("jwt-security-key"))
 }

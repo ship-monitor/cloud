@@ -21,8 +21,12 @@ services:
     environment:
       PORT: 8080
       DATABASE_URL: postgres://katy:postgres@auth-db:5432/auth-db?sslmode=disable
-      SECURITY_KEY: "your_jwt_security_key_here"
-      SERVICES_CONNECTOR_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      SESSION_TTL: 24h
+      SESSION_COOKIE_NAME: ship_session
+      SESSION_SAME_SITE: lax
+      REDIS_URL: redis:6379
+      REDIS_PASSWORD: ""
+
     depends_on:
       auth-db:
         condition: service_healthy
@@ -49,10 +53,10 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: auth-db
       PGDATA: /var/lib/postgresql/data
-    volumes:
-      - auth_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # volumes:
+    # - auth_data:/var/lib/postgresql/data
+    # ports:
+    #   - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U katy -d auth-db"]
       interval: 10s
@@ -91,8 +95,8 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: always
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     networks:
       - auth-net
     healthcheck:

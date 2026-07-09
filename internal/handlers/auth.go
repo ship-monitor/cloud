@@ -3,25 +3,16 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"time"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
-)
-
-const (
-	tokenTTL        = time.Minute * 5
-	refreshTokenTTL = time.Hour * 24
 )
 
 type AuthService interface {
@@ -39,14 +30,22 @@ type AuthService interface {
 }
 
 type AuthHandlers struct {
-	logger      *log.Logger
-	authService AuthService
+	logger        *log.Logger
+	authService   AuthService
+	sessions      auth.SessionStore
+	cookieOptions auth.CookieOptions
 }
 
-func NewAuthHandlers(authService AuthService) *AuthHandlers {
+func NewAuthHandlers(
+	authService AuthService,
+	sessions auth.SessionStore,
+	cookieOptions auth.CookieOptions,
+) *AuthHandlers {
 	return &AuthHandlers{
-		authService: authService,
-		logger:      log.WithPrefix("Auth handlers"),
+		authService:   authService,
+		sessions:      sessions,
+		cookieOptions: cookieOptions,
+		logger:        log.WithPrefix("Auth handlers"),
 	}
 }
 
@@ -107,24 +106,31 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	token, refreshToken := createTokens(user.ID, user.Email)
+	sessionID, err := a.sessions.Create(
+		c.Request.Context(),
+		user.ID,
+		user.Email,
+	)
+	if err != nil {
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+
+		return
+	}
+
+	auth.SetSessionCookie(c, a.cookieOptions, sessionID)
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":         user,
-		"token":        token,
-		"refreshToken": refreshToken,
+		"user": user,
 	})
 }
 
 func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
-	var request struct {
-		RefreshToken string `json:"refreshToken" binding:"required"`
-	}
-	a.bindJSON(c, &request)
+	session := auth.GetSession(c)
 
-	middleware := auth.GetMiddleware(c)
-
-	claims, err := middleware.ParseToken(request.RefreshToken)
+	stored, err := a.sessions.Refresh(c.Request.Context(), session.ID)
 	if err != nil {
 		c.AbortWithStatusJSON(
 			http.StatusUnauthorized,
@@ -134,22 +140,28 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 		return
 	}
 
-	user, err := a.authService.GetUser(c.Request.Context(), claims.UserID)
-	if err != nil {
-		c.AbortWithStatusJSON(
-			http.StatusUnauthorized,
-			requests.ResponseBad("user specified token not found"),
-		)
-
-		return
-	}
-
-	token, refreshToken := createTokens(user.ID, user.Email)
+	auth.SetSessionCookie(c, a.cookieOptions, session.ID)
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":        token,
-		"refreshToken": refreshToken,
+		"session": stored,
 	})
+}
+
+func (a *AuthHandlers) HandleLogout(c *gin.Context) {
+	sessionID, err := c.Cookie(a.cookieOptions.Name)
+	if err == nil {
+		if err := a.sessions.Delete(c.Request.Context(), sessionID); err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusInternalServerError,
+				requests.ResponseErr(err),
+			)
+
+			return
+		}
+	}
+
+	auth.ClearSessionCookie(c, a.cookieOptions)
+	c.Status(http.StatusOK)
 }
 
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
@@ -325,47 +337,4 @@ func mapErrors(vErrors validator.ValidationErrors) []gin.H {
 	}
 
 	return res
-}
-
-func createTokens(userID uuid.UUID, email string) (string, string) {
-	token := createJWT(userID, email)
-	refreshToken := createRefreshJWT(userID)
-
-	return token, refreshToken
-}
-
-func newJWT(claims auth.Claims) string {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
-
-	signed, err := token.SignedString(config.SecurityKey())
-	if err != nil {
-		panic(fmt.Errorf("failed sign JWT: %w", err))
-	}
-
-	return signed
-}
-
-func createJWT(userID uuid.UUID, email string) string {
-	claims := auth.Claims{
-		UserID: userID,
-		Email:  email,
-		RegisteredClaims: &jwt.RegisteredClaims{
-			ID:        uuid.New().String(),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenTTL)),
-		},
-	}
-
-	return newJWT(claims)
-}
-
-func createRefreshJWT(userID uuid.UUID) string {
-	claims := auth.Claims{
-		UserID: userID,
-		RegisteredClaims: &jwt.RegisteredClaims{
-			ID:        uuid.New().String(),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshTokenTTL)),
-		},
-	}
-
-	return newJWT(claims)
 }

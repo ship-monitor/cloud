@@ -16,19 +16,19 @@
       },
       "outputs": [
         {
-          "protocol": "HTTP/1.1 201 Created",
+          "protocol": "HTTP/1.1 409 Conflict",
           "headers": {
             "Content-Type": "application/json; charset=utf-8",
-            "Date": "Thu, 23 Apr 2026 12:20:27 GMT",
-            "Content-Length": "238"
+            "Date": "Thu, 09 Jul 2026 19:01:22 GMT",
+            "Content-Length": "33"
           },
-          "status": 201,
+          "status": 409,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"user\":{\"id\":\"992a5e02-bfba-4936-b80d-3c4d3153bbfb\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-04-23T15:20:27.922843+03:00\",\"updatedAt\":\"2026-04-23T15:20:27.922843+03:00\"}}"
+            "{\"details\":\"email already taken\"}"
           ],
-          "responseDate": 1776946827943
+          "responseDate": 1783623682855
         }
       ],
       "source": [
@@ -64,22 +64,23 @@
           "protocol": "HTTP/1.1 200 OK",
           "headers": {
             "Content-Type": "application/json; charset=utf-8",
-            "Date": "Wed, 08 Jul 2026 14:48:27 GMT",
-            "Content-Length": "845"
+            "Set-Cookie": "ship_session=9aX67vjZOOrvAmWX4NRMmqp6QC9UgjpHLk2PswOKpZ8; Path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax",
+            "Date": "Thu, 09 Jul 2026 19:16:08 GMT",
+            "Content-Length": "228"
           },
           "status": 200,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"refreshToken\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM2MDg1MDcsImp0aSI6IjE1MmM0ZjdlLTM0ODQtNDY1MC04Y2QyLTM5ZjJmN2Y3YzRkNCIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiJ9.aSyQL9-6c4EOZBj5TsSf_bNct3PHVhsSbYuRspG8qVHeTH48dw5NRakIlHPKxa2MeZnjTs393heOJwRxRuZGhw\",\"token\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM1MjI0MDcsImp0aSI6ImE0YzFmMmYyLWQyNmEtNDNlNi05MzU2LTU5NmRiZDhkY2UyNiIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.yTMMSIMsEPtiZMlBWHWSiCPU-Q5bKdBwRaDIbStN9PscDllf97QGZAKtfdZxwR-nAeOllINSjUbGZr87HWqGcw\",\"user\":{\"id\":\"0cbfee78-80cd-4254-8076-f5c549e47a8f\",\"name\":\"Anton\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":true,\"blocked\":false,\"createdAt\":\"2026-05-30T19:36:00.067433Z\",\"updatedAt\":\"2026-06-23T12:40:26.618287Z\"}}"
+            "{\"user\":{\"id\":\"80fcdeff-0bc3-4f93-a2b0-00632344ac88\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-07-09T19:00:37.607709Z\",\"updatedAt\":\"2026-07-09T19:00:37.607709Z\"}}"
           ],
-          "responseDate": 1783522107834
+          "responseDate": 1783624568529
         }
       ],
       "source": [
-        "curl -X POST $host/api/auth/login -d '{",
+        "curl -c cookies.txt -X POST $host/api/auth/login -d '{",
         "  \"email\": \"petrovanton247@gmail.com\", ",
-        "  \"password\": \"\"",
+        "  \"password\": \"pa$$w0rd\"",
         "}'"
       ],
       "pre_scripts_enabled": false,
@@ -88,7 +89,7 @@
       ],
       "post_scripts_enabled": true,
       "post_scripts": [
-        "var token = json_body('token')"
+        ""
       ],
       "send_status": "success"
     },
@@ -108,20 +109,20 @@
           "protocol": "HTTP/1.1 200 OK",
           "headers": {
             "Content-Type": "application/json; charset=utf-8",
-            "Date": "Wed, 08 Jul 2026 14:48:29 GMT",
-            "Content-Length": "225"
+            "Date": "Thu, 09 Jul 2026 19:16:38 GMT",
+            "Content-Length": "228"
           },
           "status": 200,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"user\":{\"id\":\"0cbfee78-80cd-4254-8076-f5c549e47a8f\",\"name\":\"Anton\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":true,\"blocked\":false,\"createdAt\":\"2026-05-30T19:36:00.067433Z\",\"updatedAt\":\"2026-06-23T12:40:26.618287Z\"}}"
+            "{\"user\":{\"id\":\"80fcdeff-0bc3-4f93-a2b0-00632344ac88\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-07-09T19:00:37.607709Z\",\"updatedAt\":\"2026-07-09T19:00:37.607709Z\"}}"
           ],
-          "responseDate": 1783522109855
+          "responseDate": 1783624598267
         }
       ],
       "source": [
-        "curl $host/api/users/me -H \"Authorization: $token\""
+        "curl -b cookies.txt $host/api/users/me"
       ],
       "pre_scripts_enabled": false,
       "pre_scripts": [
@@ -162,7 +163,7 @@
         }
       ],
       "source": [
-        "curl $host/api/organizations/my -H \"Authorization: $token\""
+        "curl -b cookies.txt $host/api/organizations/my"
       ],
       "pre_scripts_enabled": false,
       "pre_scripts": [
@@ -203,7 +204,7 @@
         }
       ],
       "source": [
-        "curl $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed -H \"Authorization: $token\""
+        "curl -b cookies.txt $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed"
       ],
       "pre_scripts_enabled": false,
       "pre_scripts": [
@@ -244,7 +245,7 @@
         }
       ],
       "source": [
-        "curl -X PATCH $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed -H \"Authorization: $token\" -d '{",
+        "curl -b cookies.txt -X PATCH $host/api/organizations/10e7a067-1327-45fb-a9aa-d9b29129b5ed -d '{",
         "  \"name\": \"Cooler org 3\"",
         "}'"
       ],
@@ -287,7 +288,7 @@
         }
       ],
       "source": [
-        "curl -X POST $host/api/organizations/ -H \"Authorization: $token\" -d '{",
+        "curl -b cookies.txt -X POST $host/api/organizations/ -d '{",
         "  \"name\": \"Cool org\"",
         "}'"
       ],
@@ -305,12 +306,7 @@
   "globalVariables": [
     {
       "key": "host",
-      "value": "http://157.22.206.199:8080",
-      "source": "manual"
-    },
-    {
-      "key": "token",
-      "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM1MjI0MDcsImp0aSI6ImE0YzFmMmYyLWQyNmEtNDNlNi05MzU2LTU5NmRiZDhkY2UyNiIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.yTMMSIMsEPtiZMlBWHWSiCPU-Q5bKdBwRaDIbStN9PscDllf97QGZAKtfdZxwR-nAeOllINSjUbGZr87HWqGcw",
+      "value": "http://localhost:8080",
       "source": "manual"
     }
   ]

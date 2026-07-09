@@ -18,15 +18,28 @@ func SetupRoutes(
 	router gin.IRouter,
 	container *di.Container,
 ) error {
-	middleware := auth.DefaultMiddleware(viper.GetViper())
+	cookieOptions := auth.CookieOptionsFromConfig(viper.GetViper())
+	sessionStore := auth.NewRedisSessionStore(
+		container.Redis(),
+		cookieOptions.MaxAge,
+	)
+	middleware := auth.DefaultMiddleware(
+		viper.GetViper(),
+		sessionStore,
+	)
 
 	authService := container.AuthService()
-	h := handlers.NewAuthHandlers(authService)
+	h := handlers.NewAuthHandlers(authService, sessionStore, cookieOptions)
 
 	auth := router.Group("/api/auth")
 	auth.POST("/register", h.HandleRegister)
 	auth.POST("/login", h.HandleLogin)
-	auth.POST("/refresh", middleware.WithMiddleware, h.HandleRefresh)
+	auth.POST(
+		"/refresh",
+		middleware.WithAuthenticationRequired,
+		h.HandleRefresh,
+	)
+	auth.POST("/logout", middleware.WithMiddleware, h.HandleLogout)
 
 	users := router.Group("/api/users", middleware.WithAuthenticationRequired)
 	users.GET("/me", h.HandleGetUser)
