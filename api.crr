@@ -64,23 +64,64 @@
           "protocol": "HTTP/1.1 200 OK",
           "headers": {
             "Content-Type": "application/json; charset=utf-8",
-            "Date": "Thu, 23 Apr 2026 12:25:49 GMT",
-            "Content-Length": "848"
+            "Date": "Wed, 08 Jul 2026 14:48:27 GMT",
+            "Content-Length": "845"
           },
           "status": 200,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"refreshToken\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzcwMzM1NDksImp0aSI6IjY3YmU3YzU4LTQ2YWYtNGVhMS1hNmIxLTc3N2ExNzQ1YjY3NyIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiJ9.h4b7wL_ezgkeOS_IMSK0CSJM_qEqLj89uff73LOZkQ3hTpHo0MpH76pRZdH7IrOIH_E2WKVcgUC9YRgLC7PetA\",\"token\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzY5NDc0NDksImp0aSI6ImVhMGZkNGJmLWYzZGYtNDYxNi04Y2U2LTMzYzM1YzIzYWY4YSIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.IjBZAE_Ow4ggEuRDpHkEZ03e7c94Syf-iNOk3-SyVB-iIn6zxPhcloPK1AmhsoloOErpYBkkaOBjC1lQEvRTnQ\",\"user\":{\"id\":\"992a5e02-bfba-4936-b80d-3c4d3153bbfb\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-04-23T12:20:27.922843Z\",\"updatedAt\":\"2026-04-23T12:20:27.922843Z\"}}"
+            "{\"refreshToken\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM2MDg1MDcsImp0aSI6IjE1MmM0ZjdlLTM0ODQtNDY1MC04Y2QyLTM5ZjJmN2Y3YzRkNCIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiJ9.aSyQL9-6c4EOZBj5TsSf_bNct3PHVhsSbYuRspG8qVHeTH48dw5NRakIlHPKxa2MeZnjTs393heOJwRxRuZGhw\",\"token\":\"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM1MjI0MDcsImp0aSI6ImE0YzFmMmYyLWQyNmEtNDNlNi05MzU2LTU5NmRiZDhkY2UyNiIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.yTMMSIMsEPtiZMlBWHWSiCPU-Q5bKdBwRaDIbStN9PscDllf97QGZAKtfdZxwR-nAeOllINSjUbGZr87HWqGcw\",\"user\":{\"id\":\"0cbfee78-80cd-4254-8076-f5c549e47a8f\",\"name\":\"Anton\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":true,\"blocked\":false,\"createdAt\":\"2026-05-30T19:36:00.067433Z\",\"updatedAt\":\"2026-06-23T12:40:26.618287Z\"}}"
           ],
-          "responseDate": 1776947149782
+          "responseDate": 1783522107834
         }
       ],
       "source": [
         "curl -X POST $host/api/auth/login -d '{",
         "  \"email\": \"petrovanton247@gmail.com\", ",
-        "  \"password\": \"pa$$w0rd\"",
+        "  \"password\": \"\"",
         "}'"
+      ],
+      "pre_scripts_enabled": false,
+      "pre_scripts": [
+        ""
+      ],
+      "post_scripts_enabled": true,
+      "post_scripts": [
+        "var token = json_body('token')"
+      ],
+      "send_status": "success"
+    },
+    {
+      "id": "df550b8a-bb49-4096-8fa2-abcd0358a456",
+      "name": "Get user",
+      "cell_type": "curl",
+      "execution_count": 0,
+      "metadata": {
+        "collapsed": false,
+        "jupyter": {
+          "source_hidden": false
+        }
+      },
+      "outputs": [
+        {
+          "protocol": "HTTP/1.1 200 OK",
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Wed, 08 Jul 2026 14:48:29 GMT",
+            "Content-Length": "225"
+          },
+          "status": 200,
+          "bodyFilePath": "",
+          "bodyBase64": "",
+          "body": [
+            "{\"user\":{\"id\":\"0cbfee78-80cd-4254-8076-f5c549e47a8f\",\"name\":\"Anton\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":true,\"blocked\":false,\"createdAt\":\"2026-05-30T19:36:00.067433Z\",\"updatedAt\":\"2026-06-23T12:40:26.618287Z\"}}"
+          ],
+          "responseDate": 1783522109855
+        }
+      ],
+      "source": [
+        "curl $host/api/users/me -H \"Authorization: $token\""
       ],
       "pre_scripts_enabled": false,
       "pre_scripts": [
@@ -108,16 +149,16 @@
           "protocol": "HTTP/1.1 200 OK",
           "headers": {
             "Content-Type": "application/json; charset=utf-8",
-            "Date": "Thu, 23 Apr 2026 12:26:09 GMT",
-            "Content-Length": "319"
+            "Date": "Wed, 08 Jul 2026 14:37:48 GMT",
+            "Content-Length": "624"
           },
           "status": 200,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"organizations\":[{\"id\":\"fd6d5d36-a012-4427-a78a-ae780a37e3b4\",\"name\":\"Cool org\",\"createdAt\":\"2026-04-23T12:21:31.691046Z\",\"updatedAt\":\"2026-04-23T12:21:31.691046Z\"},{\"id\":\"10e7a067-1327-45fb-a9aa-d9b29129b5ed\",\"name\":\"Cooler org 3\",\"createdAt\":\"2026-04-23T12:21:25.223423Z\",\"updatedAt\":\"2026-04-23T12:26:07.705682Z\"}]}"
+            "{\"organizations\":[{\"id\":\"30f523f6-2181-4c07-abfd-0817313d91ba\",\"name\":\"rrr\",\"createdAt\":\"2026-06-03T11:09:20.936911Z\",\"updatedAt\":\"2026-06-03T11:09:20.936912Z\"},{\"id\":\"949e98ba-c4c4-4ed4-8c9b-b476a2f20522\",\"name\":\"Something bad\",\"createdAt\":\"2026-06-15T13:04:39.666571Z\",\"updatedAt\":\"2026-06-15T13:04:39.666571Z\"},{\"id\":\"98596675-b063-4226-b5d5-7e3fedcafb00\",\"name\":\"New org for member test\",\"createdAt\":\"2026-06-28T12:04:08.43562Z\",\"updatedAt\":\"2026-06-28T12:04:08.43562Z\"},{\"id\":\"cbf34301-11a6-4a45-b889-313faba0778b\",\"name\":\"red soft\",\"createdAt\":\"2026-05-30T19:43:38.001766Z\",\"updatedAt\":\"2026-05-30T19:43:38.001766Z\"}]}"
           ],
-          "responseDate": 1776947169020
+          "responseDate": 1783521468350
         }
       ],
       "source": [
@@ -264,12 +305,12 @@
   "globalVariables": [
     {
       "key": "host",
-      "value": "http://localhost:8080",
+      "value": "http://157.22.206.199:8080",
       "source": "manual"
     },
     {
       "key": "token",
-      "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzY5NDc0NDksImp0aSI6ImVhMGZkNGJmLWYzZGYtNDYxNi04Y2U2LTMzYzM1YzIzYWY4YSIsInVzZXJJZCI6Ijk5MmE1ZTAyLWJmYmEtNDkzNi1iODBkLTNjNGQzMTUzYmJmYiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.IjBZAE_Ow4ggEuRDpHkEZ03e7c94Syf-iNOk3-SyVB-iIn6zxPhcloPK1AmhsoloOErpYBkkaOBjC1lQEvRTnQ",
+      "value": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM1MjI0MDcsImp0aSI6ImE0YzFmMmYyLWQyNmEtNDNlNi05MzU2LTU5NmRiZDhkY2UyNiIsInVzZXJJZCI6IjBjYmZlZTc4LTgwY2QtNDI1NC04MDc2LWY1YzU0OWU0N2E4ZiIsImVtYWlsIjoicGV0cm92YW50b24yNDdAZ21haWwuY29tIn0.yTMMSIMsEPtiZMlBWHWSiCPU-Q5bKdBwRaDIbStN9PscDllf97QGZAKtfdZxwR-nAeOllINSjUbGZr87HWqGcw",
       "source": "manual"
     }
   ]
