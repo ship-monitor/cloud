@@ -11,16 +11,18 @@ import (
 
 const maxAge = 12 * time.Hour
 
-var AllMethods = []string{
-	http.MethodGet,
-	http.MethodConnect,
-	http.MethodDelete,
-	http.MethodHead,
-	http.MethodOptions,
-	http.MethodPatch,
-	http.MethodPost,
-	http.MethodPut,
-	http.MethodTrace,
+func AllMethods() []string {
+	return []string{
+		http.MethodGet,
+		http.MethodConnect,
+		http.MethodDelete,
+		http.MethodHead,
+		http.MethodOptions,
+		http.MethodPatch,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodTrace,
+	}
 }
 
 type CORS struct {
@@ -36,7 +38,7 @@ func New() *CORS {
 func (c *CORS) Middleware() gin.HandlerFunc {
 	return cors.New(cors.Config{
 		AllowOrigins: c.AllowedOrigins,
-		AllowMethods: AllMethods,
+		AllowMethods: AllMethods(),
 		AllowHeaders: []string{
 			"Origin",
 			"Content-Type",
