@@ -8,7 +8,8 @@ Use `--devel` flag or set environment variable `DEVEL=true`
 
 [source,console]
 ----
-$ go run cmd/api/main.go --devel
+$ docker compose up -d auth-db rabbitmq redis
+$ SHIP_CONFIG="ship-devel.yml" go run cmd/api/main.go --devel
 ----
 
 Start RabbitMQ:

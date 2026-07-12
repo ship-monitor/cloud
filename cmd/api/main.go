@@ -2,143 +2,159 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"time"
 
 	"charm.land/log/v2"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"golang.org/x/sync/errgroup"
+	"go.uber.org/fx"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/logger"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
+	auth "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
 
-const maxAge = 12 * time.Hour
-
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+	fx.New(
+		fx.Provide(config.NewConfig),
+		fx.Provide(logger.NewLogger),
+		fx.Provide(
+			di.NewRabbitMQClient,
+			di.NewRedisClient,
+			di.NewDatabaseClient,
+		),
+		provideServices(),
+		provideHandlers(),
+		provideRepos(),
+		fx.Provide(workers.NewQueue),
+		fx.Provide(auth.NewMiddleware),
+		fx.Provide(newHTTPServer),
+		fx.Invoke(func(server *gin.Engine) {}),
+		fx.Invoke(func(server *workers.QueueWorker) {}),
+	).Run()
+}
 
-	config.Setup()
+func provideRepos() fx.Option {
+	return fx.Options(
+		fx.Provide(repository.NewDeviceStatesRepo,
+			fx.Annotate(
+				repository.NewDeviceStatesRepo,
+				fx.As(new(workers.RecordsService)),
+			),
+		),
+		fx.Provide(
+			repository.NewOrgs,
+			fx.Annotate(
+				repository.NewOrgs,
+				fx.As(new(pkg.MigrationRepo)),
+				fx.ResultTags(`name:"organizationsRepo"`),
+			),
+		),
+		fx.Provide(repository.NewUsers,
+			fx.Annotate(
+				repository.NewUsers,
+				fx.As(new(pkg.MigrationRepo)),
+				fx.ResultTags(`name:"usersRepo"`),
+			),
+		),
+		pkg.ProvideMigrations(),
+	)
+}
 
-	if viper.GetBool("devel") {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
+func provideServices() fx.Option {
+	return fx.Options(
+		fx.Provide(services.NewEmailService,
+			fx.Annotate(services.NewEmailService,
+				fx.As(new(domain.EmailSender)),
+			),
+		),
+	)
+}
 
-	log.SetReportCaller(true)
+func provideHandlers() fx.Option {
+	return fx.Options(
+		fx.Provide(handlers.NewAuthHandlers,
+			fx.Annotate(
+				handlers.NewAuthHandlers,
+				fx.As(new(pkg.Handler)),
+				fx.ResultTags(`name:"auth-handlers"`),
+			)),
+		fx.Provide(handlers.NewDevice,
+			fx.Annotate(
+				handlers.NewDevice,
+				fx.As(new(pkg.Handler)),
+				fx.ResultTags(`name:"device-handlers"`),
+			),
+		),
+	)
+}
 
+func newHTTPServer(
+	lc fx.Lifecycle,
+	config *viper.Viper,
+	logger *log.Logger, handlers ...pkg.Handler,
+) (*gin.Engine, error) {
 	container := di.NewContainer(viper.GetViper(), log.Default())
 
-	err := migrate(ctx, container)
-	if err != nil {
-		log.Error("Failed migrate database", "error", err)
+	gin.SetMode(gin.ReleaseMode)
 
-		return
-	}
+	engine := gin.Default()
 
-	group, groupCtx := errgroup.WithContext(ctx)
-
-	group.Go(func() error {
-		return runServer(groupCtx, container)
-	})
-
-	group.Go(func() error {
-		q := workers.NewQueue(
-			container.RabbitMQ(),
-			container.Redis(),
-			container.DeviceStates(),
-			container.Logger(),
-		)
-
-		return q.Serve(groupCtx)
-	})
-
-	err = group.Wait()
-	if err != nil {
-		log.Error("Failed start", "error", err)
-	}
-}
-
-func migrate(ctx context.Context, c *di.Container) error {
-	if err := c.OrganizationsRepo().Migrate(ctx); err != nil {
-		return fmt.Errorf("failed migrate organizations: %w", err)
-	}
-
-	if err := c.UsersRepo().Migrate(ctx); err != nil {
-		return fmt.Errorf("failed migrate users: %w", err)
-	}
-
-	return nil
-}
-
-func runServer(ctx context.Context, container *di.Container) error {
-	server := gin.Default()
-
-	if viper.GetBool("devel") {
+	if config.GetBool("devel") {
+		logger.Debug("Setting gin mode to debug")
 		gin.SetMode(gin.DebugMode)
 	}
 
-	server.Use(func(ctx *gin.Context) {
-		logger := container.Logger().WithPrefix("HTTP Middleware")
+	engine.Use(cors.New().Middleware())
 
-		ctx.Next()
-
-		if ctx.Writer.Status() >= http.StatusBadRequest {
-			logger.Error("Handled error",
-				"status", ctx.Writer.Status(),
-				"path", ctx.Request.URL.Path,
-				"method", ctx.Request.Method,
-			)
-		}
-	})
-	server.Use(cors.New(cors.Config{
-		AllowOrigins: viper.GetStringSlice("cors.allow-origins"),
-		AllowMethods: []string{
-			"GET",
-			"POST",
-			"PUT",
-			"PATCH",
-			"DELETE",
-			"OPTIONS",
-		},
-		AllowHeaders: []string{
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-			"X-Requested-With",
-		},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           maxAge,
-	}))
-
-	server.GET("/api/health", func(ctx *gin.Context) {
+	engine.GET("/api/health", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})
 
-	err := auth.SetupRoutes(ctx, server, container)
-	if err != nil {
-		return fmt.Errorf("setup auth routes: %w", err)
+	for _, h := range handlers {
+		h.SetupRoutes(engine)
 	}
 
-	err = organizations.SetupRoutes(ctx, server, container)
-	if err != nil {
-		return fmt.Errorf("setup organizations routes: %w", err)
+	if err := organizations.SetupRoutes(engine, container); err != nil {
+		return nil, fmt.Errorf("setup organizations routes: %w", err)
 	}
 
-	if err := server.Run(":8080"); err != nil {
-		return fmt.Errorf("run server: %w", err)
+	server := &http.Server{
+		ReadHeaderTimeout: viper.GetDuration("http.server.read-header-timeout"),
+		Addr: net.JoinHostPort(
+			"",
+			viper.GetString("http.server.port"),
+		),
+		Handler: engine,
 	}
 
-	return nil
+	lc.Append(
+		fx.Hook{
+			OnStart: (func(ctx context.Context) error {
+				go func() {
+					err := server.ListenAndServe()
+					if err != nil && !errors.Is(err, http.ErrServerClosed) {
+						panic(err)
+					}
+				}()
+
+				return nil
+			}),
+			OnStop: func(ctx context.Context) error {
+				return server.Shutdown(ctx)
+			},
+		})
+
+	return engine, nil
 }

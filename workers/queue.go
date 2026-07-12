@@ -3,6 +3,7 @@ package workers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"charm.land/log/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/fx"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/amqputils"
 )
@@ -32,37 +34,104 @@ type QueueWorker struct {
 	log     *log.Logger
 	redis   *redis.Client
 	service RecordsService
+
+	channel     *amqp.Channel
+	statesQueue amqp.Queue
 }
 
 func NewQueue(
+	lc fx.Lifecycle,
 	conn *amqp.Connection,
 	rdb *redis.Client,
 	service RecordsService,
 	logger *log.Logger,
-) *QueueWorker {
-	return &QueueWorker{
+) (*QueueWorker, error) {
+	q := &QueueWorker{
 		conn:    conn,
 		log:     logger,
 		redis:   rdb,
 		service: service,
 	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return q.Start(ctx)
+		},
+		OnStop: func(ctx context.Context) error {
+			return q.Stop(ctx)
+		},
+	})
+
+	return q, nil
 }
 
-func (q *QueueWorker) Serve(ctx context.Context) error {
+func (q *QueueWorker) Stop(ctx context.Context) error {
+	if err := q.channel.Close(); err != nil {
+		return fmt.Errorf("close channel: %w", err)
+	}
+
+	return nil
+}
+
+func (q *QueueWorker) Start(ctx context.Context) error {
+	if err := q.openChannel(); err != nil {
+		return err
+	}
+
+	if err := q.declareQueue(); err != nil {
+		return err
+	}
+
+	go q.handleMessageCycle(ctx)
+
+	return nil
+}
+
+func (q *QueueWorker) handleMessageCycle(ctx context.Context) {
+	messages, cancel, err := amqputils.ConsumeMessages(
+		ctx,
+		q.channel,
+		q.statesQueue,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case msg, ok := <-messages:
+			if !ok {
+				return
+			}
+
+			go func(ctx context.Context, msg amqp.Delivery) {
+				if err := q.handleDelivery(ctx, msg); err != nil {
+					q.log.Error("Failed to handle message", "error", err)
+				}
+			}(ctx, msg)
+		}
+	}
+}
+
+func (q *QueueWorker) openChannel() error {
 	ch, err := q.conn.Channel()
 	if err != nil {
 		return fmt.Errorf("open channel: %w", err)
 	}
 
-	defer func() {
-		if err := ch.Close(); err != nil {
-			q.log.Error("Failed to close channel", "error", err)
-		}
-	}()
+	q.channel = ch
 
+	return nil
+}
+
+func (q *QueueWorker) declareQueue() error {
 	exchangeName := "amq.topic"
 
-	err = ch.ExchangeDeclare(
+	err := q.channel.ExchangeDeclare(
 		exchangeName,
 		amqp.ExchangeTopic,
 		QueueDurable,
@@ -75,32 +144,26 @@ func (q *QueueWorker) Serve(ctx context.Context) error {
 		return fmt.Errorf("declare exchange: %w", err)
 	}
 
-	statesQ, err := ch.QueueDeclare(
+	statesQ, err := q.channel.QueueDeclare(
 		"device_state",
 		QueueDurable, QueueDeleteWhenUnused, QueueExclusive, QueueNoWait, nil)
 	if err != nil {
 		return fmt.Errorf("declare queue: %w", err)
 	}
 
+	q.statesQueue = statesQ
+
 	bindingKey := "devices.*.state"
 
-	err = ch.QueueBind(statesQ.Name, bindingKey, exchangeName, false, nil)
+	err = q.channel.QueueBind(
+		statesQ.Name,
+		bindingKey,
+		exchangeName,
+		false,
+		nil,
+	)
 	if err != nil {
 		return fmt.Errorf("bind queue: %w", err)
-	}
-
-	messages, cancel, err := amqputils.ConsumeMessages(ctx, ch, statesQ)
-	if err != nil {
-		return fmt.Errorf("consume messages: %w", err)
-	}
-	defer cancel()
-
-	for msg := range messages {
-		go func(ctx context.Context, msg amqp.Delivery) {
-			if err := q.handleDelivery(ctx, msg); err != nil {
-				q.log.Error("Failed to handle message", "error", err)
-			}
-		}(ctx, msg)
 	}
 
 	return nil
@@ -191,11 +254,13 @@ type StateMessage struct {
 
 const routingKeyParts = 3
 
+var ErrInvalidRoutingKey = errors.New("invalid routing key")
+
 func getDeviceIDFromRoutingKey(routingKey string) (DeviceID, error) {
 	parts := strings.Split(routingKey, ".")
 	if len(parts) >= routingKeyParts {
 		return DeviceID(parts[1]), nil
 	} else {
-		return "", fmt.Errorf("invalid routing key: %s", routingKey)
+		return "", fmt.Errorf("%w: key %s", ErrInvalidRoutingKey, routingKey)
 	}
 }

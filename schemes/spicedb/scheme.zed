@@ -1,0 +1,10 @@
+definition user {}
+
+definition device {
+    relation owner: user
+    relation administrator: user
+    relation viewer: user
+
+    permission manage = owner + administrator
+    permission view = owner + administrator + viewer
+}

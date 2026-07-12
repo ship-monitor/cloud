@@ -14,7 +14,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
-func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
+func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -26,22 +26,18 @@ func (h *HTTPHandler) HandleGetDevice(c *gin.Context) {
 	switch {
 	case errors.Is(err, services.ErrNotMember):
 		c.JSON(http.StatusForbidden, dto.Error(err))
-
-		return
 	case err != nil:
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
+	default:
+		if !ensureDeviceInRouteOrganization(c, device) {
+			return
+		}
 
-		return
+		c.JSON(http.StatusOK, deviceToDTO(device))
 	}
-
-	if !ensureDeviceInRouteOrganization(c, device) {
-		return
-	}
-
-	c.JSON(http.StatusOK, deviceToDTO(device))
 }
 
-func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
+func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -98,13 +94,13 @@ func (h *HTTPHandler) HandlePatchDevice(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleConnectDevice(c *gin.Context) {
+func (h *OrgsHandlers) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
 	var req dto.ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+		c.JSON(http.StatusBadRequest, dto.Error(InvalidRequestError(err)))
 
 		return
 	}
@@ -131,7 +127,7 @@ func (h *HTTPHandler) HandleConnectDevice(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleListDevices(c *gin.Context) {
+func (h *OrgsHandlers) HandleListDevices(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -142,7 +138,7 @@ func (h *HTTPHandler) HandleListDevices(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case err != nil:
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 	default:
@@ -155,7 +151,7 @@ func (h *HTTPHandler) HandleListDevices(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleDisconnectDevice(c *gin.Context) {
+func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -225,13 +221,15 @@ func ensureDeviceInRouteOrganization(
 	}
 
 	if device.OrganizationID != orgID {
-		c.JSON(http.StatusNotFound, dto.Error(errors.New("device not found")))
+		c.JSON(http.StatusNotFound, dto.Error(ErrDeviceNotFound))
 
 		return false
 	}
 
 	return true
 }
+
+var ErrDeviceNotFound = errors.New("device not found")
 
 func deviceToDTO(d *domain.OrganizationDevice) dto.DeviceResponse {
 	return dto.DeviceResponse{

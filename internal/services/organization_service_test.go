@@ -480,7 +480,7 @@ func (r *fakeOrganizationsRepository) GetOrganizationByID(
 
 	org, ok := r.orgs[id]
 	if !ok {
-		return nil, errors.New("organization not found")
+		return nil, ErrOrganizationNotFound
 	}
 
 	orgCopy := *org
@@ -539,7 +539,7 @@ func (r *fakeOrganizationsRepository) RenameOrganization(
 
 	org, ok := r.orgs[orgID]
 	if !ok {
-		return errors.New("organization not found")
+		return ErrOrganizationNotFound
 	}
 
 	org.Name = name
@@ -547,6 +547,8 @@ func (r *fakeOrganizationsRepository) RenameOrganization(
 
 	return nil
 }
+
+var ErrOrganizationNotFound = errors.New("organization not found")
 
 func (r *fakeOrganizationsRepository) DeleteOrganization(
 	ctx context.Context,
@@ -585,7 +587,7 @@ func (r *fakeOrganizationsRepository) UpdateMemberRole(
 
 	member, ok := r.members[memberKey{orgID: orgID, userID: userID}]
 	if !ok {
-		return errors.New("member not found")
+		return ErrMemberNotFound
 	}
 
 	member.Role = role
@@ -612,13 +614,15 @@ func (r *fakeOrganizationsRepository) GetMember(
 
 	member, ok := r.members[memberKey{orgID: orgID, userID: userID}]
 	if !ok {
-		return nil, errors.New("member not found")
+		return nil, ErrMemberNotFound
 	}
 
 	memberCopy := *member
 
 	return &memberCopy, nil
 }
+
+var ErrMemberNotFound = errors.New("member not found")
 
 func (r *fakeOrganizationsRepository) GetMembersWithUserInfo(
 	ctx context.Context,
@@ -666,7 +670,7 @@ func (r *fakeOrganizationsRepository) GetInvitationByID(
 
 	inv, ok := r.invitations[id]
 	if !ok {
-		return nil, errors.New("invitation not found")
+		return nil, ErrInvitationsNotFound
 	}
 
 	invCopy := *inv
@@ -732,13 +736,15 @@ func (r *fakeOrganizationsRepository) UpdateInvitationStatus(
 
 	inv, ok := r.invitations[id]
 	if !ok {
-		return errors.New("invitation not found")
+		return ErrInvitationsNotFound
 	}
 
 	inv.Status = status
 
 	return nil
 }
+
+var ErrInvitationsNotFound = errors.New("invitaions not found")
 
 func (r *fakeOrganizationsRepository) addOrg(
 	id uuid.UUID,
@@ -820,7 +826,7 @@ func (r *fakeOrgDevicesRepository) GetDevice(
 
 	device, ok := r.devices[deviceID]
 	if !ok {
-		return nil, errors.New("device not found")
+		return nil, ErrDeviceNotFound
 	}
 
 	deviceCopy := *device
@@ -859,13 +865,15 @@ func (r *fakeOrgDevicesRepository) SetName(
 
 	device, ok := r.devices[deviceID]
 	if !ok {
-		return errors.New("device not found")
+		return ErrDeviceNotFound
 	}
 
 	device.Name = name
 
 	return nil
 }
+
+var ErrDeviceNotFound = errors.New("device not found")
 
 func (r *fakeOrgDevicesRepository) DeviceExists(
 	ctx context.Context,

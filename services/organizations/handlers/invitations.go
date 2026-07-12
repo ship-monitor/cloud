@@ -16,7 +16,7 @@ var ErrInvalidInviteRequest = errors.New(
 	"invalid request: expected inviteeEmail or inviteeEmails",
 )
 
-func (h *HTTPHandler) HandleCreateInvitation(c *gin.Context) {
+func (h *OrgsHandlers) HandleCreateInvitation(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -81,7 +81,7 @@ func writeCreateInvitationResponse(
 ) {
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case errors.Is(err, services.ErrInvitationAlreadyPending):
 		c.JSON(http.StatusConflict, dto.Error(err))
 	case err != nil:
@@ -91,7 +91,7 @@ func writeCreateInvitationResponse(
 	}
 }
 
-func (h *HTTPHandler) HandleListMyInvitations(c *gin.Context) {
+func (h *OrgsHandlers) HandleListMyInvitations(c *gin.Context) {
 	session := auth.GetSession(c)
 
 	invs, err := h.invitations.ListMyInvitations(
@@ -112,7 +112,7 @@ func (h *HTTPHandler) HandleListMyInvitations(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.ListInvitationsResponse{Invitations: resp})
 }
 
-func (h *HTTPHandler) HandleListOrgInvitations(c *gin.Context) {
+func (h *OrgsHandlers) HandleListOrgInvitations(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -124,7 +124,7 @@ func (h *HTTPHandler) HandleListOrgInvitations(c *gin.Context) {
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember),
 		errors.Is(err, services.ErrNotAllowed):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case err != nil:
 		c.JSON(http.StatusInternalServerError, dto.Error(err))
 	default:
@@ -137,7 +137,7 @@ func (h *HTTPHandler) HandleListOrgInvitations(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleAcceptInvitation(c *gin.Context) {
+func (h *OrgsHandlers) HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -165,7 +165,7 @@ func (h *HTTPHandler) HandleAcceptInvitation(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleDeclineInvitation(c *gin.Context) {
+func (h *OrgsHandlers) HandleDeclineInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 

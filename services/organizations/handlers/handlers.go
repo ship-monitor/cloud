@@ -125,7 +125,7 @@ type OrgDevicesService interface {
 	) ([]domain.OrganizationDevice, error)
 }
 
-type HTTPHandler struct {
+type OrgsHandlers struct {
 	orgs        OrganizationService
 	members     OrganizationMembersService
 	invitations OrganizationInvitationsService
@@ -137,8 +137,8 @@ func New(
 	members OrganizationMembersService,
 	invitations OrganizationInvitationsService,
 	devices OrgDevicesService,
-) *HTTPHandler {
-	return &HTTPHandler{
+) *OrgsHandlers {
+	return &OrgsHandlers{
 		orgs:        orgs,
 		members:     members,
 		invitations: invitations,
@@ -146,7 +146,7 @@ func New(
 	}
 }
 
-func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
+func (h *OrgsHandlers) HandleCreateOrganization(c *gin.Context) {
 	var req dto.CreateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("Invalid create organization request", "error", err)
@@ -176,7 +176,7 @@ func (h *HTTPHandler) HandleCreateOrganization(c *gin.Context) {
 	})
 }
 
-func (h *HTTPHandler) HandleGetMyOrganizations(c *gin.Context) {
+func (h *OrgsHandlers) HandleGetMyOrganizations(c *gin.Context) {
 	session := auth.GetSession(c)
 
 	orgs, err := h.orgs.GetUsersOrganizations(
@@ -205,7 +205,7 @@ func (h *HTTPHandler) HandleGetMyOrganizations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"organizations": resp})
 }
 
-func (h *HTTPHandler) HandleGetOrganization(c *gin.Context) {
+func (h *OrgsHandlers) HandleGetOrganization(c *gin.Context) {
 	organizationID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -228,12 +228,24 @@ func (h *HTTPHandler) HandleGetOrganization(c *gin.Context) {
 	c.JSON(http.StatusOK, organizationToDTO(org))
 }
 
-func (h *HTTPHandler) HandleUpdateOrganization(c *gin.Context) {
+func InvalidRequestError(err error) error {
+	return fmt.Errorf("invalid request: %w", err)
+}
+
+func AccesDeniedError(err error) error {
+	return fmt.Errorf("access denied: %w", err)
+}
+
+func InternalServerError(err error) error {
+	return fmt.Errorf("internal server error: %w", err)
+}
+
+func (h *OrgsHandlers) HandleUpdateOrganization(c *gin.Context) {
 	id := requests.MustGetParamUUID(c, "id")
 
 	var req dto.UpdateOrganizationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(errors.New("invalid request")))
+		c.JSON(http.StatusBadRequest, dto.Error(InvalidRequestError(err)))
 
 		return
 	}
@@ -248,15 +260,21 @@ func (h *HTTPHandler) HandleUpdateOrganization(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+		c.JSON(
+			http.StatusForbidden,
+			requests.ResponseErr(AccesDeniedError(err)),
+		)
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		c.JSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(InternalServerError(err)),
+		)
 	default:
 		c.Status(http.StatusOK)
 	}
 }
 
-func (h *HTTPHandler) HandleDeleteOrganization(c *gin.Context) {
+func (h *OrgsHandlers) HandleDeleteOrganization(c *gin.Context) {
 	id := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -265,15 +283,18 @@ func (h *HTTPHandler) HandleDeleteOrganization(c *gin.Context) {
 	case errors.Is(err, services.ErrOrganizationNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))
 	case errors.Is(err, services.ErrOnlyOwnerCanDelete):
-		c.JSON(http.StatusForbidden, dto.Error(err))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(
+			http.StatusInternalServerError,
+			dto.Error(InternalServerError(err)),
+		)
 	default:
 		c.Status(http.StatusOK)
 	}
 }
 
-func (h *HTTPHandler) HandleGetMembers(c *gin.Context) {
+func (h *OrgsHandlers) HandleGetMembers(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -284,15 +305,18 @@ func (h *HTTPHandler) HandleGetMembers(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(
+			http.StatusInternalServerError,
+			dto.Error(InternalServerError(err)),
+		)
 	default:
 		c.JSON(http.StatusOK, gin.H{"members": members})
 	}
 }
 
-func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
+func (h *OrgsHandlers) HandleAddMember(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -300,7 +324,7 @@ func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			dto.Error(errors.New("invalid request: "+err.Error())),
+			dto.Error(InvalidRequestError(err)),
 		)
 
 		return
@@ -315,14 +339,17 @@ func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(
+			http.StatusForbidden,
+			dto.Error(AccesDeniedError(err)),
+		)
 	case errors.Is(err, services.ErrCannotAssignOwnerRole),
 		errors.Is(err, services.ErrInvalidMemberRole):
-		c.JSON(http.StatusBadRequest, dto.Error(err))
+		c.JSON(http.StatusBadRequest, AccesDeniedError(err))
 	case errors.Is(err, services.ErrMemberAlreadyExists):
 		c.JSON(http.StatusConflict, dto.Error(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, InternalServerError(err))
 	default:
 		c.JSON(http.StatusCreated, gin.H{
 			"memberId":       member.MemberID,
@@ -333,7 +360,7 @@ func (h *HTTPHandler) HandleAddMember(c *gin.Context) {
 	}
 }
 
-func (h *HTTPHandler) HandleUpdateMemberRole(c *gin.Context) {
+func (h *OrgsHandlers) HandleUpdateMemberRole(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	userID := requests.MustGetParamUUID(c, "userId")
 
@@ -341,7 +368,7 @@ func (h *HTTPHandler) HandleUpdateMemberRole(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			dto.Error(fmt.Errorf("invalid request: %w", err)),
+			dto.Error(InvalidRequestError(err)),
 		)
 
 		return
@@ -358,22 +385,22 @@ func (h *HTTPHandler) HandleUpdateMemberRole(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case errors.Is(err, services.ErrMemberNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))
 	case errors.Is(err, services.ErrCannotChangeOwnerRole):
 		c.JSON(http.StatusForbidden, dto.Error(err))
-	case errors.Is(err, services.ErrCannotAssignOwnerRole),
+	case errors.Is(err, services.ErrCannotAssignOwnerRole) ||
 		errors.Is(err, services.ErrInvalidMemberRole):
 		c.JSON(http.StatusBadRequest, dto.Error(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, InternalServerError(err))
 	default:
 		c.Status(http.StatusOK)
 	}
 }
 
-func (h *HTTPHandler) HandleRemoveMember(c *gin.Context) {
+func (h *OrgsHandlers) HandleRemoveMember(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	userID := requests.MustGetParamUUID(c, "userId")
 	session := auth.GetSession(c)
@@ -386,14 +413,14 @@ func (h *HTTPHandler) HandleRemoveMember(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(errors.New("access denied")))
+		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
 	case errors.Is(err, services.ErrMemberNotFound):
 		c.JSON(http.StatusNotFound, dto.Error(err))
 	case errors.Is(err, services.ErrNotAllowed),
 		errors.Is(err, services.ErrRemovingOrganizationOwner):
-		c.JSON(http.StatusForbidden, dto.Error(err))
+		c.JSON(http.StatusForbidden, AccesDeniedError(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, InternalServerError(err))
 	default:
 		c.Status(http.StatusOK)
 	}

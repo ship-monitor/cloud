@@ -8,7 +8,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
 )
 
 func TestOrganizationsRepoMemberMethods(t *testing.T) {

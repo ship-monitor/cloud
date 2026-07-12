@@ -9,23 +9,20 @@ import (
 	"charm.land/log/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
-
-type DeviceStatesConfig struct {
-	MaxHistoryLength int64 `validate:"required,gt=0"`
-}
 
 // DeviceStatesRepository manages state records in redis.
 type DeviceStatesRepository struct {
 	rdb    *redis.Client
-	config DeviceStatesConfig
+	config *viper.Viper
 	logger *log.Logger
 }
 
 func NewDeviceStatesRepo(
 	rdb *redis.Client,
-	config DeviceStatesConfig,
+	config *viper.Viper,
 	logger *log.Logger,
 ) *DeviceStatesRepository {
 	return &DeviceStatesRepository{
@@ -55,7 +52,7 @@ func (c *DeviceStatesRepository) AddRecord(
 		return fmt.Errorf("add record for %s: %w", key, err)
 	}
 
-	if length > c.config.MaxHistoryLength {
+	if length > c.maxHistoryLength() {
 		trimCtx, cancel := context.WithTimeout(
 			ctx,
 			TrimRecordsTimeout,
@@ -83,7 +80,7 @@ func (c *DeviceStatesRepository) TrimRecords(
 	deviceID, state string,
 ) error {
 	key := getStateKey(deviceID, state)
-	if err := c.rdb.LTrim(ctx, key, 0, c.config.MaxHistoryLength).
+	if err := c.rdb.LTrim(ctx, key, 0, c.maxHistoryLength()).
 		Err(); err != nil {
 		return fmt.Errorf("failed to trim records for %s: %w", key, err)
 	}
@@ -99,7 +96,7 @@ func (c *DeviceStatesRepository) GetStates(
 	key := getStateKey(deviceID, state)
 
 	if historyLength == 0 {
-		historyLength = int(c.config.MaxHistoryLength)
+		historyLength = int(c.maxHistoryLength())
 	}
 
 	values, err := c.rdb.LRange(ctx, key, 0, int64(historyLength)).Result()
@@ -123,6 +120,10 @@ func (c *DeviceStatesRepository) GetStates(
 	}
 
 	return records, nil
+}
+
+func (c *DeviceStatesRepository) maxHistoryLength() int64 {
+	return c.config.GetInt64("states.max-history-length")
 }
 
 func getStateKey(deviceID, state string) string {

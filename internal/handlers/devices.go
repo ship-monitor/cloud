@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
@@ -29,14 +30,31 @@ type DevicesService interface {
 	) error
 }
 
+var _ pkg.Handler = (*DevicesHandlers)(nil)
+
 type DevicesHandlers struct {
-	devices DevicesService
+	middleware auth.Middleware
+	devices    DevicesService
 }
 
-func NewDevicesHandlers(devices DevicesService) *DevicesHandlers {
+func NewDevice(devices DevicesService) *DevicesHandlers {
 	return &DevicesHandlers{
 		devices: devices,
 	}
+}
+
+// SetupRoutes implements [pkg.Handler].
+func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
+	router.GET(
+		"/api/v2/devices/:id/state/:state",
+		d.middleware.WithAuthenticationRequired,
+		d.HandleGetState,
+	)
+	router.POST(
+		"/api/v2/devices/:id/command",
+		d.middleware.WithAuthenticationRequired,
+		d.HandleSendCommand,
+	)
 }
 
 func (d *DevicesHandlers) HandleGetState(c *gin.Context) {

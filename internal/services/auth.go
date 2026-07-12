@@ -222,7 +222,7 @@ func (a *AuthService) ConfirmEmail(
 	}
 
 	if confData.UserID != userID {
-		return errors.New("wrong user to confirm email")
+		return ErrWrongUserToConfirm
 	}
 
 	user, err := a.GetUser(ctx, confData.UserID)
@@ -231,7 +231,7 @@ func (a *AuthService) ConfirmEmail(
 	}
 
 	if confData.Email != user.Email {
-		return errors.New("wrong email to confirm")
+		return ErrWrongEmailToConfirm
 	}
 
 	if user.EmailVerified {
@@ -244,6 +244,11 @@ func (a *AuthService) ConfirmEmail(
 
 	return nil
 }
+
+var (
+	ErrWrongUserToConfirm  = errors.New("wrong user to confirm email")
+	ErrWrongEmailToConfirm = errors.New("wrong email to confirm")
+)
 
 // ErrBadCredentials is returned when the user provides invalid credentials
 // (email or password).

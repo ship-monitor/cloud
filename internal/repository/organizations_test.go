@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 )
 

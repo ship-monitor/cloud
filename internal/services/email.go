@@ -6,6 +6,7 @@ import (
 	"net/smtp"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
@@ -19,6 +20,8 @@ type EmailServiceConfig struct {
 	AuthPassword string `validate:"required"`
 
 	SenderName string `validate:"required"`
+
+	Disabled bool
 }
 
 type EmailService struct {
@@ -26,7 +29,21 @@ type EmailService struct {
 	conf EmailServiceConfig
 }
 
-func NewEmailService(conf EmailServiceConfig) (*EmailService, error) {
+func NewEmailService(vConf *viper.Viper) (*EmailService, error) {
+	conf := EmailServiceConfig{
+		SMTPHost:     vConf.GetString("email.smtp-host"),
+		SMTPPort:     vConf.GetUint("email.smtp-port"),
+		SenderName:   vConf.GetString("email.sender-name"),
+		AuthEmail:    vConf.GetString("email.email"),
+		AuthPassword: vConf.GetString("email.password"),
+		Disabled:     vConf.GetBool("email.disabled"),
+	}
+	if conf.Disabled {
+		return &EmailService{
+			conf: conf,
+		}, nil
+	}
+
 	err := validator.New().Struct(conf)
 	if err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -45,6 +62,10 @@ func NewEmailService(conf EmailServiceConfig) (*EmailService, error) {
 
 // SendEmail implements [EmailSender].
 func (s *EmailService) SendEmail(ctx context.Context, e email.Email) error {
+	if s.conf.Disabled {
+		return nil
+	}
+
 	w := email.NewHTMLWriter(email.Sender{
 		Email: s.conf.AuthEmail,
 		Name:  s.conf.SenderName,

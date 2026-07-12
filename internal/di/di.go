@@ -3,17 +3,43 @@ package di
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"charm.land/log/v2"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 )
+
+func NewRedisClient(config *viper.Viper) *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     config.GetString("redis.addr"),
+		Password: config.GetString("redis.password"),
+		DB:       config.GetInt("redis.db"),
+	})
+}
+
+func NewRabbitMQClient(config *viper.Viper) (*amqp091.Connection, error) {
+	client, err := amqp091.Dial(config.GetString("rabbitmq-url"))
+	if err != nil {
+		return nil, fmt.Errorf("failed dial rebbitmq: %w", err)
+	}
+
+	return client, nil
+}
+
+func NewDatabaseClient(config *viper.Viper) (*sql.DB, error) {
+	db, err := db.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	return db, nil
+}
 
 type Container struct {
 	config *viper.Viper
@@ -46,6 +72,7 @@ func NewContainer(config *viper.Viper, logger *log.Logger) *Container {
 		logger: logger,
 	}
 }
+func (c *Container) Config() *viper.Viper { return c.config }
 
 func (c *Container) Logger() *log.Logger {
 	return c.logger
@@ -113,9 +140,7 @@ func (c *Container) DeviceStates() *repository.DeviceStatesRepository {
 	if c.deviceStates == nil {
 		c.deviceStates = repository.NewDeviceStatesRepo(
 			c.redis,
-			repository.DeviceStatesConfig{
-				MaxHistoryLength: MaxHistoryLength,
-			},
+			c.config,
 			c.logger,
 		)
 	}
@@ -149,19 +174,9 @@ func (c *Container) OrganizationsService() *services.OrganizationsService {
 	return c.organizationsService
 }
 
-func (c *Container) EmailService() domain.EmailSender {
-	if c.config.GetBool("email.disabled") {
-		return services.NewDummyEmailService(c.logger)
-	}
-
+func (c *Container) EmailService() *services.EmailService {
 	if c.emailService == nil {
-		email, err := services.NewEmailService(services.EmailServiceConfig{
-			SMTPHost:     viper.GetString("email.smtp-host"),
-			SMTPPort:     viper.GetUint("email.smtp-port"),
-			SenderName:   viper.GetString("email.sender-name"),
-			AuthEmail:    viper.GetString("email.email"),
-			AuthPassword: viper.GetString("email.password"),
-		})
+		email, err := services.NewEmailService(c.config)
 		if err != nil {
 			panic(err)
 		}
@@ -219,7 +234,7 @@ func (c *Container) UsersRepo() *repository.UsersRepo {
 
 func (c *Container) DevicesHandlers() *handlers.DevicesHandlers {
 	if c.devicesHandlers == nil {
-		c.devicesHandlers = handlers.NewDevicesHandlers(c.DevicesService())
+		c.devicesHandlers = handlers.NewDevice(c.DevicesService())
 	}
 
 	return c.devicesHandlers

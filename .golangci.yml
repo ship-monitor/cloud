@@ -7,16 +7,16 @@ linters:
     - gomodguard
     # useless
     - tagalign
+    - ireturn
     # own style
     - varnamelen
     - revive
     # temporary disabled
-    - funlen
     - cyclop
     - noinlineerr
     - exhaustruct
-    # - gochecknoglobals
-    - err113
+    - gosec
+    - funlen
 
   settings:
     depguard:

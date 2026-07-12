@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
@@ -29,24 +30,49 @@ type AuthService interface {
 	ChangeEmail(ctx context.Context, userID uuid.UUID, newEmail string) error
 }
 
+var _ pkg.Handler = (*AuthHandlers)(nil)
+
 type AuthHandlers struct {
 	logger        *log.Logger
 	authService   AuthService
 	sessions      auth.SessionStore
 	cookieOptions auth.CookieOptions
+	middleware    auth.Middleware
 }
 
 func NewAuthHandlers(
 	authService AuthService,
 	sessions auth.SessionStore,
 	cookieOptions auth.CookieOptions,
+	middleware auth.Middleware,
 ) *AuthHandlers {
 	return &AuthHandlers{
 		authService:   authService,
 		sessions:      sessions,
 		cookieOptions: cookieOptions,
 		logger:        log.WithPrefix("Auth handlers"),
+		middleware:    middleware,
 	}
+}
+
+// SetupRoutes implements [pkg.Handler].
+func (a *AuthHandlers) SetupRoutes(router gin.IRouter) {
+	auth := router.Group("/api/auth")
+	auth.POST("/register", a.HandleRegister)
+	auth.POST("/login", a.HandleLogin)
+	auth.POST(
+		"/refresh",
+		a.middleware.WithAuthenticationRequired,
+		a.HandleRefresh,
+	)
+	auth.POST("/logout", a.middleware.WithMiddleware, a.HandleLogout)
+	users := router.Group("/api/users", a.middleware.WithAuthenticationRequired)
+	users.GET("/me", a.HandleGetUser)
+	users.GET("/:id", a.HandleGetUser)
+	users.POST("/:id/set-password", a.HandleUserSetPassword)
+	users.POST("/:id/set-email", a.HandleUserSetEmail)
+	users.POST("/start-email-confirmation", a.HandleStartEmailConfirmation)
+	users.POST("/confirm-email/:token", a.HandleConfirmEmail)
 }
 
 func (a *AuthHandlers) HandleRegister(c *gin.Context) {
@@ -150,7 +176,10 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 func (a *AuthHandlers) HandleLogout(c *gin.Context) {
 	sessionID, err := c.Cookie(a.cookieOptions.Name)
 	if err == nil {
-		if err := a.sessions.Delete(c.Request.Context(), sessionID); err != nil {
+		if err := a.sessions.Delete(
+			c.Request.Context(),
+			sessionID,
+		); err != nil {
 			c.AbortWithStatusJSON(
 				http.StatusInternalServerError,
 				requests.ResponseErr(err),
@@ -265,6 +294,8 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+var ErrNotAllowedSetEmail = errors.New("not allowed to set email for this user")
+
 func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
@@ -272,9 +303,7 @@ func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	if session.UserID != id {
 		ctx.AbortWithStatusJSON(
 			http.StatusForbidden,
-			requests.ResponseErr(
-				errors.New("not allowed to set email for this user"),
-			),
+			requests.ResponseErr(ErrNotAllowedSetEmail),
 		)
 
 		return

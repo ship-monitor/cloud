@@ -1,0 +1,1216 @@
+openapi: 3.0.3
+info:
+  title: Ship Monitor Cloud Auth API
+  version: 1.0.0
+  description: |
+    OpenAPI specification generated from the Gin route registrations and handlers in this service.
+    Most endpoints use a cookie-based session named `ship_session`.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Organizations
+  - name: Organization Members
+  - name: Invitations
+  - name: Devices
+security:
+  - shipSession: []
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserRequest"
+      responses:
+        "201":
+          description: User registered
+        "400":
+          description: Invalid registration data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and create a session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful. A `ship_session` cookie is set.
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+                example: ship_session=abc123; Path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh the current authenticated session
+      responses:
+        "200":
+          description: Session refreshed. A fresh session cookie is set.
+          headers:
+            Set-Cookie:
+              description: Refreshed session cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session]
+                properties:
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out and clear the session cookie
+      security:
+        - shipSession: []
+        - {}
+      responses:
+        "200":
+          description: Logged out. Session cookie is cleared.
+          headers:
+            Set-Cookie:
+              description: Expired session cookie
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/users/me:
+    get:
+      tags: [Users]
+      summary: Get the current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get a user by ID
+      description: The authenticated user may only fetch their own user record.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "404":
+          description: User not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/{id}/set-password:
+    post:
+      tags: [Users]
+      summary: Change the current user's password
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetPasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+        "400":
+          description: Invalid request or password rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found or not accessible
+
+  /api/users/{id}/set-email:
+    post:
+      tags: [Users]
+      summary: Change the current user's email
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetEmailRequest"
+      responses:
+        "200":
+          description: Email changed
+        "400":
+          description: Invalid request or email rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/users/start-email-confirmation:
+    post:
+      tags: [Users]
+      summary: Start email confirmation for the current user
+      responses:
+        "200":
+          description: Confirmation started
+        "304":
+          description: Email is already confirmed
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/users/confirm-email/{token}:
+    post:
+      tags: [Users]
+      summary: Confirm the current user's email using a token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email confirmed
+        "304":
+          description: Email is already confirmed
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/:
+    post:
+      tags: [Organizations]
+      summary: Create an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationNameRequest"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizationId]
+                properties:
+                  organizationId:
+                    $ref: "#/components/schemas/UUID"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/my:
+    get:
+      tags: [Organizations]
+      summary: List organizations for the current user
+      responses:
+        "200":
+          description: Organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizations]
+                properties:
+                  organizations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Organization"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}:
+    get:
+      tags: [Organizations]
+      summary: Get an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      tags: [Organizations]
+      summary: Rename an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationNameRequest"
+      responses:
+        "200":
+          description: Organization renamed
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Organizations]
+      summary: Delete an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Organization deleted
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}/members:
+    get:
+      tags: [Organization Members]
+      summary: List organization members
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Organization members
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [members]
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrganizationMemberWithUser"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Organization Members]
+      summary: Add a member to an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemberRequest"
+      responses:
+        "201":
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationMember"
+        "400":
+          description: Invalid request or role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Member already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}/members/{userId}:
+    patch:
+      tags: [Organization Members]
+      summary: Update a member role
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/UserIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberRoleRequest"
+      responses:
+        "200":
+          description: Member role updated
+        "400":
+          description: Invalid request or role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Organization Members]
+      summary: Remove a member from an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/UserIdParam"
+      responses:
+        "200":
+          description: Member removed
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}/devices:
+    get:
+      tags: [Devices]
+      summary: List devices connected to an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Organization devices
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Devices]
+      summary: Connect a device to an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectDeviceRequest"
+      responses:
+        "201":
+          description: Device connected
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Device is already connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}/devices/{deviceId}:
+    get:
+      tags: [Devices]
+      summary: Get an organization device
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      tags: [Devices]
+      summary: Rename an organization device
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeviceRequest"
+      responses:
+        "200":
+          description: Device renamed
+        "400":
+          description: Invalid request or device name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Devices]
+      summary: Disconnect an organization device
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device disconnected
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/devices/{id}:
+    get:
+      tags: [Devices]
+      summary: Get a device by ID
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdAsId"
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      tags: [Devices]
+      summary: Rename a device by ID
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdAsId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeviceRequest"
+      responses:
+        "200":
+          description: Device renamed
+        "400":
+          description: Invalid request or device name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags: [Devices]
+      summary: Disconnect a device by ID
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdAsId"
+      responses:
+        "200":
+          description: Device disconnected
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v2/devices/{id}/state/{state}:
+    get:
+      tags: [Devices]
+      summary: Get the current or historical state records for a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdAsId"
+        - name: state
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: history
+          in: query
+          required: false
+          description: Number of historical records to return. If omitted, only the current/default record set is requested.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Device state records
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [result]
+                properties:
+                  result:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StateRecord"
+        "400":
+          description: Invalid history query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v2/devices/{id}/command:
+    post:
+      tags: [Devices]
+      summary: Send a command to a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdAsId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCommandRequest"
+      responses:
+        "200":
+          description: Command accepted
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/organizations/{id}/invitations:
+    get:
+      tags: [Invitations]
+      summary: List pending invitations for an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListInvitationsResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Invitations]
+      summary: Create one or more invitations for an organization
+      description: Send either `inviteeEmail` for a single invitation or `inviteeEmails` for bulk creation.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/CreateInvitationRequest"
+                - $ref: "#/components/schemas/CreateInvitationBulkRequest"
+            examples:
+              single:
+                value:
+                  inviteeEmail: user@example.com
+              bulk:
+                value:
+                  inviteeEmails:
+                    - first@example.com
+                    - second@example.com
+      responses:
+        "201":
+          description: Invitation(s) created
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Invitation"
+                  - $ref: "#/components/schemas/BulkCreateInvitationsResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Invitation already pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/invitations:
+    get:
+      tags: [Invitations]
+      summary: List invitations for the current user's email
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListInvitationsResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/invitations/{id}/accept:
+    post:
+      tags: [Invitations]
+      summary: Accept an invitation
+      parameters:
+        - $ref: "#/components/parameters/InvitationId"
+      responses:
+        "200":
+          description: Invitation accepted
+        "400":
+          description: Invitation already processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: User is already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "410":
+          description: Invitation expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/invitations/{id}/decline:
+    post:
+      tags: [Invitations]
+      summary: Decline an invitation
+      parameters:
+        - $ref: "#/components/parameters/InvitationId"
+      responses:
+        "200":
+          description: Invitation declined
+        "400":
+          description: Invitation already processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    shipSession:
+      type: apiKey
+      in: cookie
+      name: ship_session
+      description: Session cookie set by `POST /api/auth/login`.
+
+  parameters:
+    OrganizationId:
+      name: id
+      in: path
+      required: true
+      description: Organization UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: User UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+    UserIdParam:
+      name: userId
+      in: path
+      required: true
+      description: User UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      description: Device UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+    DeviceIdAsId:
+      name: id
+      in: path
+      required: true
+      description: Device UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+    InvitationId:
+      name: id
+      in: path
+      required: true
+      description: Invitation UUID
+      schema:
+        $ref: "#/components/schemas/UUID"
+
+  responses:
+    Unauthorized:
+      description: Authentication required or session is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      example: 80fcdeff-0bc3-4f93-a2b0-00632344ac88
+    Timestamp:
+      type: string
+      format: date-time
+      example: "2026-07-09T19:00:37.607709Z"
+    Role:
+      type: string
+      enum: [owner, administrator, member]
+
+    ErrorResponse:
+      type: object
+      required: [details]
+      properties:
+        details:
+          type: string
+        messageForArmen:
+          type: string
+          nullable: true
+
+    ValidationError:
+      type: object
+      properties:
+        actualTag:
+          type: string
+        error:
+          type: string
+        field:
+          type: string
+        structField:
+          type: string
+        tag:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        details:
+          type: string
+          example: body validation fails
+        validationErrors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationError"
+
+    RegisterUserRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 5
+          format: password
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    User:
+      type: object
+      required: [id, name, email, emailVerified, blocked, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
+        blocked:
+          type: boolean
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+        updatedAt:
+          $ref: "#/components/schemas/Timestamp"
+
+    UserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    Session:
+      type: object
+      required: [userId, email]
+      properties:
+        userId:
+          $ref: "#/components/schemas/UUID"
+        email:
+          type: string
+          format: email
+
+    SetPasswordRequest:
+      type: object
+      required: [oldPassword, password]
+      properties:
+        oldPassword:
+          type: string
+          format: password
+        password:
+          type: string
+          format: password
+
+    SetEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    Organization:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+        updatedAt:
+          $ref: "#/components/schemas/Timestamp"
+
+    OrganizationNameRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    OrganizationMember:
+      type: object
+      required: [memberId, organizationId, role, joinedAt]
+      properties:
+        memberId:
+          $ref: "#/components/schemas/UUID"
+        organizationId:
+          $ref: "#/components/schemas/UUID"
+        role:
+          $ref: "#/components/schemas/Role"
+        joinedAt:
+          $ref: "#/components/schemas/Timestamp"
+
+    OrganizationMemberWithUser:
+      allOf:
+        - $ref: "#/components/schemas/OrganizationMember"
+        - type: object
+          required: [name, email]
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+
+    AddMemberRequest:
+      type: object
+      required: [userId, role]
+      properties:
+        userId:
+          $ref: "#/components/schemas/UUID"
+        role:
+          $ref: "#/components/schemas/Role"
+
+    UpdateMemberRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+
+    CreateInvitationRequest:
+      type: object
+      required: [inviteeEmail]
+      properties:
+        inviteeEmail:
+          type: string
+          format: email
+
+    CreateInvitationBulkRequest:
+      type: object
+      required: [inviteeEmails]
+      properties:
+        inviteeEmails:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: email
+
+    Invitation:
+      type: object
+      required: [id, organizationId, inviteeEmail, status, createdAt, expiresAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        organizationId:
+          $ref: "#/components/schemas/UUID"
+        organizationName:
+          type: string
+        inviteeEmail:
+          type: string
+          format: email
+        status:
+          type: string
+          example: pending
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+        expiresAt:
+          $ref: "#/components/schemas/Timestamp"
+
+    ListInvitationsResponse:
+      type: object
+      required: [invitations]
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+
+    BulkCreateInvitationsResponse:
+      type: object
+      required: [invitations]
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+        errors:
+          type: string
+          description: Joined error messages for invitations that could not be created.
+
+    Device:
+      type: object
+      required: [id, organizationId, createdAt, name]
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        organizationId:
+          $ref: "#/components/schemas/UUID"
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+        name:
+          type: string
+
+    ConnectDeviceRequest:
+      type: object
+      required: [deviceId]
+      properties:
+        deviceId:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+
+    UpdateDeviceRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    SendCommandRequest:
+      type: object
+      required: [command]
+      properties:
+        command:
+          type: string
+        args:
+          type: object
+          additionalProperties: true
+
+    StateRecord:
+      type: object
+      required: [deviceId, state, timestamp, value]
+      properties:
+        deviceId:
+          type: string
+        state:
+          type: string
+        timestamp:
+          $ref: "#/components/schemas/Timestamp"
+        value:
+          description: State value. Type depends on the requested state.

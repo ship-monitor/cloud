@@ -49,13 +49,9 @@ func NewRedisSessionStore(
 	redisClient *redis.Client,
 	ttl time.Duration,
 ) *RedisSessionStore {
-	if ttl <= 0 {
-		ttl = DefaultSessionTTL
-	}
-
 	return &RedisSessionStore{
 		redis: redisClient,
-		ttl:   ttl,
+		ttl:   DefaultSessionTTL,
 	}
 }
 
@@ -174,7 +170,7 @@ func (s *RedisSessionStore) set(
 func newSessionID() (string, error) {
 	buf := make([]byte, sessionIDBytes)
 	if _, err := rand.Read(buf); err != nil {
-		return "", err
+		return "", fmt.Errorf("read random bytes: %w", err)
 	}
 
 	return base64.RawURLEncoding.EncodeToString(buf), nil

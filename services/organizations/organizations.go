@@ -1,12 +1,10 @@
 package organizations
 
 import (
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
-	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repositories"
+	repository "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/handlers"
@@ -31,7 +29,6 @@ var (
 )
 
 func SetupRoutes(
-	ctx context.Context,
 	router gin.IRouter,
 	container *di.Container,
 ) error {
@@ -39,10 +36,7 @@ func SetupRoutes(
 		container.Redis(),
 		auth.SessionTTL(viper.GetViper()),
 	)
-	middleware := auth.DefaultMiddleware(
-		viper.GetViper(),
-		sessionStore,
-	)
+	middleware := auth.NewMiddleware(sessionStore, container.Config())
 
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
@@ -55,7 +49,6 @@ func SetupRoutes(
 		orgsService,
 		orgDevicesService,
 	)
-	devicesHandler := container.DevicesHandlers()
 
 	// Роуты с проверкой аутентификации
 	orgs := api.Group("/organizations")
@@ -89,17 +82,6 @@ func SetupRoutes(
 	api.GET("/devices/:id", webHandler.HandleGetDevice)
 	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
 	api.DELETE("/devices/:id", webHandler.HandleDisconnectDevice)
-
-	api.GET(
-		"/v2/devices/:id/state/:state",
-		middleware.WithAuthenticationRequired,
-		devicesHandler.HandleGetState,
-	)
-	api.POST(
-		"/v2/devices/:id/command",
-		middleware.WithAuthenticationRequired,
-		devicesHandler.HandleSendCommand,
-	)
 
 	return nil
 }

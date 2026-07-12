@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	sessionContextKey    = "ship-auth-session"
+	// Specify key to search [Session] in [gin.Context].
+	sessionContextKey = "ship-auth-session"
+	// Specify key to search [Middleware] in [gin.Context].
 	middlewareContextKey = "ship-auth-middleware"
 )
 
@@ -30,60 +32,24 @@ var (
 	)
 )
 
-// DefaultMiddleware returns a new [Middleware] with the default session and
-// SpiceDB configuration from viper.
-//
-// It uses the following viper configuration keys:
-//
-//   - session.cookie-name string
-//   - session.ttl duration
-func DefaultMiddleware(
-	config *viper.Viper,
-	sessions SessionStore,
-) *Middleware {
-	config.SetDefault("session.cookie-name", DefaultSessionCookieName)
-
-	return MustNewMiddleware(&MiddlewareConfig{
-		Sessions:   sessions,
-		CookieName: config.GetString("session.cookie-name"),
-	})
-}
-
-type MiddlewareConfig struct {
-	Sessions   SessionStore
-	CookieName string
-}
-
 type Middleware struct {
 	log        *log.Logger
 	sessions   SessionStore
 	cookieName string
 }
 
-func newMiddleware(config *MiddlewareConfig) (*Middleware, error) {
-	if config.Sessions == nil {
-		return nil, errors.New("session store is required")
-	}
+// NewMiddleware returns a new [Middleware] with the default session and
+// SpiceDB configuration from viper.
+func NewMiddleware(sessions SessionStore, config *viper.Viper) *Middleware {
+	viper.SetDefault("session.cookie-name", DefaultSessionCookieName)
 
-	cookieName := config.CookieName
-	if cookieName == "" {
-		cookieName = DefaultSessionCookieName
-	}
+	cookieName := viper.GetString("session.cookie-name")
 
 	return &Middleware{
-		log:        log.WithPrefix("auth_middleware"),
-		sessions:   config.Sessions,
+		log:        log.WithPrefix("Auth Middleware"),
+		sessions:   sessions,
 		cookieName: cookieName,
-	}, nil
-}
-
-func MustNewMiddleware(config *MiddlewareConfig) *Middleware {
-	middleware, err := newMiddleware(config)
-	if err != nil {
-		panic(fmt.Errorf("failed create auth middleware: %w", err))
 	}
-
-	return middleware
 }
 
 func GetMiddleware(ctx *gin.Context) *Middleware {
