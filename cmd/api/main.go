@@ -58,14 +58,21 @@ func provideRepos() fx.Option {
 			fx.Annotate(
 				repository.NewOrgs,
 				fx.As(new(pkg.MigrationRepo)),
-				fx.ResultTags(`name:"organizationsRepo"`),
+				fx.ResultTags(`name:"organizations-repo"`),
 			),
 		),
 		fx.Provide(repository.NewUsers,
 			fx.Annotate(
 				repository.NewUsers,
 				fx.As(new(pkg.MigrationRepo)),
-				fx.ResultTags(`name:"usersRepo"`),
+				fx.ResultTags(`name:"users-repo"`),
+			),
+		),
+		fx.Provide(repository.NewDevices,
+			fx.Annotate(
+				repository.NewDevices,
+				fx.As(new(pkg.MigrationRepo)),
+				fx.ResultTags(`name:"devices-repo"`),
 			),
 		),
 		pkg.ProvideMigrations(),

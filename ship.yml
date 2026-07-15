@@ -28,3 +28,15 @@ states:
 http.server:
   read-header-timeout: 5s
   port: 8080
+
+builtin-devices:
+  - "53c14690-602d-4b1e-aebf-0d46c7c571b1"
+  - "34c1472f-62bb-4a94-9fa3-4ed0b3fe3a6a"
+  - "a408fee1-21f3-40a2-9dab-9669c7e06502"
+  - "23bbdcf8-0911-471a-98e5-212a824276b7"
+  - "e0ba8117-6599-4be4-8709-5931b9020aa8"
+  - "e7eb1084-271b-49ab-a5be-1e9e8d8072eb"
+  - "a8eb9e7b-458a-4008-a57e-c940e7b20d37"
+  - "2138a217-760b-4218-9509-0cb98b126ad6"
+  - "232af659-7326-4468-8040-e007f2a853eb"
+  - "d99c8a6e-9602-4fed-a20a-cbbd6db954fb"
