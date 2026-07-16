@@ -52,35 +52,3 @@ type AddMemberRequest struct {
 type UpdateMemberRoleRequest struct {
 	Role string `binding:"required" json:"role"`
 }
-
-// --- Invitation DTOs ---
-
-// --- Device DTOs ---
-
-type UpdateDeviceRequest struct {
-	Name string `binding:"required" json:"name"`
-}
-
-type ConnectDeviceRequest struct {
-	DeviceID uuid.UUID `binding:"required" json:"deviceId"`
-	Name     string    `json:"name"`
-}
-
-type SendCommandRequest struct {
-	Command string         `binding:"required" json:"command"`
-	Args    map[string]any `json:"args,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-}
-
-type DeviceResponse struct {
-	ID             uuid.UUID `json:"id"`
-	OrganizationID uuid.UUID `json:"organizationId"`
-	CreatedAt      time.Time `json:"createdAt"`
-	Name           string    `json:"name"`
-}
-
-type SendCommandResponse struct {
-	RequestError string         `json:"requestError,omitempty"`
-	CommandError string         `json:"commandError,omitempty"`
-	Data         map[string]any `json:"data,omitempty"`
-}

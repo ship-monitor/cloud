@@ -20,9 +20,6 @@ var (
 	_ handlers.OrganizationMembersService = (*services.OrganizationsService)(
 		nil,
 	)
-	_ handlers.OrgDevicesService = (*services.OrgDevicesService)(
-		nil,
-	)
 )
 
 func SetupRoutes(
@@ -38,12 +35,10 @@ func SetupRoutes(
 	api := router.Group("/api", middleware.WithAuthenticationRequired)
 
 	orgsService := container.OrganizationsService()
-	orgDevicesService := container.OrgDevicesService()
 
 	webHandler := handlers.New(
 		orgsService,
 		orgsService,
-		orgDevicesService,
 	)
 
 	// Роуты с проверкой аутентификации
@@ -59,18 +54,6 @@ func SetupRoutes(
 	orgs.POST("/:id/members", webHandler.HandleAddMember)
 	orgs.PATCH("/:id/members/:userId", webHandler.HandleUpdateMemberRole)
 	orgs.DELETE("/:id/members/:userId", webHandler.HandleRemoveMember)
-
-	// Device routes
-	orgs.POST("/:id/devices", webHandler.HandleConnectDevice)
-	orgs.GET("/:id/devices", webHandler.HandleListDevices)
-	orgs.GET("/:id/devices/:deviceId", webHandler.HandleGetDevice)
-	orgs.PATCH("/:id/devices/:deviceId", webHandler.HandlePatchDevice)
-	orgs.DELETE("/:id/devices/:deviceId", webHandler.HandleDisconnectDevice)
-
-	// Devices separate routes
-	api.GET("/devices/:id", webHandler.HandleGetDevice)
-	api.PATCH("/devices/:id", webHandler.HandlePatchDevice)
-	api.DELETE("/devices/:id", webHandler.HandleDisconnectDevice)
 
 	return nil
 }

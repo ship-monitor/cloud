@@ -11,11 +11,10 @@ linters:
     # own style
     - varnamelen
     - revive
+    - noinlineerr
     # temporary disabled
     - cyclop
-    - noinlineerr
     - exhaustruct
-    - gosec
     - funlen
 
   settings:

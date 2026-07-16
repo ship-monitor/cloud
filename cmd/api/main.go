@@ -111,6 +111,13 @@ func provideHandlers() fx.Option {
 				fx.ResultTags(`name:"invitation-handlers"`),
 			),
 		),
+		fx.Provide(handlers.NewOrgDevice,
+			fx.Annotate(
+				handlers.NewOrgDevice,
+				fx.As(new(pkg.Handler)),
+				fx.ResultTags(`name:"org-device-handlers"`),
+			),
+		),
 	)
 }
 

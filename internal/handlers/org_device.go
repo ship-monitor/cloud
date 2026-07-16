@@ -1,19 +1,104 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
-func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
+type UpdateDeviceRequest struct {
+	Name string `binding:"required" json:"name"`
+}
+
+type ConnectDeviceRequest struct {
+	DeviceID uuid.UUID `binding:"required" json:"deviceId"`
+	Name     string    `json:"name"`
+}
+
+type SendCommandRequest struct {
+	Command string         `binding:"required" json:"command"`
+	Args    map[string]any `json:"args,omitempty"`
+	Payload map[string]any `json:"payload,omitempty"`
+}
+
+type DeviceResponse struct {
+	ID             uuid.UUID `json:"id"`
+	OrganizationID uuid.UUID `json:"organizationId"`
+	CreatedAt      time.Time `json:"createdAt"`
+	Name           string    `json:"name"`
+}
+
+type SendCommandResponse struct {
+	RequestError string         `json:"requestError,omitempty"`
+	CommandError string         `json:"commandError,omitempty"`
+	Data         map[string]any `json:"data,omitempty"`
+}
+
+type OrgDevicesService interface {
+	ConnectDevice(
+		ctx context.Context,
+		deviceID, organizationID, userID uuid.UUID,
+		name string,
+	) error
+	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
+	RenameDevice(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+		name string,
+	) error
+	GetDevice(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+	) (*domain.OrganizationDevice, error)
+	GetDevices(
+		ctx context.Context,
+		organizationID, userID uuid.UUID,
+	) ([]domain.OrganizationDevice, error)
+}
+
+var _ pkg.Handler = (*OrgDevicesHandler)(nil)
+
+type OrgDevicesHandler struct {
+	devices OrgDevicesService
+}
+
+func NewOrgDevice(devices OrgDevicesService) *OrgDevicesHandler {
+	return &OrgDevicesHandler{
+		devices: devices,
+	}
+}
+
+// SetupRoutes implements [pkg.Handler].
+func (h *OrgDevicesHandler) SetupRoutes(router gin.IRouter) {
+	router.GET("/api/devices/:id", h.HandleGetDevice)
+	router.PATCH("/api/devices/:id", h.HandlePatchDevice)
+	router.DELETE("/api/devices/:id", h.HandleDisconnectDevice)
+
+	// Deprecated methods
+	router.POST("/api/organizations/:id/devices", h.HandleConnectDevice)
+	router.GET("/api/organizations/:id/devices", h.HandleListDevices)
+	router.GET("/api/organizations/:id/devices/:deviceId", h.HandleGetDevice)
+	router.PATCH(
+		"/api/organizations/:id/devices/:deviceId",
+		h.HandlePatchDevice,
+	)
+	router.DELETE(
+		"/api/organizations/:id/devices/:deviceId",
+		h.HandleDisconnectDevice,
+	)
+}
+
+func (h *OrgDevicesHandler) HandleGetDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -24,9 +109,9 @@ func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.JSON(http.StatusForbidden, Error(err))
+		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, Error(err))
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
 		if !ensureDeviceInRouteOrganization(c, device) {
 			return
@@ -36,7 +121,7 @@ func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
 	}
 }
 
-func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
+func (h *OrgDevicesHandler) HandlePatchDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -44,7 +129,7 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			Error(fmt.Errorf("bad request: %w", err)),
+			requests.ResponseErr(fmt.Errorf("bad request: %w", err)),
 		)
 
 		return
@@ -58,11 +143,11 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 		)
 		switch {
 		case errors.Is(err, services.ErrNotMember):
-			c.JSON(http.StatusForbidden, Error(err))
+			c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 
 			return
 		case err != nil:
-			c.JSON(http.StatusInternalServerError, Error(err))
+			c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 
 			return
 		}
@@ -80,26 +165,26 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrEmptyDeviceName):
-		c.AbortWithStatusJSON(http.StatusBadRequest, Error(err))
+		c.AbortWithStatusJSON(http.StatusBadRequest, requests.ResponseErr(err))
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
 		c.AbortWithStatusJSON(
 			http.StatusInternalServerError,
-			Error(fmt.Errorf("internal server error: %w", err)),
+			requests.ResponseErr(fmt.Errorf("internal server error: %w", err)),
 		)
 	default:
 		c.Status(http.StatusOK)
 	}
 }
 
-func (h *OrgsHandlers) HandleConnectDevice(c *gin.Context) {
+func (h *OrgDevicesHandler) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
 	var req ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, Error(InvalidRequestError(err)))
+		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 
 		return
 	}
@@ -126,7 +211,7 @@ func (h *OrgsHandlers) HandleConnectDevice(c *gin.Context) {
 	}
 }
 
-func (h *OrgsHandlers) HandleListDevices(c *gin.Context) {
+func (h *OrgDevicesHandler) HandleListDevices(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
@@ -137,9 +222,9 @@ func (h *OrgsHandlers) HandleListDevices(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.JSON(http.StatusForbidden, Error(AccesDeniedError(err)))
+		c.JSON(http.StatusForbidden, requests.ResponseErr((err)))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, Error(err))
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
 		resp := make([]DeviceResponse, 0, len(devices))
 		for i := range devices {
@@ -150,7 +235,7 @@ func (h *OrgsHandlers) HandleListDevices(c *gin.Context) {
 	}
 }
 
-func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
+func (h *OrgDevicesHandler) HandleDisconnectDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
@@ -162,13 +247,16 @@ func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
 		)
 		switch {
 		case errors.Is(err, services.ErrNotMember):
-			c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
+			c.AbortWithStatusJSON(
+				http.StatusForbidden,
+				requests.ResponseErr(err),
+			)
 
 			return
 		case err != nil:
 			c.AbortWithStatusJSON(
 				http.StatusInternalServerError,
-				Error(err),
+				requests.ResponseErr(err),
 			)
 
 			return
@@ -186,9 +274,12 @@ func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error(err))
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
 	default:
 		c.Status(http.StatusOK)
 	}
@@ -220,7 +311,7 @@ func ensureDeviceInRouteOrganization(
 	}
 
 	if device.OrganizationID != orgID {
-		c.JSON(http.StatusNotFound, Error(ErrDeviceNotFound))
+		c.JSON(http.StatusNotFound, requests.ResponseErr(ErrDeviceNotFound))
 
 		return false
 	}

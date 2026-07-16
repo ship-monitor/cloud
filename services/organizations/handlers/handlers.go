@@ -73,43 +73,18 @@ type OrganizationMembersService interface {
 	) error
 }
 
-type OrgDevicesService interface {
-	ConnectDevice(
-		ctx context.Context,
-		deviceID, organizationID, userID uuid.UUID,
-		name string,
-	) error
-	DisconnectDevice(ctx context.Context, deviceID, userID uuid.UUID) error
-	RenameDevice(
-		ctx context.Context,
-		deviceID, userID uuid.UUID,
-		name string,
-	) error
-	GetDevice(
-		ctx context.Context,
-		deviceID, userID uuid.UUID,
-	) (*domain.OrganizationDevice, error)
-	GetDevices(
-		ctx context.Context,
-		organizationID, userID uuid.UUID,
-	) ([]domain.OrganizationDevice, error)
-}
-
 type OrgsHandlers struct {
 	orgs    OrganizationService
 	members OrganizationMembersService
-	devices OrgDevicesService
 }
 
 func New(
 	orgs OrganizationService,
 	members OrganizationMembersService,
-	devices OrgDevicesService,
 ) *OrgsHandlers {
 	return &OrgsHandlers{
 		orgs:    orgs,
 		members: members,
-		devices: devices,
 	}
 }
 
