@@ -20,9 +20,6 @@ var (
 	_ handlers.OrganizationMembersService = (*services.OrganizationsService)(
 		nil,
 	)
-	_ handlers.OrganizationInvitationsService = (*services.OrganizationsService)(
-		nil,
-	)
 	_ handlers.OrgDevicesService = (*services.OrgDevicesService)(
 		nil,
 	)
@@ -44,7 +41,6 @@ func SetupRoutes(
 	orgDevicesService := container.OrgDevicesService()
 
 	webHandler := handlers.New(
-		orgsService,
 		orgsService,
 		orgsService,
 		orgDevicesService,
@@ -70,13 +66,6 @@ func SetupRoutes(
 	orgs.GET("/:id/devices/:deviceId", webHandler.HandleGetDevice)
 	orgs.PATCH("/:id/devices/:deviceId", webHandler.HandlePatchDevice)
 	orgs.DELETE("/:id/devices/:deviceId", webHandler.HandleDisconnectDevice)
-
-	// Invitation routes
-	orgs.POST("/:id/invitations", webHandler.HandleCreateInvitation)
-	orgs.GET("/:id/invitations", webHandler.HandleListOrgInvitations)
-	api.GET("/invitations", webHandler.HandleListMyInvitations)
-	api.POST("/invitations/:id/accept", webHandler.HandleAcceptInvitation)
-	api.POST("/invitations/:id/decline", webHandler.HandleDeclineInvitation)
 
 	// Devices separate routes
 	api.GET("/devices/:id", webHandler.HandleGetDevice)

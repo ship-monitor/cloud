@@ -55,28 +55,6 @@ type UpdateMemberRoleRequest struct {
 
 // --- Invitation DTOs ---
 
-type CreateInvitationRequest struct {
-	InviteeEmail string `binding:"required" json:"inviteeEmail"`
-}
-
-type CreateInvitationBulkRequest struct {
-	InviteeEmails []string `binding:"required" json:"inviteeEmails"`
-}
-
-type InvitationResponse struct {
-	ID               uuid.UUID `json:"id"`
-	OrganizationID   uuid.UUID `json:"organizationId"`
-	OrganizationName string    `json:"organizationName,omitempty"`
-	InviteeEmail     string    `json:"inviteeEmail"`
-	Status           string    `json:"status"`
-	CreatedAt        time.Time `json:"createdAt"`
-	ExpiresAt        time.Time `json:"expiresAt"`
-}
-
-type ListInvitationsResponse struct {
-	Invitations []InvitationResponse `json:"invitations"`
-}
-
 // --- Device DTOs ---
 
 type UpdateDeviceRequest struct {

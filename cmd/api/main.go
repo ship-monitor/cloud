@@ -104,6 +104,13 @@ func provideHandlers() fx.Option {
 				fx.ResultTags(`name:"device-handlers"`),
 			),
 		),
+		fx.Provide(handlers.NewInvitation,
+			fx.Annotate(
+				handlers.NewInvitation,
+				fx.As(new(pkg.Handler)),
+				fx.ResultTags(`name:"invitation-handlers"`),
+			),
+		),
 	)
 }
 

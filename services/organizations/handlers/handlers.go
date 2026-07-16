@@ -73,35 +73,6 @@ type OrganizationMembersService interface {
 	) error
 }
 
-type OrganizationInvitationsService interface {
-	CreateInvitation(
-		ctx context.Context,
-		organizationID uuid.UUID,
-		inviterID uuid.UUID,
-		inviteeEmail string,
-	) (*services.InvitationDetails, error)
-	ListMyInvitations(
-		ctx context.Context,
-		email string,
-	) ([]services.InvitationDetails, error)
-	ListOrgInvitations(
-		ctx context.Context,
-		organizationID uuid.UUID,
-		userID uuid.UUID,
-	) ([]services.InvitationDetails, error)
-	AcceptInvitation(
-		ctx context.Context,
-		invitationID uuid.UUID,
-		userID uuid.UUID,
-		userEmail string,
-	) error
-	DeclineInvitation(
-		ctx context.Context,
-		invitationID uuid.UUID,
-		userEmail string,
-	) error
-}
-
 type OrgDevicesService interface {
 	ConnectDevice(
 		ctx context.Context,
@@ -125,23 +96,20 @@ type OrgDevicesService interface {
 }
 
 type OrgsHandlers struct {
-	orgs        OrganizationService
-	members     OrganizationMembersService
-	invitations OrganizationInvitationsService
-	devices     OrgDevicesService
+	orgs    OrganizationService
+	members OrganizationMembersService
+	devices OrgDevicesService
 }
 
 func New(
 	orgs OrganizationService,
 	members OrganizationMembersService,
-	invitations OrganizationInvitationsService,
 	devices OrgDevicesService,
 ) *OrgsHandlers {
 	return &OrgsHandlers{
-		orgs:        orgs,
-		members:     members,
-		invitations: invitations,
-		devices:     devices,
+		orgs:    orgs,
+		members: members,
+		devices: devices,
 	}
 }
 
