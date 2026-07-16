@@ -131,8 +131,6 @@ func newHTTPServer(
 	config *viper.Viper,
 	logger *log.Logger, handlers ...pkg.Handler,
 ) (*gin.Engine, error) {
-	container := di.NewContainer(viper.GetViper(), log.Default())
-
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
