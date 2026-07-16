@@ -14,6 +14,7 @@ func TestDeviceRepoMigrate(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("failed to close database: %v", err)
@@ -32,6 +33,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 	const bridgeName = "Bridge"
 
 	db := createDB(t)
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("failed to close database: %v", err)

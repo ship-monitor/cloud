@@ -35,6 +35,7 @@ func (q *TopicPublisher) PublishJSON(
 	if err != nil {
 		return fmt.Errorf("faield declare channel: %w", err)
 	}
+
 	defer func() {
 		if err := ch.Close(); err != nil {
 			q.logger.Error("Failed close channel", "error", err)
