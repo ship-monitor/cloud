@@ -11,7 +11,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
 func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
@@ -25,9 +24,9 @@ func (h *OrgsHandlers) HandleGetDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(err))
+		c.JSON(http.StatusForbidden, Error(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 	default:
 		if !ensureDeviceInRouteOrganization(c, device) {
 			return
@@ -41,11 +40,11 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
 	session := auth.GetSession(c)
 
-	var req dto.UpdateDeviceRequest
+	var req UpdateDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			dto.Error(fmt.Errorf("bad request: %w", err)),
+			Error(fmt.Errorf("bad request: %w", err)),
 		)
 
 		return
@@ -59,11 +58,11 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 		)
 		switch {
 		case errors.Is(err, services.ErrNotMember):
-			c.JSON(http.StatusForbidden, dto.Error(err))
+			c.JSON(http.StatusForbidden, Error(err))
 
 			return
 		case err != nil:
-			c.JSON(http.StatusInternalServerError, dto.Error(err))
+			c.JSON(http.StatusInternalServerError, Error(err))
 
 			return
 		}
@@ -81,13 +80,13 @@ func (h *OrgsHandlers) HandlePatchDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrEmptyDeviceName):
-		c.AbortWithStatusJSON(http.StatusBadRequest, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error(err))
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
 	case err != nil:
 		c.AbortWithStatusJSON(
 			http.StatusInternalServerError,
-			dto.Error(fmt.Errorf("internal server error: %w", err)),
+			Error(fmt.Errorf("internal server error: %w", err)),
 		)
 	default:
 		c.Status(http.StatusOK)
@@ -98,9 +97,9 @@ func (h *OrgsHandlers) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	session := auth.GetSession(c)
 
-	var req dto.ConnectDeviceRequest
+	var req ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(InvalidRequestError(err)))
+		c.JSON(http.StatusBadRequest, Error(InvalidRequestError(err)))
 
 		return
 	}
@@ -138,11 +137,11 @@ func (h *OrgsHandlers) HandleListDevices(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
+		c.JSON(http.StatusForbidden, Error(AccesDeniedError(err)))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 	default:
-		resp := make([]dto.DeviceResponse, 0, len(devices))
+		resp := make([]DeviceResponse, 0, len(devices))
 		for i := range devices {
 			resp = append(resp, deviceToDTO(&devices[i]))
 		}
@@ -163,13 +162,13 @@ func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
 		)
 		switch {
 		case errors.Is(err, services.ErrNotMember):
-			c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
+			c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
 
 			return
 		case err != nil:
 			c.AbortWithStatusJSON(
 				http.StatusInternalServerError,
-				dto.Error(err),
+				Error(err),
 			)
 
 			return
@@ -187,9 +186,9 @@ func (h *OrgsHandlers) HandleDisconnectDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrNotMember):
-		c.AbortWithStatusJSON(http.StatusForbidden, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusForbidden, Error(err))
 	case err != nil:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error(err))
 	default:
 		c.Status(http.StatusOK)
 	}
@@ -221,7 +220,7 @@ func ensureDeviceInRouteOrganization(
 	}
 
 	if device.OrganizationID != orgID {
-		c.JSON(http.StatusNotFound, dto.Error(ErrDeviceNotFound))
+		c.JSON(http.StatusNotFound, Error(ErrDeviceNotFound))
 
 		return false
 	}
@@ -231,8 +230,8 @@ func ensureDeviceInRouteOrganization(
 
 var ErrDeviceNotFound = errors.New("device not found")
 
-func deviceToDTO(d *domain.OrganizationDevice) dto.DeviceResponse {
-	return dto.DeviceResponse{
+func deviceToDTO(d *domain.OrganizationDevice) DeviceResponse {
+	return DeviceResponse{
 		ID:             d.ID,
 		OrganizationID: d.OrganizationID,
 		Name:           d.Name,

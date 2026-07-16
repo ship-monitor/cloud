@@ -9,7 +9,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations/dto"
 )
 
 var ErrInvalidInviteRequest = errors.New(
@@ -25,7 +24,7 @@ func (h *OrgsHandlers) HandleCreateInvitation(c *gin.Context) {
 		InviteeEmails []string `json:"inviteeEmails"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Error(ErrInvalidInviteRequest))
+		c.JSON(http.StatusBadRequest, Error(ErrInvalidInviteRequest))
 
 		return
 	}
@@ -43,12 +42,12 @@ func (h *OrgsHandlers) HandleCreateInvitation(c *gin.Context) {
 	}
 
 	if len(req.InviteeEmails) == 0 {
-		c.JSON(http.StatusBadRequest, dto.Error(ErrInvalidInviteRequest))
+		c.JSON(http.StatusBadRequest, Error(ErrInvalidInviteRequest))
 
 		return
 	}
 
-	created := make([]dto.InvitationResponse, 0, len(req.InviteeEmails))
+	created := make([]InvitationResponse, 0, len(req.InviteeEmails))
 
 	var errs error
 
@@ -81,11 +80,11 @@ func writeCreateInvitationResponse(
 ) {
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember):
-		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
+		c.JSON(http.StatusForbidden, Error(AccesDeniedError(err)))
 	case errors.Is(err, services.ErrInvitationAlreadyPending):
-		c.JSON(http.StatusConflict, dto.Error(err))
+		c.JSON(http.StatusConflict, Error(err))
 	case err != nil:
-		c.AbortWithStatusJSON(http.StatusInternalServerError, dto.Error(err))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error(err))
 	default:
 		c.JSON(http.StatusCreated, invitationToDTO(*inv))
 	}
@@ -99,17 +98,17 @@ func (h *OrgsHandlers) HandleListMyInvitations(c *gin.Context) {
 		session.Email,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 
 		return
 	}
 
-	resp := make([]dto.InvitationResponse, 0, len(invs))
+	resp := make([]InvitationResponse, 0, len(invs))
 	for i := range invs {
 		resp = append(resp, invitationToDTO(invs[i]))
 	}
 
-	c.JSON(http.StatusOK, dto.ListInvitationsResponse{Invitations: resp})
+	c.JSON(http.StatusOK, ListInvitationsResponse{Invitations: resp})
 }
 
 func (h *OrgsHandlers) HandleListOrgInvitations(c *gin.Context) {
@@ -124,16 +123,16 @@ func (h *OrgsHandlers) HandleListOrgInvitations(c *gin.Context) {
 	switch {
 	case errors.Is(err, services.ErrUserIsNotMember),
 		errors.Is(err, services.ErrNotAllowed):
-		c.JSON(http.StatusForbidden, dto.Error(AccesDeniedError(err)))
+		c.JSON(http.StatusForbidden, Error(AccesDeniedError(err)))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 	default:
-		resp := make([]dto.InvitationResponse, 0, len(invs))
+		resp := make([]InvitationResponse, 0, len(invs))
 		for i := range invs {
 			resp = append(resp, invitationToDTO(invs[i]))
 		}
 
-		c.JSON(http.StatusOK, dto.ListInvitationsResponse{Invitations: resp})
+		c.JSON(http.StatusOK, ListInvitationsResponse{Invitations: resp})
 	}
 }
 
@@ -149,17 +148,17 @@ func (h *OrgsHandlers) HandleAcceptInvitation(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
-		c.JSON(http.StatusNotFound, dto.Error(err))
+		c.JSON(http.StatusNotFound, Error(err))
 	case errors.Is(err, services.ErrInvitationAlreadyProcessed):
-		c.JSON(http.StatusBadRequest, dto.Error(err))
+		c.JSON(http.StatusBadRequest, Error(err))
 	case errors.Is(err, services.ErrInvitationExpired):
-		c.JSON(http.StatusGone, dto.Error(err))
+		c.JSON(http.StatusGone, Error(err))
 	case errors.Is(err, services.ErrNotInvitee):
-		c.JSON(http.StatusForbidden, dto.Error(err))
+		c.JSON(http.StatusForbidden, Error(err))
 	case errors.Is(err, services.ErrMemberAlreadyExists):
-		c.JSON(http.StatusConflict, dto.Error(err))
+		c.JSON(http.StatusConflict, Error(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 	default:
 		c.Status(http.StatusOK)
 	}
@@ -176,20 +175,20 @@ func (h *OrgsHandlers) HandleDeclineInvitation(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
-		c.JSON(http.StatusNotFound, dto.Error(err))
+		c.JSON(http.StatusNotFound, Error(err))
 	case errors.Is(err, services.ErrInvitationAlreadyProcessed):
-		c.JSON(http.StatusBadRequest, dto.Error(err))
+		c.JSON(http.StatusBadRequest, Error(err))
 	case errors.Is(err, services.ErrNotInvitee):
-		c.JSON(http.StatusForbidden, dto.Error(err))
+		c.JSON(http.StatusForbidden, Error(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, dto.Error(err))
+		c.JSON(http.StatusInternalServerError, Error(err))
 	default:
 		c.Status(http.StatusOK)
 	}
 }
 
-func invitationToDTO(inv services.InvitationDetails) dto.InvitationResponse {
-	return dto.InvitationResponse{
+func invitationToDTO(inv services.InvitationDetails) InvitationResponse {
+	return InvitationResponse{
 		ID:               inv.Invitation.ID,
 		OrganizationID:   inv.Invitation.OrganizationID,
 		OrganizationName: inv.OrganizationName,
