@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 
@@ -21,7 +20,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	auth "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/organizations"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
 
@@ -118,6 +116,13 @@ func provideHandlers() fx.Option {
 				fx.ResultTags(`name:"org-device-handlers"`),
 			),
 		),
+		fx.Provide(handlers.NewOrgs,
+			fx.Annotate(
+				handlers.NewOrgs,
+				fx.As(new(pkg.Handler)),
+				fx.ResultTags(`name:"org-handlers"`),
+			),
+		),
 	)
 }
 
@@ -145,10 +150,6 @@ func newHTTPServer(
 
 	for _, h := range handlers {
 		h.SetupRoutes(engine)
-	}
-
-	if err := organizations.SetupRoutes(engine, container); err != nil {
-		return nil, fmt.Errorf("setup organizations routes: %w", err)
 	}
 
 	server := &http.Server{
