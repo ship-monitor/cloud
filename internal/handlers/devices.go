@@ -33,13 +33,17 @@ type DevicesService interface {
 var _ pkg.Handler = (*DevicesHandlers)(nil)
 
 type DevicesHandlers struct {
-	middleware auth.Middleware
+	middleware *auth.Middleware
 	devices    DevicesService
 }
 
-func NewDevice(devices DevicesService) *DevicesHandlers {
+func NewDevice(
+	devices DevicesService,
+	middleware *auth.Middleware,
+) *DevicesHandlers {
 	return &DevicesHandlers{
-		devices: devices,
+		devices:    devices,
+		middleware: middleware,
 	}
 }
 

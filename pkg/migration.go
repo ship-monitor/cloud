@@ -20,18 +20,32 @@ type MigrationExecutor struct {
 func ProvideMigrations() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			func(lc fx.Lifecycle, logger *log.Logger, migrations ...MigrationRepo) *MigrationExecutor {
-				exec := &MigrationExecutor{
-					repositories: migrations,
-					logger:       *logger,
-				}
-				lc.Append(fx.StartHook(exec.Start))
-
-				return exec
-			},
+			NewExecutor,
+			fx.Annotate(NewAgregator, fx.ParamTags(`group:"repos"`)),
 		),
 		fx.Invoke(func(*MigrationExecutor) {}),
 	)
+}
+
+func AsMigrationRepo(f any) any {
+	return fx.Annotate(
+		f, fx.As(new(MigrationRepo)),
+		fx.ResultTags(`group:"repos"`),
+	)
+}
+
+func NewExecutor(
+	lc fx.Lifecycle,
+	logger *log.Logger,
+	repos *Agregator,
+) *MigrationExecutor {
+	exec := &MigrationExecutor{
+		repositories: repos.repos,
+		logger:       *logger,
+	}
+	lc.Append(fx.StartHook(exec.Start))
+
+	return exec
 }
 
 func (m *MigrationExecutor) Start(ctx context.Context) error {
@@ -46,4 +60,12 @@ func (m *MigrationExecutor) Start(ctx context.Context) error {
 	m.logger.Info("Migration successful")
 
 	return nil
+}
+
+type Agregator struct {
+	repos []MigrationRepo
+}
+
+func NewAgregator(repos []MigrationRepo) *Agregator {
+	return &Agregator{repos: repos}
 }

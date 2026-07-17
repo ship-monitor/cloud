@@ -18,7 +18,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/logger"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	auth "sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
@@ -32,46 +32,54 @@ func main() {
 			di.NewRedisClient,
 			di.NewDatabaseClient,
 		),
+		provideRepos(),
 		provideServices(),
 		provideHandlers(),
-		provideRepos(),
 		fx.Provide(workers.NewQueue),
 		fx.Provide(auth.NewMiddleware),
-		fx.Provide(newHTTPServer),
-		fx.Invoke(func(server *gin.Engine) {}),
+		fx.Provide(
+			newHTTPServer,
+			fx.Annotate(newServerMux, fx.ParamTags(`group:"handlers"`)),
+		),
+		fx.Invoke(func(server *http.Server) {}),
 		fx.Invoke(func(server *workers.QueueWorker) {}),
 	).Run()
 }
 
 func provideRepos() fx.Option {
 	return fx.Options(
-		fx.Provide(repository.NewDeviceStatesRepo,
+		fx.Provide(
 			fx.Annotate(
 				repository.NewDeviceStatesRepo,
-				fx.As(new(workers.RecordsService)),
+				fx.As(
+					new(services.StatesRepository),
+				),
+				fx.As(
+					new(workers.RecordsService),
+				),
 			),
-		),
-		fx.Provide(
-			repository.NewOrgs,
 			fx.Annotate(
 				repository.NewOrgs,
-				fx.As(new(pkg.MigrationRepo)),
-				fx.ResultTags(`name:"organizations-repo"`),
+				fx.As(
+					new(services.OrganizationRepository),
+				),
+				fx.As(new(services.FullOrganizationsRepository)),
 			),
-		),
-		fx.Provide(repository.NewUsers,
 			fx.Annotate(
 				repository.NewUsers,
-				fx.As(new(pkg.MigrationRepo)),
-				fx.ResultTags(`name:"users-repo"`),
+				fx.As(new(services.UsersRepo)),
 			),
-		),
-		fx.Provide(repository.NewDevices,
 			fx.Annotate(
 				repository.NewDevices,
-				fx.As(new(pkg.MigrationRepo)),
-				fx.ResultTags(`name:"devices-repo"`),
 			),
+			fx.Annotate(
+				repository.NewOrgDevices,
+				fx.As(new(services.OrgDevicesRepo)),
+			),
+			pkg.AsMigrationRepo(repository.NewUsers),
+			pkg.AsMigrationRepo(repository.NewDevices),
+			pkg.AsMigrationRepo(repository.NewOrgs),
+			pkg.AsMigrationRepo(repository.NewDevices),
 		),
 		pkg.ProvideMigrations(),
 	)
@@ -79,9 +87,34 @@ func provideRepos() fx.Option {
 
 func provideServices() fx.Option {
 	return fx.Options(
-		fx.Provide(services.NewEmailService,
+		fx.Provide(
+			services.NewOrgDevices,
+			fx.Annotate(
+				services.NewOrgDevices,
+				fx.As(new(handlers.OrgDevicesService)),
+			),
+			services.NewOrganizations,
+			fx.Annotate(services.NewOrganizations,
+				fx.As(new(handlers.InvitationsService)),
+				fx.As(new(handlers.OrganizationService)),
+				fx.As(new(handlers.OrganizationMembersService)),
+			),
+			services.NewTopicPublisher,
 			fx.Annotate(services.NewEmailService,
 				fx.As(new(domain.EmailSender)),
+			),
+			fx.Annotate(
+				services.NewAuthService,
+				fx.As(new(handlers.AuthService)),
+				fx.As(new(handlers.UserService)),
+			),
+			fx.Annotate(
+				auth.NewRedisSessionStore,
+				fx.As(new(auth.SessionStore)),
+			),
+			fx.Annotate(
+				services.NewDevices,
+				fx.As(new(handlers.DevicesService)),
 			),
 		),
 	)
@@ -90,58 +123,28 @@ func provideServices() fx.Option {
 func provideHandlers() fx.Option {
 	return fx.Options(
 		fx.Provide(handlers.NewAuthHandlers,
-			fx.Annotate(
-				handlers.NewAuthHandlers,
-				fx.As(new(pkg.Handler)),
-				fx.ResultTags(`name:"auth-handlers"`),
-			)),
-		fx.Provide(handlers.NewDevice,
-			fx.Annotate(
-				handlers.NewDevice,
-				fx.As(new(pkg.Handler)),
-				fx.ResultTags(`name:"device-handlers"`),
-			),
-		),
-		fx.Provide(handlers.NewInvitation,
-			fx.Annotate(
-				handlers.NewInvitation,
-				fx.As(new(pkg.Handler)),
-				fx.ResultTags(`name:"invitation-handlers"`),
-			),
-		),
-		fx.Provide(handlers.NewOrgDevice,
-			fx.Annotate(
-				handlers.NewOrgDevice,
-				fx.As(new(pkg.Handler)),
-				fx.ResultTags(`name:"org-device-handlers"`),
-			),
-		),
-		fx.Provide(handlers.NewOrgs,
-			fx.Annotate(
-				handlers.NewOrgs,
-				fx.As(new(pkg.Handler)),
-				fx.ResultTags(`name:"org-handlers"`),
-			),
+			AsHandlers(handlers.NewAuthHandlers),
+			AsHandlers(handlers.NewDevice),
+			AsHandlers(handlers.NewInvitation),
+			AsHandlers(handlers.NewOrgDevice),
+			AsHandlers(handlers.NewOrgs),
+			AsHandlers(handlers.NewUser),
 		),
 	)
 }
 
-func newHTTPServer(
-	lc fx.Lifecycle,
-	config *viper.Viper,
-	logger *log.Logger, handlers ...pkg.Handler,
-) (*gin.Engine, error) {
+func AsHandlers(f any) any {
+	return fx.Annotate(
+		f,
+		fx.As(new(pkg.Handler)),
+		fx.ResultTags(`group:"handlers"`))
+}
+
+func newServerMux(handlers []pkg.Handler) http.Handler {
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
-
-	if config.GetBool("devel") {
-		logger.Debug("Setting gin mode to debug")
-		gin.SetMode(gin.DebugMode)
-	}
-
 	engine.Use(cors.New().Middleware())
-
 	engine.GET("/api/health", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})
@@ -150,19 +153,29 @@ func newHTTPServer(
 		h.SetupRoutes(engine)
 	}
 
+	return engine
+}
+
+func newHTTPServer(
+	lc fx.Lifecycle,
+	config *viper.Viper,
+	logger *log.Logger, handler http.Handler,
+) *http.Server {
 	server := &http.Server{
 		ReadHeaderTimeout: viper.GetDuration("http.server.read-header-timeout"),
 		Addr: net.JoinHostPort(
 			"",
 			viper.GetString("http.server.port"),
 		),
-		Handler: engine,
+		Handler: handler,
 	}
 
 	lc.Append(
 		fx.Hook{
 			OnStart: (func(ctx context.Context) error {
 				go func() {
+					logger.Info("Starting HTTP server")
+
 					err := server.ListenAndServe()
 					if err != nil && !errors.Is(err, http.ErrServerClosed) {
 						panic(err)
@@ -176,5 +189,5 @@ func newHTTPServer(
 			},
 		})
 
-	return engine, nil
+	return server
 }

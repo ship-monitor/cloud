@@ -47,7 +47,6 @@ type RedisSessionStore struct {
 
 func NewRedisSessionStore(
 	redisClient *redis.Client,
-	ttl time.Duration,
 ) *RedisSessionStore {
 	return &RedisSessionStore{
 		redis: redisClient,

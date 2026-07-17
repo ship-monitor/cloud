@@ -33,25 +33,22 @@ type AuthService interface {
 var _ pkg.Handler = (*AuthHandlers)(nil)
 
 type AuthHandlers struct {
-	logger        *log.Logger
-	authService   AuthService
-	sessions      auth.SessionStore
-	cookieOptions auth.CookieOptions
-	middleware    auth.Middleware
+	logger      *log.Logger
+	authService AuthService
+	sessions    auth.SessionStore
+	middleware  *auth.Middleware
 }
 
 func NewAuthHandlers(
 	authService AuthService,
 	sessions auth.SessionStore,
-	cookieOptions auth.CookieOptions,
-	middleware auth.Middleware,
+	middleware *auth.Middleware,
 ) *AuthHandlers {
 	return &AuthHandlers{
-		authService:   authService,
-		sessions:      sessions,
-		cookieOptions: cookieOptions,
-		logger:        log.WithPrefix("Auth handlers"),
-		middleware:    middleware,
+		authService: authService,
+		sessions:    sessions,
+		logger:      log.WithPrefix("Auth handlers"),
+		middleware:  middleware,
 	}
 }
 
@@ -146,7 +143,7 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	auth.SetSessionCookie(c, a.cookieOptions, sessionID)
+	auth.SetSessionCookie(c, sessionID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": user,
@@ -166,7 +163,7 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 		return
 	}
 
-	auth.SetSessionCookie(c, a.cookieOptions, session.ID)
+	auth.SetSessionCookie(c, session.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"session": stored,
@@ -174,22 +171,22 @@ func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
 }
 
 func (a *AuthHandlers) HandleLogout(c *gin.Context) {
-	sessionID, err := c.Cookie(a.cookieOptions.Name)
-	if err == nil {
-		if err := a.sessions.Delete(
-			c.Request.Context(),
-			sessionID,
-		); err != nil {
-			c.AbortWithStatusJSON(
-				http.StatusInternalServerError,
-				requests.ResponseErr(err),
-			)
+	session := auth.GetSession(c)
+	session.Logout()
 
-			return
-		}
+	if err := a.sessions.Delete(
+		c.Request.Context(),
+		session.ID,
+	); err != nil {
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+
+		return
 	}
 
-	auth.ClearSessionCookie(c, a.cookieOptions)
+	auth.ClearSessionCookie(c)
 	c.Status(http.StatusOK)
 }
 

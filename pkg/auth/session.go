@@ -11,3 +11,5 @@ type Session struct {
 	Email  string    `json:"email"`
 	c      *gin.Context
 }
+
+func (s *Session) Logout() {}

@@ -1,0 +1,64 @@
+package handlers
+
+import (
+	"context"
+	"net/http"
+
+	"charm.land/log/v2"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+)
+
+type UserService interface {
+	GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error)
+}
+
+type UserHandler struct {
+	users      UserService
+	middleware *auth.Middleware
+	logger     *log.Logger
+}
+
+type UserResponse struct {
+	User *domain.User `json:"user"`
+}
+
+var _ pkg.Handler = (*UserHandler)(nil)
+
+func NewUser(
+	users UserService,
+	middleware *auth.Middleware,
+	logger *log.Logger,
+) *UserHandler {
+	return &UserHandler{
+		users:      users,
+		middleware: middleware,
+		logger:     logger.WithPrefix("UserHandler"),
+	}
+}
+
+// SetupRoutes implements [pkg.Handler].
+func (u *UserHandler) SetupRoutes(router gin.IRouter) {
+	// u.logger.Info("Here")
+	// router.GET(
+	// 	"/api/users/me",
+	// 	u.middleware.WithAuthenticationRequired,
+	// 	u.HandleGetMe,
+	// )
+}
+
+func (u *UserHandler) HandleGetMe(c *gin.Context) {
+	session := auth.GetSession(c)
+
+	user, err := u.users.GetUser(c.Request.Context(), session.UserID)
+	switch {
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		c.JSON(http.StatusOK, UserResponse{User: user})
+	}
+}

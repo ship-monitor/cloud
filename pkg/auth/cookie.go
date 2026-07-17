@@ -43,7 +43,8 @@ func CookieOptionsFromConfig(config *viper.Viper) CookieOptions {
 	}
 }
 
-func SetSessionCookie(ctx *gin.Context, opts CookieOptions, sessionID string) {
+func SetSessionCookie(ctx *gin.Context, sessionID string) {
+	opts := CookieOptionsFromConfig(viper.GetViper())
 	if opts.Name == "" {
 		opts.Name = DefaultSessionCookieName
 	}
@@ -64,7 +65,8 @@ func SetSessionCookie(ctx *gin.Context, opts CookieOptions, sessionID string) {
 	})
 }
 
-func ClearSessionCookie(ctx *gin.Context, opts CookieOptions) {
+func ClearSessionCookie(ctx *gin.Context) {
+	opts := CookieOptionsFromConfig(viper.GetViper())
 	if opts.Name == "" {
 		opts.Name = DefaultSessionCookieName
 	}

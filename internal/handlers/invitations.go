@@ -74,12 +74,12 @@ var _ pkg.Handler = (*InvitationHandler)(nil)
 
 type InvitationHandler struct {
 	invitations InvitationsService
-	middleware  auth.Middleware
+	middleware  *auth.Middleware
 }
 
 func NewInvitation(
 	invitations InvitationsService,
-	middleware auth.Middleware,
+	middleware *auth.Middleware,
 ) *InvitationHandler {
 	return &InvitationHandler{invitations: invitations, middleware: middleware}
 }

@@ -32,7 +32,7 @@ var (
 	ErrRemovingOrganizationOwner = errors.New("removing owner of organization")
 )
 
-type OrganizationsRepository interface {
+type FullOrganizationsRepository interface {
 	OrganizationRepository
 	OrganizationMembersRepository
 	OrganizationInvitationsRepository
@@ -108,10 +108,10 @@ type OrganizationInvitationsRepository interface {
 }
 
 type OrganizationsService struct {
-	repo OrganizationsRepository
+	repo FullOrganizationsRepository
 }
 
-func NewOrganizations(repo OrganizationsRepository) *OrganizationsService {
+func NewOrganizations(repo FullOrganizationsRepository) *OrganizationsService {
 	return &OrganizationsService{
 		repo: repo,
 	}

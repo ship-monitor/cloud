@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"charm.land/log/v2"
@@ -51,6 +50,8 @@ func (d *DeviceRepo) Migrate(ctx context.Context) error {
 	}
 
 	ids := viper.GetStringSlice("builtin-devices")
+	d.logger.Info("Migrating devices", "devices", ids)
+
 	for _, id := range ids {
 		d.logger.Info("Migrating builtin device", "id", id)
 
@@ -78,6 +79,23 @@ func (d *DeviceRepo) GetDevice(
 	}
 
 	return &device, nil
+}
+
+func (d *DeviceRepo) DeviceExists(
+	ctx context.Context,
+	id domain.DeviceID,
+) (bool, error) {
+	var device domain.Device
+
+	exists, err := d.db.NewSelect().
+		Model(&device).
+		Where("id = ?", id).
+		Exists(ctx)
+	if err != nil {
+		return false, fmt.Errorf("check device existence: %w", err)
+	}
+
+	return exists, nil
 }
 
 func (d *DeviceRepo) GetDevices(
@@ -173,9 +191,13 @@ func (d *DeviceRepo) migrateDevice(
 	ctx context.Context,
 	id domain.DeviceID,
 ) error {
-	_, err := d.GetDevice(ctx, id)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		d.logger.Info("Device not found, creating new device", "id", id)
+	exists, err := d.DeviceExists(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed check device in DB: %w", err)
+	}
+
+	if exists {
+		return nil
 	}
 
 	if err := d.InsertDevice(ctx, &domain.Device{
