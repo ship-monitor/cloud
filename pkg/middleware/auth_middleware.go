@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
@@ -24,15 +25,18 @@ type AuthService interface {
 type AuthMiddleware struct {
 	authService AuthService
 	cookies     *AuthCookieManager
+	logger      *log.Logger
 }
 
 func NewAuthMiddleware(
 	auth AuthService,
 	cookies *AuthCookieManager,
+	logger *log.Logger,
 ) *AuthMiddleware {
 	return &AuthMiddleware{
 		authService: auth,
 		cookies:     cookies,
+		logger:      logger.WithPrefix("AuthMiddleware"),
 	}
 }
 
@@ -61,7 +65,7 @@ func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := s.cookies.Read(c)
 		if err != nil {
-			s.abortUnauthorized(c)
+			s.abortUnauthorized(c, err)
 
 			return
 		}
@@ -75,7 +79,7 @@ func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 			errors.Is(err, services.ErrSessionExpired),
 			errors.Is(err, services.ErrSessionRevoked):
 			s.cookies.Clear(c)
-			s.abortUnauthorized(c)
+			s.abortUnauthorized(c, err)
 		case err != nil:
 			c.AbortWithStatusJSON(
 				http.StatusServiceUnavailable,
@@ -137,7 +141,9 @@ func (a *AuthMiddleware) Logout(ctx *gin.Context) error {
 	return nil
 }
 
-func (a *AuthMiddleware) abortUnauthorized(c *gin.Context) {
+func (a *AuthMiddleware) abortUnauthorized(c *gin.Context, err error) {
+	log.Error("Abortin unauthorized", "error", err)
+
 	c.AbortWithStatusJSON(
 		http.StatusUnauthorized,
 		requests.ResponseBad("unauthenticated"),
