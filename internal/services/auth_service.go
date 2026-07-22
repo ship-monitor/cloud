@@ -52,6 +52,12 @@ type SessionStore interface {
 		ttl time.Duration,
 	) error
 	TouchSession(ctx context.Context, hash string, expiresAt time.Time) error
+	RevokeByID(ctx context.Context, userID uuid.UUID, sessionID uuid.UUID) error
+	RevokeAllExcept(
+		ctx context.Context,
+		userID uuid.UUID,
+		keepSessionID uuid.UUID,
+	) error
 }
 
 type AuthConfig struct {
@@ -223,6 +229,45 @@ func (s *Sessions) LogoutAll(
 ) error {
 	if err := s.sessions.IncrementVersion(ctx, userID); err != nil {
 		return fmt.Errorf("increment session version: %w", err)
+	}
+
+	return nil
+}
+
+// List returns all active sessions of the user.
+func (s *Sessions) List(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]domain.Session, error) {
+	sessions, err := s.sessions.ListSessions(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list sessions: %w", err)
+	}
+
+	return sessions, nil
+}
+
+// RevokeByID terminates a single session by its ID.
+func (s *Sessions) RevokeByID(
+	ctx context.Context,
+	userID uuid.UUID,
+	sessionID uuid.UUID,
+) error {
+	if err := s.sessions.RevokeByID(ctx, userID, sessionID); err != nil {
+		return fmt.Errorf("revoke session: %w", err)
+	}
+
+	return nil
+}
+
+// RevokeOthers terminates every session of the user except the current one.
+func (s *Sessions) RevokeOthers(
+	ctx context.Context,
+	userID uuid.UUID,
+	currentSessionID uuid.UUID,
+) error {
+	if err := s.sessions.RevokeAllExcept(ctx, userID, currentSessionID); err != nil {
+		return fmt.Errorf("revoke other sessions: %w", err)
 	}
 
 	return nil

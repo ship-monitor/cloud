@@ -68,6 +68,11 @@ func (a *AuthHandlers) SetupRoutes(router gin.IRouter) {
 	users.POST("/:id/set-email", a.HandleUserSetEmail)
 	users.POST("/start-email-confirmation", a.HandleStartEmailConfirmation)
 	users.POST("/confirm-email/:token", a.HandleConfirmEmail)
+
+	sessions := router.Group("/api/sessions", a.middleware.RequireAuth())
+	sessions.GET("", a.HandleListSessions)
+	sessions.DELETE("/:id", a.HandleRevokeSession)
+	sessions.DELETE("", a.HandleRevokeOtherSessions)
 }
 
 func (a *AuthHandlers) HandleRegister(c *gin.Context) {
@@ -151,6 +156,77 @@ func (a *AuthHandlers) HandleLogout(c *gin.Context) {
 	} else {
 		c.Status(http.StatusOK)
 	}
+}
+
+type sessionItem struct {
+	domain.Session
+	Current bool `json:"current"`
+}
+
+// HandleListSessions returns all active sessions of the current user.
+func (a *AuthHandlers) HandleListSessions(c *gin.Context) {
+	principal := middleware.MustPrincipal(c)
+
+	list, err := a.sessions.List(c.Request.Context(), principal.UserID)
+	if err != nil {
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+
+		return
+	}
+
+	items := make([]sessionItem, 0, len(list))
+	for _, s := range list {
+		items = append(items, sessionItem{
+			Session: s,
+			Current: s.ID == principal.SessionID,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"sessions": items})
+}
+
+// HandleRevokeSession terminates a single session by its ID.
+func (a *AuthHandlers) HandleRevokeSession(c *gin.Context) {
+	principal := middleware.MustPrincipal(c)
+
+	id := requests.MustGetParamUUID(c, "id")
+
+	err := a.sessions.RevokeByID(c.Request.Context(), principal.UserID, id)
+	switch {
+	case errors.Is(err, services.ErrSessionNotFound):
+		c.AbortWithStatus(http.StatusNotFound)
+	case err != nil:
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+	default:
+		c.Status(http.StatusOK)
+	}
+}
+
+// HandleRevokeOtherSessions terminates every session except the current one.
+func (a *AuthHandlers) HandleRevokeOtherSessions(c *gin.Context) {
+	principal := middleware.MustPrincipal(c)
+
+	err := a.sessions.RevokeOthers(
+		c.Request.Context(),
+		principal.UserID,
+		principal.SessionID,
+	)
+	if err != nil {
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {

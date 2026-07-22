@@ -58,6 +58,10 @@ func (r *RedisSessionStore) CreateSession(
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
+	if err := r.rdb.LPush(ctx, userSessionsListKey(s.UserID), hash).Err(); err != nil {
+		return fmt.Errorf("push to session list: %w", err)
+	}
+
 	return nil
 }
 
@@ -129,6 +133,10 @@ func (r *RedisSessionStore) ListSessions(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				continue
+			}
+
 			return nil, fmt.Errorf("get session: %w", err)
 		}
 
@@ -156,6 +164,88 @@ func (r *RedisSessionStore) TouchSession(
 	}
 
 	return nil
+}
+
+// RevokeByID implements [services.SessionStore].
+func (r *RedisSessionStore) RevokeByID(
+	ctx context.Context,
+	userID uuid.UUID,
+	sessionID uuid.UUID,
+) error {
+	hash, err := r.findHashBySessionID(ctx, userID, sessionID)
+	if err != nil {
+		return err
+	}
+
+	if err := r.DeleteSession(ctx, userID, hash); err != nil {
+		return fmt.Errorf("delete session: %w", err)
+	}
+
+	return nil
+}
+
+// RevokeAllExcept implements [services.SessionStore].
+func (r *RedisSessionStore) RevokeAllExcept(
+	ctx context.Context,
+	userID uuid.UUID,
+	keepSessionID uuid.UUID,
+) error {
+	hashes, err := r.rdb.LRange(ctx, userSessionsListKey(userID), 0, -1).
+		Result()
+	if err != nil {
+		return fmt.Errorf("list sessions: %w", err)
+	}
+
+	for _, hash := range hashes {
+		session, err := r.GetSession(ctx, hash)
+		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				continue
+			}
+
+			return fmt.Errorf("get session: %w", err)
+		}
+
+		if session.ID == keepSessionID {
+			continue
+		}
+
+		if err := r.DeleteSession(ctx, userID, hash); err != nil {
+			return fmt.Errorf("delete session: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// findHashBySessionID resolves the store key (token hash) of a session by its ID.
+func (r *RedisSessionStore) findHashBySessionID(
+	ctx context.Context,
+	userID uuid.UUID,
+	sessionID uuid.UUID,
+) (string, error) {
+	hashes, err := r.rdb.LRange(ctx, userSessionsListKey(userID), 0, -1).
+		Result()
+	if err != nil {
+		return "", fmt.Errorf("list sessions: %w", err)
+	}
+
+	for _, hash := range hashes {
+		session, err := r.GetSession(ctx, hash)
+		if err != nil {
+			if errors.Is(err, redis.Nil) {
+				continue
+			}
+
+			return "", fmt.Errorf("get session: %w", err)
+		}
+
+		if session.ID == sessionID {
+			return hash, nil
+		}
+	}
+
+	return "", services.ErrSessionNotFound
 }
 
 func sessionKey(hash string) string {
