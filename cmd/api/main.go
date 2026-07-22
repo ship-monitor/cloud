@@ -20,6 +20,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
 
@@ -36,7 +37,11 @@ func main() {
 		provideServices(),
 		provideHandlers(),
 		fx.Provide(workers.NewQueue),
-		fx.Provide(auth.NewMiddleware),
+		fx.Provide(
+			auth.NewMiddleware,
+			middleware.NewAuthMiddleware,
+			middleware.NewCookieManager,
+		),
 		fx.Provide(
 			newHTTPServer,
 			fx.Annotate(newServerMux, fx.ParamTags(`group:"handlers"`)),
@@ -76,11 +81,15 @@ func provideRepos() fx.Option {
 				repository.NewOrgDevices,
 				fx.As(new(services.OrgDevicesRepo)),
 			),
+			fx.Annotate(repository.NewRedisSessionStore,
+				fx.As(new(services.SessionStore)),
+			),
 			pkg.AsMigrationRepo(repository.NewUsers),
 			pkg.AsMigrationRepo(repository.NewDevices),
 			pkg.AsMigrationRepo(repository.NewOrgs),
 			pkg.AsMigrationRepo(repository.NewDevices),
 		),
+
 		pkg.ProvideMigrations(),
 	)
 }
@@ -115,6 +124,11 @@ func provideServices() fx.Option {
 			fx.Annotate(
 				services.NewDevices,
 				fx.As(new(handlers.DevicesService)),
+			),
+			services.NewSessions,
+			fx.Annotate(
+				services.NewSessions,
+				fx.As(new(middleware.AuthService)),
 			),
 		),
 	)

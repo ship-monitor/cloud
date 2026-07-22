@@ -16,6 +16,7 @@ linters:
     - cyclop
     - exhaustruct
     - funlen
+    - godox
 
   settings:
     depguard:

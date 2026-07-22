@@ -4,6 +4,11 @@ cors:
 debug: false
 database-url: "postgres://katy:postgres@localhost:5432/auth-db?sslmode=disable"
 
+auth:
+  session:
+    ttl: 24h
+    touch-interval: 1h
+
 session:
   ttl: 24h
   cookie-name: ship_session

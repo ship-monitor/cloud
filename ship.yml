@@ -4,6 +4,11 @@ cors:
 debug: false
 database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
 
+auth:
+  session:
+    ttl: 24h
+    touch-interval: 1h
+
 session:
   ttl: 24h
   cookie-name: ship_session
