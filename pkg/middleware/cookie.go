@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,7 +36,7 @@ func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
 func (m *AuthCookieManager) Read(c *gin.Context) (string, error) {
 	token, err := c.Cookie(m.config.Name)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get cookie: %w", err)
 	}
 
 	return token, nil
@@ -50,27 +51,33 @@ func (m *AuthCookieManager) Set(
 
 	c.SetSameSite(m.config.SameSite)
 
-	c.SetCookie(
-		m.config.Name,
-		token,
-		maxAge,
-		m.config.Path,
-		m.config.Domain,
-		m.config.Secure,
-		m.config.HTTPOnly,
+	http.SetCookie(
+		c.Writer, &http.Cookie{
+			Name:     m.config.Name,
+			MaxAge:   maxAge,
+			Path:     m.config.Path,
+			Domain:   m.config.Domain,
+			Value:    token,
+			Secure:   m.config.Secure,
+			HttpOnly: m.config.HTTPOnly,
+			SameSite: m.config.SameSite,
+		},
 	)
 }
 
 func (m *AuthCookieManager) Clear(c *gin.Context) {
 	c.SetSameSite(m.config.SameSite)
 
-	c.SetCookie(
-		m.config.Name,
-		"",
-		-1,
-		m.config.Path,
-		m.config.Domain,
-		m.config.Secure,
-		m.config.HTTPOnly,
+	http.SetCookie(
+		c.Writer, &http.Cookie{
+			Name:     m.config.Name,
+			MaxAge:   -1,
+			Path:     m.config.Path,
+			Domain:   m.config.Domain,
+			Value:    "",
+			Secure:   m.config.Secure,
+			HttpOnly: m.config.HTTPOnly,
+			SameSite: m.config.SameSite,
+		},
 	)
 }
