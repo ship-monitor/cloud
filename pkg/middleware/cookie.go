@@ -28,7 +28,7 @@ func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
 		Domain:   conf.GetString("auth.session.cookie.domain"),
 		Secure:   conf.GetBool("auth.session.cookie.secure"),
 		HTTPOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 	}}
 }
 
