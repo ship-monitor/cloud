@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
@@ -61,11 +62,13 @@ type AuthConfig struct {
 type Sessions struct {
 	sessions SessionStore
 	config   *AuthConfig
+	logger   *log.Logger
 }
 
 func NewSessions(
 	sessions SessionStore,
 	config *viper.Viper,
+	logger *log.Logger,
 ) *Sessions {
 	return &Sessions{
 		sessions: sessions,
@@ -75,6 +78,7 @@ func NewSessions(
 				"auth.sessions.touch-interval",
 			),
 		},
+		logger: logger,
 	}
 }
 
@@ -132,7 +136,7 @@ func (s *Sessions) Authenticate(
 	storedSession, err := s.sessions.GetSession(ctx, hash)
 	if err != nil {
 		if errors.Is(err, ErrSessionNotFound) {
-			return nil, ErrUnauthenticated
+			return nil, fmt.Errorf("%w: %w", ErrUnauthenticated, err)
 		}
 
 		return nil, fmt.Errorf("get session: %w", err)
@@ -140,27 +144,37 @@ func (s *Sessions) Authenticate(
 
 	now := time.Now()
 	if !now.Before(storedSession.ExpiresAt) {
-		return nil, ErrSessionExpired
+		return nil, fmt.Errorf(
+			"%w: expires at %s, now %s",
+			ErrSessionExpired,
+			storedSession.ExpiresAt.String(),
+			now.String(),
+		)
 	}
 
-	version, err := s.sessions.GetVersion(ctx, storedSession.UserID)
+	currentVersion, err := s.sessions.GetVersion(ctx, storedSession.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("get user session version: %w", err)
 	}
 
-	if storedSession.Version != version {
-		return nil, ErrSessionRevoked
+	if storedSession.Version != currentVersion {
+		return nil, fmt.Errorf(
+			"%w: session version %d, current version %d",
+			ErrSessionRevoked,
+			storedSession.Version,
+			currentVersion,
+		)
 	}
 
 	if now.Sub(storedSession.LastSeenAt) >= s.config.SessionTouchInterval {
 		// It's better not to block success auth on touch error
-		//
-		// TODO: log this error
-		_ = s.sessions.TouchSession(
+		if err := s.sessions.TouchSession(
 			ctx,
 			hash,
 			now.Add(s.config.SessionTTL),
-		)
+		); err != nil {
+			log.Warn("Failed touch session", "error", err)
+		}
 	}
 
 	return &domain.Principal{
