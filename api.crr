@@ -61,26 +61,27 @@
       },
       "outputs": [
         {
-          "protocol": "HTTP/1.1 200 OK",
+          "protocol": "HTTP/2 401 ",
           "headers": {
-            "Content-Type": "application/json; charset=utf-8",
-            "Set-Cookie": "ship_session=9aX67vjZOOrvAmWX4NRMmqp6QC9UgjpHLk2PswOKpZ8; Path=/; Max-Age=86400; HttpOnly; Secure; SameSite=Lax",
-            "Date": "Thu, 09 Jul 2026 19:16:08 GMT",
-            "Content-Length": "228"
+            "alt-svc": "h3=\":443\"; ma=2592000",
+            "content-type": "application/json; charset=utf-8",
+            "date": "Wed, 22 Jul 2026 09:50:45 GMT",
+            "via": "1.1 Caddy",
+            "content-length": "29"
           },
-          "status": 200,
+          "status": 401,
           "bodyFilePath": "",
           "bodyBase64": "",
           "body": [
-            "{\"user\":{\"id\":\"80fcdeff-0bc3-4f93-a2b0-00632344ac88\",\"name\":\"katy248\",\"email\":\"petrovanton247@gmail.com\",\"emailVerified\":false,\"blocked\":false,\"createdAt\":\"2026-07-09T19:00:37.607709Z\",\"updatedAt\":\"2026-07-09T19:00:37.607709Z\"}}"
+            "{\"details\":\"unauthenticated\"}"
           ],
-          "responseDate": 1783624568529
+          "responseDate": 1784713845612
         }
       ],
       "source": [
         "curl -c cookies.txt -X POST $host/api/auth/login -d '{",
         "  \"email\": \"petrovanton247@gmail.com\", ",
-        "  \"password\": \"pa$$w0rd\"",
+        "  \"password\": \"Modely#247-ydtd\"",
         "}'"
       ],
       "pre_scripts_enabled": false,
@@ -306,7 +307,7 @@
   "globalVariables": [
     {
       "key": "host",
-      "value": "http://localhost:8080",
+      "value": "https://api.ship-monitor.ru",
       "source": "manual"
     }
   ]

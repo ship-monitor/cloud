@@ -85,22 +85,38 @@ func NewOrgDevice(
 
 // SetupRoutes implements [pkg.Handler].
 func (h *OrgDevicesHandler) SetupRoutes(router gin.IRouter) {
-	router.Use(h.middleware.RequireAuth())
-
 	router.GET("/api/devices/:id", h.HandleGetDevice)
-	router.PATCH("/api/devices/:id", h.HandlePatchDevice)
-	router.DELETE("/api/devices/:id", h.HandleDisconnectDevice)
+	router.PATCH(
+		"/api/devices/:id",
+		h.middleware.RequireAuth(),
+		h.HandlePatchDevice,
+	)
+	router.DELETE(
+		"/api/devices/:id",
+		h.middleware.RequireAuth(),
+		h.HandleDisconnectDevice,
+	)
 
 	// Deprecated methods
-	router.POST("/api/organizations/:id/devices", h.HandleConnectDevice)
-	router.GET("/api/organizations/:id/devices", h.HandleListDevices)
+	router.POST(
+		"/api/organizations/:id/devices",
+		h.middleware.RequireAuth(),
+		h.HandleConnectDevice,
+	)
+	router.GET(
+		"/api/organizations/:id/devices",
+		h.middleware.RequireAuth(),
+		h.HandleListDevices,
+	)
 	router.GET("/api/organizations/:id/devices/:deviceId", h.HandleGetDevice)
 	router.PATCH(
 		"/api/organizations/:id/devices/:deviceId",
+		h.middleware.RequireAuth(),
 		h.HandlePatchDevice,
 	)
 	router.DELETE(
 		"/api/organizations/:id/devices/:deviceId",
+		h.middleware.RequireAuth(),
 		h.HandleDisconnectDevice,
 	)
 }
