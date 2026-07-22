@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -103,7 +104,11 @@ func (r *RedisSessionStore) GetVersion(
 ) (int64, error) {
 	version, err := r.rdb.Get(ctx, userSessionVersionKey(userID)).Int64()
 	if err != nil {
-		return 0, fmt.Errorf("get version: %w", err)
+		if errors.Is(err, redis.Nil) {
+			return 0, nil
+		}
+
+		return 0, fmt.Errorf("redis get int64: %w", err)
 	}
 
 	return version, nil
