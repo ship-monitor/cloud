@@ -90,6 +90,10 @@ func (r *RedisSessionStore) GetSession(
 ) (*domain.Session, error) {
 	data, err := r.rdb.Get(ctx, sessionKey(hash)).Bytes()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, services.ErrSessionNotFound
+		}
+
 		return nil, fmt.Errorf("get session: %w", err)
 	}
 
@@ -133,7 +137,7 @@ func (r *RedisSessionStore) ListSessions(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, redis.Nil) {
+			if errors.Is(err, services.ErrSessionNotFound) {
 				continue
 			}
 
@@ -199,7 +203,7 @@ func (r *RedisSessionStore) RevokeAllExcept(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, redis.Nil) {
+			if errors.Is(err, services.ErrSessionNotFound) {
 				continue
 			}
 
@@ -233,7 +237,7 @@ func (r *RedisSessionStore) findHashBySessionID(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, redis.Nil) {
+			if errors.Is(err, services.ErrSessionNotFound) {
 				continue
 			}
 

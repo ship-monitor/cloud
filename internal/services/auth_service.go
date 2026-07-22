@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,10 +31,11 @@ func newToken(s domain.Session) string {
 	return s.ID.String()
 }
 
-// Returns a hash of the session token, that is used as a unique identifier (key
-// in store).
+// Returns a hex-encoded SHA-256 hash of the session token, used as a unique
+// identifier (key in store).
 func hashToken(token string) string {
-	return string(sha256.New().Sum([]byte(token)))
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 type SessionStore interface {
