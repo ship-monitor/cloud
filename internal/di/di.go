@@ -14,7 +14,7 @@ import (
 
 func NewRedisClient(lc fx.Lifecycle, config *viper.Viper) *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.GetString("redis.addr"),
+		Addr:     config.GetString("redis.url"),
 		Password: config.GetString("redis.password"),
 		DB:       config.GetInt("redis.db"),
 	})
