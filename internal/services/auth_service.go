@@ -65,17 +65,25 @@ type Sessions struct {
 	logger   *log.Logger
 }
 
+const (
+	DefaultTTL           = time.Hour * 24
+	DefaultTouchInterval = time.Minute * 15
+)
+
 func NewSessions(
 	sessions SessionStore,
 	config *viper.Viper,
 	logger *log.Logger,
 ) *Sessions {
+	config.SetDefault("auth.session.ttl", DefaultTTL)
+	config.SetDefault("auth.session.touch-interval", DefaultTouchInterval)
+
 	return &Sessions{
 		sessions: sessions,
 		config: &AuthConfig{
-			SessionTTL: viper.GetDuration("auth.sessions.ttl"),
+			SessionTTL: viper.GetDuration("auth.session.ttl"),
 			SessionTouchInterval: config.GetDuration(
-				"auth.sessions.touch-interval",
+				"auth.session.touch-interval",
 			),
 		},
 		logger: logger,
