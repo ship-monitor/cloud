@@ -2,15 +2,13 @@ package handlers
 
 import (
 	"context"
-	"net/http"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
 
 type UserService interface {
@@ -19,7 +17,7 @@ type UserService interface {
 
 type UserHandler struct {
 	users      UserService
-	middleware *auth.Middleware
+	middleware *middleware.AuthMiddleware
 	logger     *log.Logger
 }
 
@@ -31,7 +29,7 @@ var _ pkg.Handler = (*UserHandler)(nil)
 
 func NewUser(
 	users UserService,
-	middleware *auth.Middleware,
+	middleware *middleware.AuthMiddleware,
 	logger *log.Logger,
 ) *UserHandler {
 	return &UserHandler{
@@ -51,14 +49,14 @@ func (u *UserHandler) SetupRoutes(router gin.IRouter) {
 	// )
 }
 
-func (u *UserHandler) HandleGetMe(c *gin.Context) {
-	session := auth.GetSession(c)
+// func (u *UserHandler) HandleGetMe(c *gin.Context) {
+// 	session := auth.GetSession(c)
 
-	user, err := u.users.GetUser(c.Request.Context(), session.UserID)
-	switch {
-	case err != nil:
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
-	default:
-		c.JSON(http.StatusOK, UserResponse{User: user})
-	}
-}
+// 	user, err := u.users.GetUser(c.Request.Context(), session.UserID)
+// 	switch {
+// 	case err != nil:
+// 		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+// 	default:
+// 		c.JSON(http.StatusOK, UserResponse{User: user})
+// 	}
+// }

@@ -12,7 +12,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -33,13 +33,13 @@ type DevicesService interface {
 var _ pkg.Handler = (*DevicesHandlers)(nil)
 
 type DevicesHandlers struct {
-	middleware *auth.Middleware
+	middleware *middleware.AuthMiddleware
 	devices    DevicesService
 }
 
 func NewDevice(
 	devices DevicesService,
-	middleware *auth.Middleware,
+	middleware *middleware.AuthMiddleware,
 ) *DevicesHandlers {
 	return &DevicesHandlers{
 		devices:    devices,
@@ -51,12 +51,12 @@ func NewDevice(
 func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
 	router.GET(
 		"/api/v2/devices/:id/state/:state",
-		d.middleware.WithAuthenticationRequired,
+		d.middleware.RequireAuth(),
 		d.HandleGetState,
 	)
 	router.POST(
 		"/api/v2/devices/:id/command",
-		d.middleware.WithAuthenticationRequired,
+		d.middleware.RequireAuth(),
 		d.HandleSendCommand,
 	)
 }
@@ -64,7 +64,7 @@ func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
 func (d *DevicesHandlers) HandleGetState(c *gin.Context) {
 	deviceID := requests.MustGetParamUUID(c, "id")
 	state := c.Param("state")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	historyLength := 0
 
@@ -101,7 +101,7 @@ func (d *DevicesHandlers) HandleGetState(c *gin.Context) {
 
 func (d *DevicesHandlers) HandleSendCommand(c *gin.Context) {
 	deviceID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	var req struct {
 		Command string         `json:"command" binding:"required"`

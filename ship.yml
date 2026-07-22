@@ -6,6 +6,11 @@ database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disa
 
 auth:
   session:
+    cookie:
+      name: __Host-session
+      path: /
+      domain: ""
+      secure: true
     ttl: 24h
     touch-interval: 1h
 

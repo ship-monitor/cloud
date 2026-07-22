@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,24 +17,22 @@ type AuthService interface {
 		ctx context.Context,
 		token string,
 	) (*domain.Principal, error)
+
+	Logout(ctx context.Context, token string) error
 }
 
 type AuthMiddleware struct {
 	authService AuthService
-	cookies     *CookieManager
+	cookies     *AuthCookieManager
 }
 
-func NewAuthMiddleware(auth AuthService) *AuthMiddleware {
+func NewAuthMiddleware(
+	auth AuthService,
+	cookies *AuthCookieManager,
+) *AuthMiddleware {
 	return &AuthMiddleware{
 		authService: auth,
-		cookies: NewCookieManager(CookieConfig{
-			Name:     "__Host-session",
-			Path:     "/",
-			Domain:   "",
-			Secure:   true,
-			HTTPOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		}),
+		cookies:     cookies,
 	}
 }
 
@@ -120,6 +119,22 @@ func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 			c.Next()
 		}
 	}
+}
+
+// Logout deletes session cookies and invoke [AuthService.Logout].
+func (a *AuthMiddleware) Logout(ctx *gin.Context) error {
+	token, err := a.cookies.Read(ctx)
+	if err != nil {
+		return fmt.Errorf("read cookie: %w", err)
+	}
+
+	a.cookies.Clear(ctx)
+
+	if err := a.authService.Logout(ctx.Request.Context(), token); err != nil {
+		return fmt.Errorf("auth service logout: %w", err)
+	}
+
+	return nil
 }
 
 func (a *AuthMiddleware) abortUnauthorized(c *gin.Context) {

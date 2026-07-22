@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 type CookieConfig struct {
@@ -16,15 +17,22 @@ type CookieConfig struct {
 	SameSite http.SameSite
 }
 
-type CookieManager struct {
+type AuthCookieManager struct {
 	config CookieConfig
 }
 
-func NewCookieManager(config CookieConfig) *CookieManager {
-	return &CookieManager{config: config}
+func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
+	return &AuthCookieManager{config: CookieConfig{
+		Name:     conf.GetString("auth.session.cookie.name"),
+		Path:     conf.GetString("auth.session.cookie.path"),
+		Domain:   conf.GetString("auth.session.cookie.domain"),
+		Secure:   conf.GetBool("auth.session.cookie.secure"),
+		HTTPOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}}
 }
 
-func (m *CookieManager) Read(c *gin.Context) (string, error) {
+func (m *AuthCookieManager) Read(c *gin.Context) (string, error) {
 	token, err := c.Cookie(m.config.Name)
 	if err != nil {
 		return "", err
@@ -33,7 +41,7 @@ func (m *CookieManager) Read(c *gin.Context) (string, error) {
 	return token, nil
 }
 
-func (m *CookieManager) Set(
+func (m *AuthCookieManager) Set(
 	c *gin.Context,
 	token string,
 	expiresAt time.Time,
@@ -53,7 +61,7 @@ func (m *CookieManager) Set(
 	)
 }
 
-func (m *CookieManager) Clear(c *gin.Context) {
+func (m *AuthCookieManager) Clear(c *gin.Context) {
 	c.SetSameSite(m.config.SameSite)
 
 	c.SetCookie(

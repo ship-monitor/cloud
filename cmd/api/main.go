@@ -18,7 +18,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/logger"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
@@ -38,9 +37,8 @@ func main() {
 		provideHandlers(),
 		fx.Provide(workers.NewQueue),
 		fx.Provide(
-			auth.NewMiddleware,
 			middleware.NewAuthMiddleware,
-			middleware.NewCookieManager,
+			middleware.NewAuthCookieManager,
 		),
 		fx.Provide(
 			newHTTPServer,
@@ -116,10 +114,6 @@ func provideServices() fx.Option {
 				services.NewAuthService,
 				fx.As(new(handlers.AuthService)),
 				fx.As(new(handlers.UserService)),
-			),
-			fx.Annotate(
-				auth.NewRedisSessionStore,
-				fx.As(new(auth.SessionStore)),
 			),
 			fx.Annotate(
 				services.NewDevices,

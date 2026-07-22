@@ -6,6 +6,11 @@ database-url: "postgres://katy:postgres@localhost:5432/auth-db?sslmode=disable"
 
 auth:
   session:
+    cookie:
+      name: __Host-session
+      path: /
+      domain: ""
+      secure: false
     ttl: 24h
     touch-interval: 1h
 

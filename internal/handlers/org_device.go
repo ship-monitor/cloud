@@ -12,7 +12,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -69,17 +69,24 @@ type OrgDevicesService interface {
 var _ pkg.Handler = (*OrgDevicesHandler)(nil)
 
 type OrgDevicesHandler struct {
-	devices OrgDevicesService
+	devices    OrgDevicesService
+	middleware *middleware.AuthMiddleware
 }
 
-func NewOrgDevice(devices OrgDevicesService) *OrgDevicesHandler {
+func NewOrgDevice(
+	devices OrgDevicesService,
+	middleware *middleware.AuthMiddleware,
+) *OrgDevicesHandler {
 	return &OrgDevicesHandler{
-		devices: devices,
+		devices:    devices,
+		middleware: middleware,
 	}
 }
 
 // SetupRoutes implements [pkg.Handler].
 func (h *OrgDevicesHandler) SetupRoutes(router gin.IRouter) {
+	router.Use(h.middleware.RequireAuth())
+
 	router.GET("/api/devices/:id", h.HandleGetDevice)
 	router.PATCH("/api/devices/:id", h.HandlePatchDevice)
 	router.DELETE("/api/devices/:id", h.HandleDisconnectDevice)
@@ -100,7 +107,7 @@ func (h *OrgDevicesHandler) SetupRoutes(router gin.IRouter) {
 
 func (h *OrgDevicesHandler) HandleGetDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	device, err := h.devices.GetDevice(
 		c.Request.Context(),
@@ -123,7 +130,7 @@ func (h *OrgDevicesHandler) HandleGetDevice(c *gin.Context) {
 
 func (h *OrgDevicesHandler) HandlePatchDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	var req UpdateDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -180,7 +187,7 @@ func (h *OrgDevicesHandler) HandlePatchDevice(c *gin.Context) {
 
 func (h *OrgDevicesHandler) HandleConnectDevice(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	var req ConnectDeviceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -213,7 +220,7 @@ func (h *OrgDevicesHandler) HandleConnectDevice(c *gin.Context) {
 
 func (h *OrgDevicesHandler) HandleListDevices(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	devices, err := h.devices.GetDevices(
 		c.Request.Context(),
@@ -237,7 +244,7 @@ func (h *OrgDevicesHandler) HandleListDevices(c *gin.Context) {
 
 func (h *OrgDevicesHandler) HandleDisconnectDevice(c *gin.Context) {
 	devID := deviceIDFromRoute(c)
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	if _, ok := organizationIDFromRoute(c); ok {
 		device, err := h.devices.GetDevice(

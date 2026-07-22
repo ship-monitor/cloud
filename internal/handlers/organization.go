@@ -13,7 +13,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -108,13 +108,13 @@ var _ pkg.Handler = (*OrgsHandler)(nil)
 type OrgsHandler struct {
 	orgs       OrganizationService
 	members    OrganizationMembersService
-	middleware *auth.Middleware
+	middleware *middleware.AuthMiddleware
 }
 
 func NewOrgs(
 	orgs OrganizationService,
 	members OrganizationMembersService,
-	middleware *auth.Middleware,
+	middleware *middleware.AuthMiddleware,
 ) *OrgsHandler {
 	return &OrgsHandler{
 		orgs:       orgs,
@@ -127,7 +127,7 @@ func NewOrgs(
 func (h *OrgsHandler) SetupRoutes(router gin.IRouter) {
 	orgs := router.Group(
 		"/api/organizations",
-		h.middleware.WithAuthenticationRequired,
+		h.middleware.RequireAuth(),
 	)
 	orgs.POST("/", h.HandleCreateOrganization)
 	orgs.GET("/my", h.HandleGetMyOrganizations)
@@ -154,7 +154,7 @@ func (h *OrgsHandler) HandleCreateOrganization(c *gin.Context) {
 		return
 	}
 
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	id, err := h.orgs.CreateOrganization(
 		c.Request.Context(),
@@ -173,7 +173,7 @@ func (h *OrgsHandler) HandleCreateOrganization(c *gin.Context) {
 }
 
 func (h *OrgsHandler) HandleGetMyOrganizations(c *gin.Context) {
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	orgs, err := h.orgs.GetUsersOrganizations(
 		c.Request.Context(),
@@ -203,7 +203,7 @@ func (h *OrgsHandler) HandleGetMyOrganizations(c *gin.Context) {
 
 func (h *OrgsHandler) HandleGetOrganization(c *gin.Context) {
 	organizationID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	org, err := h.orgs.GetOrganization(
 		c.Request.Context(),
@@ -249,7 +249,7 @@ func (h *OrgsHandler) HandleUpdateOrganization(c *gin.Context) {
 		return
 	}
 
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.orgs.RenameOrganization(
 		c.Request.Context(),
@@ -275,7 +275,7 @@ func (h *OrgsHandler) HandleUpdateOrganization(c *gin.Context) {
 
 func (h *OrgsHandler) HandleDeleteOrganization(c *gin.Context) {
 	id := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.orgs.DeleteOrganization(c.Request.Context(), id, session.UserID)
 	switch {
@@ -298,7 +298,7 @@ func (h *OrgsHandler) HandleDeleteOrganization(c *gin.Context) {
 
 func (h *OrgsHandler) HandleGetMembers(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	members, err := h.members.GetMembers(
 		c.Request.Context(),
@@ -323,7 +323,7 @@ func (h *OrgsHandler) HandleGetMembers(c *gin.Context) {
 
 func (h *OrgsHandler) HandleAddMember(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	var req AddMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -379,7 +379,7 @@ func (h *OrgsHandler) HandleUpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.members.UpdateMemberRole(
 		c.Request.Context(),
@@ -411,7 +411,7 @@ func (h *OrgsHandler) HandleUpdateMemberRole(c *gin.Context) {
 func (h *OrgsHandler) HandleRemoveMember(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
 	userID := requests.MustGetParamUUID(c, "userId")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.members.RemoveMember(
 		c.Request.Context(),

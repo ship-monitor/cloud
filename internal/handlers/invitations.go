@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -74,12 +74,12 @@ var _ pkg.Handler = (*InvitationHandler)(nil)
 
 type InvitationHandler struct {
 	invitations InvitationsService
-	middleware  *auth.Middleware
+	middleware  *middleware.AuthMiddleware
 }
 
 func NewInvitation(
 	invitations InvitationsService,
-	middleware *auth.Middleware,
+	middleware *middleware.AuthMiddleware,
 ) *InvitationHandler {
 	return &InvitationHandler{invitations: invitations, middleware: middleware}
 }
@@ -88,32 +88,32 @@ func NewInvitation(
 func (h *InvitationHandler) SetupRoutes(router gin.IRouter) {
 	router.POST(
 		"/api/organizations/:id/invitations",
-		h.middleware.WithAuthenticationRequired,
+		h.middleware.RequireAuth(),
 		h.HandleCreateInvitation,
 	)
 	router.GET(
 		"/api/organizations/:id/invitations",
-		h.middleware.WithAuthenticationRequired,
+		h.middleware.RequireAuth(),
 		h.HandleListOrgInvitations,
 	)
 	router.GET(
 		"/api/invitations",
-		h.middleware.WithAuthenticationRequired,
+		h.middleware.RequireAuth(),
 		h.HandleListMyInvitations,
 	)
 	router.POST(
 		"/api/invitations/:id/accept",
-		h.middleware.WithAuthenticationRequired, h.HandleAcceptInvitation,
+		h.middleware.RequireAuth(), h.HandleAcceptInvitation,
 	)
 	router.POST(
 		"/api/invitations/:id/decline",
-		h.middleware.WithAuthenticationRequired, h.HandleDeclineInvitation,
+		h.middleware.RequireAuth(), h.HandleDeclineInvitation,
 	)
 }
 
 func (h *InvitationHandler) HandleCreateInvitation(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	var req struct {
 		InviteeEmail  string   `json:"inviteeEmail"`
@@ -196,11 +196,11 @@ func writeCreateInvitationResponse(
 }
 
 func (h *InvitationHandler) HandleListMyInvitations(c *gin.Context) {
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	invs, err := h.invitations.ListMyInvitations(
 		c.Request.Context(),
-		session.Email,
+		session.UserID.String(),
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
@@ -218,7 +218,7 @@ func (h *InvitationHandler) HandleListMyInvitations(c *gin.Context) {
 
 func (h *InvitationHandler) HandleListOrgInvitations(c *gin.Context) {
 	orgID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	invs, err := h.invitations.ListOrgInvitations(
 		c.Request.Context(),
@@ -243,13 +243,13 @@ func (h *InvitationHandler) HandleListOrgInvitations(c *gin.Context) {
 
 func (h *InvitationHandler) HandleAcceptInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.invitations.AcceptInvitation(
 		c.Request.Context(),
 		invID,
 		session.UserID,
-		session.Email,
+		session.UserID.String(),
 	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):
@@ -271,12 +271,12 @@ func (h *InvitationHandler) HandleAcceptInvitation(c *gin.Context) {
 
 func (h *InvitationHandler) HandleDeclineInvitation(c *gin.Context) {
 	invID := requests.MustGetParamUUID(c, "id")
-	session := auth.GetSession(c)
+	session := middleware.MustPrincipal(c)
 
 	err := h.invitations.DeclineInvitation(
 		c.Request.Context(),
 		invID,
-		session.Email,
+		session.UserID.String(),
 	)
 	switch {
 	case errors.Is(err, services.ErrInvitationNotFound):

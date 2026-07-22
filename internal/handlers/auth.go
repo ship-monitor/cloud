@@ -12,7 +12,7 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/auth"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -35,20 +35,23 @@ var _ pkg.Handler = (*AuthHandlers)(nil)
 type AuthHandlers struct {
 	logger      *log.Logger
 	authService AuthService
-	sessions    auth.SessionStore
-	middleware  *auth.Middleware
+	sessions    *services.Sessions
+	middleware  *middleware.AuthMiddleware
+	cookie      *middleware.AuthCookieManager
 }
 
 func NewAuthHandlers(
 	authService AuthService,
-	sessions auth.SessionStore,
-	middleware *auth.Middleware,
+	sessions *services.Sessions,
+	middleware *middleware.AuthMiddleware,
+	cookie *middleware.AuthCookieManager,
 ) *AuthHandlers {
 	return &AuthHandlers{
 		authService: authService,
 		sessions:    sessions,
 		logger:      log.WithPrefix("Auth handlers"),
 		middleware:  middleware,
+		cookie:      cookie,
 	}
 }
 
@@ -57,13 +60,8 @@ func (a *AuthHandlers) SetupRoutes(router gin.IRouter) {
 	auth := router.Group("/api/auth")
 	auth.POST("/register", a.HandleRegister)
 	auth.POST("/login", a.HandleLogin)
-	auth.POST(
-		"/refresh",
-		a.middleware.WithAuthenticationRequired,
-		a.HandleRefresh,
-	)
-	auth.POST("/logout", a.middleware.WithMiddleware, a.HandleLogout)
-	users := router.Group("/api/users", a.middleware.WithAuthenticationRequired)
+	auth.POST("/logout", a.middleware.RequireAuth(), a.HandleLogout)
+	users := router.Group("/api/users", a.middleware.RequireAuth())
 	users.GET("/me", a.HandleGetUser)
 	users.GET("/:id", a.HandleGetUser)
 	users.POST("/:id/set-password", a.HandleUserSetPassword)
@@ -114,13 +112,6 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 
 		return
 	case err != nil:
-		log.Error(
-			"Failed get user by email",
-			"error",
-			err,
-			"email",
-			request.Email,
-		)
 		c.JSON(
 			http.StatusUnauthorized,
 			requests.ResponseBad("invalid credentials"),
@@ -129,10 +120,13 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	sessionID, err := a.sessions.Create(
+	session, err := a.sessions.Create(
 		c.Request.Context(),
 		user.ID,
-		user.Email,
+		services.ClientInfo{
+			UserAgent: c.Request.UserAgent(),
+			ClientIP:  c.ClientIP(),
+		},
 	)
 	if err != nil {
 		c.AbortWithStatusJSON(
@@ -143,55 +137,23 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	auth.SetSessionCookie(c, sessionID)
+	a.cookie.Set(c, session.Token, session.Session.ExpiresAt)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": user,
 	})
 }
 
-func (a *AuthHandlers) HandleRefresh(c *gin.Context) {
-	session := auth.GetSession(c)
-
-	stored, err := a.sessions.Refresh(c.Request.Context(), session.ID)
-	if err != nil {
-		c.AbortWithStatusJSON(
-			http.StatusUnauthorized,
-			requests.ResponseErr(err),
-		)
-
-		return
-	}
-
-	auth.SetSessionCookie(c, session.ID)
-
-	c.JSON(http.StatusOK, gin.H{
-		"session": stored,
-	})
-}
-
 func (a *AuthHandlers) HandleLogout(c *gin.Context) {
-	session := auth.GetSession(c)
-	session.Logout()
-
-	if err := a.sessions.Delete(
-		c.Request.Context(),
-		session.ID,
-	); err != nil {
-		c.AbortWithStatusJSON(
-			http.StatusInternalServerError,
-			requests.ResponseErr(err),
-		)
-
-		return
+	if err := a.middleware.Logout(c); err != nil {
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	} else {
+		c.Status(http.StatusOK)
 	}
-
-	auth.ClearSessionCookie(c)
-	c.Status(http.StatusOK)
 }
 
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
-	session := auth.GetSession(ctx)
+	session := middleware.MustPrincipal(ctx)
 
 	err := a.authService.StartEmailConfirmation(
 		ctx.Request.Context(),
@@ -211,7 +173,7 @@ func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
 }
 
 func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
-	session := auth.GetSession(ctx)
+	session := middleware.MustPrincipal(ctx)
 
 	token := ctx.Param("token")
 
@@ -234,7 +196,7 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
 }
 
 func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
-	session := auth.GetSession(ctx)
+	session := middleware.MustPrincipal(ctx)
 
 	id, err := requests.GetParamUUID(ctx, "id")
 	if errors.Is(err, requests.ErrNoParam) {
@@ -260,7 +222,7 @@ func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
 func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
-	session := auth.GetSession(ctx)
+	session := middleware.MustPrincipal(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatus(http.StatusNotFound)
 
@@ -296,7 +258,7 @@ var ErrNotAllowedSetEmail = errors.New("not allowed to set email for this user")
 func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
 	id := requests.MustGetParamUUID(ctx, "id")
 
-	session := auth.GetSession(ctx)
+	session := middleware.MustPrincipal(ctx)
 	if session.UserID != id {
 		ctx.AbortWithStatusJSON(
 			http.StatusForbidden,
