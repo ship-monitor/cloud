@@ -1,6 +1,7 @@
 cors:
   allow-origins:
-    - "*"
+    - "https://ship-monitor.ru"
+    - "http://localhost:5173"
 debug: false
 database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
 
@@ -28,7 +29,7 @@ redis:
   password: ""
 
 frontend:
-  host: ship-monitor.ru:3000
+  host: ship-monitor.ru
   email-confirmation-path: "/auth/confirm-email"
   email-confirmation-query: token
 
