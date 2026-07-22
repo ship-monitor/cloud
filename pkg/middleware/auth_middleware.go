@@ -42,20 +42,33 @@ func NewAuthMiddleware(
 
 type principalContextKey struct{}
 
-func PrincipalFromContext(ctx *gin.Context) (*domain.Principal, bool) {
-	principal, ok := ctx.Value(principalContextKey{}).(*domain.Principal)
+var (
+	ErrNoPrincipalInCtx = errors.New("no value in context")
+	ErrUnknownValueType = errors.New("unknown value type")
+)
 
-	return principal, ok
+func PrincipalFromContext(ctx *gin.Context) (*domain.Principal, error) {
+	val, ok := ctx.Get(principalContextKey{})
+	if !ok {
+		return nil, ErrNoPrincipalInCtx
+	}
+
+	principal, ok := val.(*domain.Principal)
+	if !ok {
+		return nil, fmt.Errorf("%w: value type %T", ErrUnknownValueType, val)
+	}
+
+	return principal, nil
 }
 
-func addPrincipalToContext(ctx *gin.Context, p *domain.Principal) {
+func AddToContext(ctx *gin.Context, p *domain.Principal) {
 	ctx.Set(principalContextKey{}, p)
 }
 
 func MustPrincipal(c *gin.Context) *domain.Principal {
-	principal, ok := PrincipalFromContext(c)
-	if !ok {
-		panic("session middleware is not registered")
+	principal, err := PrincipalFromContext(c)
+	if err != nil {
+		panic("principal is not registered in context: " + err.Error())
 	}
 
 	return principal
@@ -86,7 +99,7 @@ func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 				requests.ResponseErr(err),
 			)
 		default:
-			addPrincipalToContext(c, principal)
+			AddToContext(c, principal)
 
 			c.Next()
 		}
@@ -119,7 +132,7 @@ func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 				requests.ResponseErr(err),
 			)
 		default:
-			addPrincipalToContext(c, principal)
+			AddToContext(c, principal)
 			c.Next()
 		}
 	}
