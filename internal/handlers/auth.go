@@ -104,7 +104,7 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrBadCredentials):
-		log.Error("Invalid credentials", "email", request.Email)
+		log.Error("Invalid credentials", "error", err, "email", request.Email)
 		c.JSON(
 			http.StatusUnauthorized,
 			requests.ResponseBad("invalid credentials"),
@@ -112,6 +112,7 @@ func (a *AuthHandlers) HandleLogin(c *gin.Context) {
 
 		return
 	case err != nil:
+		log.Error("Internal error", "error", err)
 		c.JSON(
 			http.StatusUnauthorized,
 			requests.ResponseBad("invalid credentials"),
