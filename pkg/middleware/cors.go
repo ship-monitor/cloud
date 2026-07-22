@@ -1,4 +1,4 @@
-package cors
+package middleware
 
 import (
 	"net/http"
@@ -29,7 +29,7 @@ type CORS struct {
 	AllowedOrigins []string
 }
 
-func New() *CORS {
+func NewCORS() *CORS {
 	return &CORS{
 		AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
 	}

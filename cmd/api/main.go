@@ -18,7 +18,6 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/logger"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/cors"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
@@ -152,7 +151,7 @@ func newServerMux(handlers []pkg.Handler) http.Handler {
 	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
-	engine.Use(cors.New().Middleware())
+	engine.Use(middleware.NewCORS().Middleware())
 	engine.GET("/api/health", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})
