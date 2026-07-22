@@ -65,7 +65,7 @@ func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := s.cookies.Read(c)
 		if err != nil {
-			s.abortUnauthorized(c, err)
+			s.abortUnauthorized(c, fmt.Errorf("read cookie: %w", err))
 
 			return
 		}
@@ -79,7 +79,7 @@ func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 			errors.Is(err, services.ErrSessionExpired),
 			errors.Is(err, services.ErrSessionRevoked):
 			s.cookies.Clear(c)
-			s.abortUnauthorized(c, err)
+			s.abortUnauthorized(c, fmt.Errorf("service error: %w", err))
 		case err != nil:
 			c.AbortWithStatusJSON(
 				http.StatusServiceUnavailable,
