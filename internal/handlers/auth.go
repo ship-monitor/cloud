@@ -160,6 +160,7 @@ func (a *AuthHandlers) HandleLogout(c *gin.Context) {
 
 type sessionItem struct {
 	domain.Session
+
 	Current bool `json:"current"`
 }
 

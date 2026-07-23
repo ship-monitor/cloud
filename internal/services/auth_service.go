@@ -35,6 +35,7 @@ func newToken(s domain.Session) string {
 // identifier (key in store).
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
+
 	return hex.EncodeToString(sum[:])
 }
 
@@ -54,7 +55,7 @@ type SessionStore interface {
 		ttl time.Duration,
 	) error
 	TouchSession(ctx context.Context, hash string, expiresAt time.Time) error
-	RevokeByID(ctx context.Context, userID uuid.UUID, sessionID uuid.UUID) error
+	RevokeByID(ctx context.Context, userID, sessionID uuid.UUID) error
 	RevokeAllExcept(
 		ctx context.Context,
 		userID uuid.UUID,
@@ -268,7 +269,11 @@ func (s *Sessions) RevokeOthers(
 	userID uuid.UUID,
 	currentSessionID uuid.UUID,
 ) error {
-	if err := s.sessions.RevokeAllExcept(ctx, userID, currentSessionID); err != nil {
+	if err := s.sessions.RevokeAllExcept(
+		ctx,
+		userID,
+		currentSessionID,
+	); err != nil {
 		return fmt.Errorf("revoke other sessions: %w", err)
 	}
 
