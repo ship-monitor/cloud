@@ -58,7 +58,8 @@ func (r *RedisSessionStore) CreateSession(
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
-	if err := r.rdb.LPush(ctx, userSessionsListKey(s.UserID), hash).Err(); err != nil {
+	if err := r.rdb.LPush(ctx, userSessionsListKey(s.UserID), hash).
+		Err(); err != nil {
 		return fmt.Errorf("push to session list: %w", err)
 	}
 
@@ -222,7 +223,8 @@ func (r *RedisSessionStore) RevokeAllExcept(
 	return nil
 }
 
-// findHashBySessionID resolves the store key (token hash) of a session by its ID.
+// findHashBySessionID resolves the store key (token hash) of a session by its
+// ID.
 func (r *RedisSessionStore) findHashBySessionID(
 	ctx context.Context,
 	userID uuid.UUID,
