@@ -631,6 +631,42 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /api/v2/devices:
+    post:
+      tags: [Devices]
+      summary: Connect a device to the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectDeviceRequest"
+      responses:
+        "201":
+          description: Device connected
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Invalid device password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Device is already connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /api/v2/devices/{id}/state/{state}:
     get:
       tags: [Devices]
@@ -1178,10 +1214,13 @@ components:
 
     ConnectDeviceRequest:
       type: object
-      required: [deviceId]
+      required: [deviceId, password]
       properties:
         deviceId:
           $ref: "#/components/schemas/UUID"
+        password:
+          type: string
+          format: password
         name:
           type: string
 

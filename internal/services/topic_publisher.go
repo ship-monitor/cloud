@@ -18,12 +18,15 @@ const (
 )
 
 type TopicPublisher struct {
-	q      *amqp.Connection
-	logger *log.Logger
+	connection *amqp.Connection
+	logger     *log.Logger
 }
 
 func NewTopicPublisher(q *amqp.Connection, logger *log.Logger) *TopicPublisher {
-	return &TopicPublisher{q: q, logger: logger.WithPrefix("topic publisher")}
+	return &TopicPublisher{
+		connection: q,
+		logger:     logger.WithPrefix("topic publisher"),
+	}
 }
 
 func (q *TopicPublisher) PublishJSON(
@@ -31,16 +34,12 @@ func (q *TopicPublisher) PublishJSON(
 	topic string,
 	data any,
 ) error {
-	ch, err := q.q.Channel()
+	ch, err := q.connection.Channel()
 	if err != nil {
 		return fmt.Errorf("faield declare channel: %w", err)
 	}
 
-	defer func() {
-		if err := ch.Close(); err != nil {
-			q.logger.Error("Failed close channel", "error", err)
-		}
-	}()
+	defer q.closeCh(ch)
 
 	exchangeName := "amq.topic"
 
@@ -88,4 +87,10 @@ func (q *TopicPublisher) PublishJSON(
 	}
 
 	return nil
+}
+
+func (q *TopicPublisher) closeCh(ch *amqp.Channel) {
+	if err := ch.Close(); err != nil {
+		q.logger.Error("Failed close channel", "error", err)
+	}
 }

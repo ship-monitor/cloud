@@ -1,25 +1,44 @@
 package repository_test
 
 import (
+	"database/sql"
+	"errors"
 	"testing"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
+	"github.com/uptrace/bun/driver/sqliteshim"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 )
 
+func createDB(t *testing.T) *sql.DB {
+	t.Helper()
+	// Setup in-memory database for testing
+	db, err := sql.Open(sqliteshim.ShimName, ":memory:")
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+
+	db.SetMaxOpenConns(1)
+
+	return db
+}
+
+func closeDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	if err := db.Close(); err != nil {
+		t.Errorf("failed to close database: %v", err)
+	}
+}
+
 func TestDeviceRepoMigrate(t *testing.T) {
 	t.Parallel()
 
 	db := createDB(t)
-
-	defer func() {
-		if err := db.Close(); err != nil {
-			t.Fatalf("failed to close database: %v", err)
-		}
-	}()
+	defer closeDB(t, db)
 
 	repo := repository.NewDevices(db, log.Default())
 	if err := repo.Migrate(t.Context()); err != nil {
@@ -27,30 +46,23 @@ func TestDeviceRepoMigrate(t *testing.T) {
 	}
 }
 
+const bridgeName = "Bridge"
+
 func TestDeviceRepoMethods(t *testing.T) {
 	t.Parallel()
 
-	const bridgeName = "Bridge"
-
 	db := createDB(t)
-
-	defer func() {
-		if err := db.Close(); err != nil {
-			t.Fatalf("failed to close database: %v", err)
-		}
-	}()
-
-	ctx := t.Context()
+	defer closeDB(t, db)
 
 	repo := repository.NewDevices(db, log.Default())
-	if err := repo.Migrate(ctx); err != nil {
+	if err := repo.Migrate(t.Context()); err != nil {
 		t.Fatalf("migrate devices: %v", err)
 	}
 
 	deviceID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	secondDeviceID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	if err := repo.InsertDevice(ctx, &domain.Device{
+	if err := repo.InsertDevice(t.Context(), &domain.Device{
 		ID:           deviceID,
 		PasswordHash: []byte("password-hash"),
 		Model:        "ship-monitor-v1",
@@ -58,7 +70,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 		t.Fatalf("insert device: %v", err)
 	}
 
-	if err := repo.InsertDevice(ctx, &domain.Device{
+	if err := repo.InsertDevice(t.Context(), &domain.Device{
 		ID:           secondDeviceID,
 		PasswordHash: []byte("second-password-hash"),
 		Model:        "ship-monitor-v2",
@@ -66,7 +78,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 		t.Fatalf("insert second device: %v", err)
 	}
 
-	device, err := repo.GetDevice(ctx, deviceID)
+	device, err := repo.GetDevice(t.Context(), deviceID)
 	if err != nil {
 		t.Fatalf("get device: %v", err)
 	}
@@ -87,7 +99,10 @@ func TestDeviceRepoMethods(t *testing.T) {
 		t.Fatalf("expected unnamed device, got %q", *device.Name)
 	}
 
-	devices, err := repo.GetDevices(ctx, paging.Paging{Page: 0, Size: 10})
+	devices, err := repo.GetDevices(
+		t.Context(),
+		paging.Paging{Page: 0, Size: 10},
+	)
 	if err != nil {
 		t.Fatalf("get devices: %v", err)
 	}
@@ -96,7 +111,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 		t.Fatalf("expected 2 devices, got %d", len(devices))
 	}
 
-	page, err := repo.GetDevices(ctx, paging.Paging{Page: 0, Size: 1})
+	page, err := repo.GetDevices(t.Context(), paging.Paging{Page: 0, Size: 1})
 	if err != nil {
 		t.Fatalf("get first page: %v", err)
 	}
@@ -107,7 +122,12 @@ func TestDeviceRepoMethods(t *testing.T) {
 
 	ownerID := uuid.New()
 
-	connected, err := repo.ConnectDevice(ctx, deviceID, ownerID, bridgeName)
+	connected, err := repo.ConnectDevice(
+		t.Context(),
+		deviceID,
+		ownerID,
+		bridgeName,
+	)
 	if err != nil {
 		t.Fatalf("connect device: %v", err)
 	}
@@ -128,11 +148,25 @@ func TestDeviceRepoMethods(t *testing.T) {
 		)
 	}
 
-	if err := repo.RenameDevice(ctx, deviceID, "Engine Room"); err != nil {
+	_, err = repo.ConnectDevice(
+		t.Context(),
+		deviceID,
+		uuid.New(),
+		"Replacement",
+	)
+	if !errors.Is(err, domain.ErrDeviceAlreadyConnected) {
+		t.Fatalf("reconnect device: expected already connected, got %v", err)
+	}
+
+	if err := repo.RenameDevice(
+		t.Context(),
+		deviceID,
+		"Engine Room",
+	); err != nil {
 		t.Fatalf("rename device: %v", err)
 	}
 
-	device, err = repo.GetDevice(ctx, deviceID)
+	device, err = repo.GetDevice(t.Context(), deviceID)
 	if err != nil {
 		t.Fatalf("get renamed device: %v", err)
 	}
@@ -144,11 +178,11 @@ func TestDeviceRepoMethods(t *testing.T) {
 		)
 	}
 
-	if err := repo.DisconnectDevice(ctx, deviceID); err != nil {
+	if err := repo.DisconnectDevice(t.Context(), deviceID); err != nil {
 		t.Fatalf("disconnect device: %v", err)
 	}
 
-	device, err = repo.GetDevice(ctx, deviceID)
+	device, err = repo.GetDevice(t.Context(), deviceID)
 	if err != nil {
 		t.Fatalf("get disconnected device: %v", err)
 	}
@@ -167,7 +201,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 		)
 	}
 
-	_, err = repo.GetDevice(ctx, uuid.New())
+	_, err = repo.GetDevice(t.Context(), uuid.New())
 	if err == nil {
 		t.Fatal("expected missing device lookup to fail")
 	}

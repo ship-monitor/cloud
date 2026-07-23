@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
 )
 
 type StatesRepository interface {
@@ -18,34 +20,79 @@ type StatesRepository interface {
 	) ([]domain.StateRecord, error)
 }
 
+type DeviceRepository interface {
+	GetDevice(
+		ctx context.Context,
+		deviceID domain.DeviceID,
+	) (*domain.Device, error)
+	ConnectDevice(
+		ctx context.Context,
+		deviceID domain.DeviceID,
+		userID uuid.UUID,
+		name string,
+	) (*domain.Device, error)
+}
+
 type DevicesService struct {
+	devices        DeviceRepository
 	states         StatesRepository
-	orgDevices     *OrgDevicesService
 	logger         *log.Logger
-	orgs           *OrganizationsService
 	topicPublisher *TopicPublisher
 }
 
 func NewDevices(
 	states StatesRepository,
-	orgDevices *OrgDevicesService,
+	devices DeviceRepository,
 	logger *log.Logger,
-	orgs *OrganizationsService,
 	topicPublisher *TopicPublisher,
 ) *DevicesService {
 	return &DevicesService{
+		devices:        devices,
 		states:         states,
-		orgDevices:     orgDevices,
 		logger:         logger,
-		orgs:           orgs,
 		topicPublisher: topicPublisher,
 	}
 }
 
 var (
-	ErrForbidden            = errors.New("this action forbidden")
-	ErrInvalidHistoryLength = errors.New("invalid history length specified")
+	ErrForbidden             = errors.New("this action forbidden")
+	ErrInvalidHistoryLength  = errors.New("invalid history length specified")
+	ErrDeviceNotFound        = errors.New("device not found")
+	ErrInvalidDevicePassword = errors.New("invalid device password")
+	ErrAlreadyConnected      = domain.ErrDeviceAlreadyConnected
 )
+
+func (d *DevicesService) ConnectDevice(
+	ctx context.Context,
+	deviceID, userID uuid.UUID,
+	password, name string,
+) error {
+	device, err := d.devices.GetDevice(ctx, deviceID)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return ErrDeviceNotFound
+	case err != nil:
+		return fmt.Errorf("get device: %w", err)
+	case device.OwnerID != nil:
+		return ErrAlreadyConnected
+	case !device.CheckPassword(password):
+		return ErrInvalidDevicePassword
+	}
+
+	if name == "" {
+		name = names.Gen()
+	}
+
+	_, err = d.devices.ConnectDevice(ctx, deviceID, userID, name)
+	switch {
+	case errors.Is(err, domain.ErrDeviceAlreadyConnected):
+		return ErrAlreadyConnected
+	case err != nil:
+		return fmt.Errorf("connect device: %w", err)
+	default:
+		return nil
+	}
+}
 
 func (d *DevicesService) GetStates(
 	ctx context.Context,
@@ -55,16 +102,6 @@ func (d *DevicesService) GetStates(
 ) ([]domain.StateRecord, error) {
 	if historyLength < 0 {
 		return nil, ErrInvalidHistoryLength
-	}
-
-	if can, err := d.orgDevices.UserCanGetState(
-		ctx,
-		userID,
-		deviceID,
-	); err != nil {
-		return nil, fmt.Errorf("check user can get state: %w", err)
-	} else if !can {
-		return nil, fmt.Errorf("user can't get state: %w", ErrForbidden)
 	}
 
 	states, err := d.states.GetStates(
@@ -86,16 +123,6 @@ func (d *DevicesService) SendCommand(
 	command string,
 	args any,
 ) error {
-	if can, err := d.orgDevices.UserCanSendCommand(
-		ctx,
-		userID,
-		deviceID,
-	); err != nil {
-		return fmt.Errorf("check user can send command: %w", err)
-	} else if !can {
-		return fmt.Errorf("user can't get state: %w", ErrForbidden)
-	}
-
 	cmd := Command{
 		Command: command,
 		Args:    args,

@@ -17,6 +17,11 @@ import (
 )
 
 type DevicesService interface {
+	ConnectDevice(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+		password, name string,
+	) error
 	GetStates(
 		ctx context.Context,
 		deviceID, userID uuid.UUID,
@@ -49,6 +54,11 @@ func NewDevice(
 
 // SetupRoutes implements [pkg.Handler].
 func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
+	router.POST(
+		"/api/v2/devices/connect",
+		d.middleware.RequireAuth(),
+		d.HandleConnectDevice,
+	)
 	router.GET(
 		"/api/v2/devices/:id/state/:state",
 		d.middleware.RequireAuth(),
@@ -59,6 +69,49 @@ func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
 		d.middleware.RequireAuth(),
 		d.HandleSendCommand,
 	)
+}
+
+type ConnectDeviceRequest struct {
+	DeviceID uuid.UUID `json:"deviceId" binding:"required"`
+	Password string    `json:"password" binding:"required"`
+	Name     string    `json:"name" binding:"required"`
+}
+
+func (d *DevicesHandlers) HandleConnectDevice(c *gin.Context) {
+	principal := middleware.MustPrincipal(c)
+
+	var request ConnectDeviceRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			requests.ResponseErr(err),
+		)
+
+		return
+	}
+
+	err := d.devices.ConnectDevice(
+		c.Request.Context(),
+		request.DeviceID,
+		principal.UserID,
+		request.Password,
+		request.Name,
+	)
+	switch {
+	case errors.Is(err, services.ErrDeviceNotFound):
+		c.AbortWithStatusJSON(http.StatusNotFound, requests.ResponseErr(err))
+	case errors.Is(err, services.ErrInvalidDevicePassword):
+		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
+	case errors.Is(err, services.ErrAlreadyConnected):
+		c.AbortWithStatusJSON(http.StatusConflict, requests.ResponseErr(err))
+	case err != nil:
+		c.AbortWithStatusJSON(
+			http.StatusInternalServerError,
+			requests.ResponseErr(err),
+		)
+	default:
+		c.Status(http.StatusCreated)
+	}
 }
 
 func (d *DevicesHandlers) HandleGetState(c *gin.Context) {

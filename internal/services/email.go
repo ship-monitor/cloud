@@ -61,7 +61,10 @@ func NewEmailService(vConf *viper.Viper) (*EmailService, error) {
 }
 
 // SendEmail implements [EmailSender].
-func (s *EmailService) SendEmail(ctx context.Context, e email.Email) error {
+func (s *EmailService) SendEmail(
+	ctx context.Context,
+	message email.Email,
+) error {
 	if s.conf.Disabled {
 		return nil
 	}
@@ -71,7 +74,7 @@ func (s *EmailService) SendEmail(ctx context.Context, e email.Email) error {
 		Name:  s.conf.SenderName,
 	})
 
-	msg, err := w.Write(e)
+	msg, err := w.Write(message)
 	if err != nil {
 		return fmt.Errorf("write email: %w", err)
 	}
@@ -80,7 +83,7 @@ func (s *EmailService) SendEmail(ctx context.Context, e email.Email) error {
 		fmt.Sprintf("%s:%d", s.conf.SMTPHost, s.conf.SMTPPort),
 		s.auth,
 		s.conf.AuthEmail,
-		[]string{e.To}, msg,
+		[]string{message.To}, msg,
 	)
 	if err != nil {
 		return fmt.Errorf("smtp send: %w", err)

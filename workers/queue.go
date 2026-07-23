@@ -46,7 +46,7 @@ func NewQueue(
 	service RecordsService,
 	logger *log.Logger,
 ) (*QueueWorker, error) {
-	q := &QueueWorker{
+	worker := &QueueWorker{
 		conn:    conn,
 		log:     logger,
 		redis:   rdb,
@@ -55,14 +55,14 @@ func NewQueue(
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			return q.Start(ctx)
+			return worker.Start(ctx)
 		},
 		OnStop: func(ctx context.Context) error {
-			return q.Stop(ctx)
+			return worker.Stop(ctx)
 		},
 	})
 
-	return q, nil
+	return worker, nil
 }
 
 func (q *QueueWorker) Stop(ctx context.Context) error {

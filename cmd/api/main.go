@@ -61,29 +61,18 @@ func provideRepos() fx.Option {
 				),
 			),
 			fx.Annotate(
-				repository.NewOrgs,
-				fx.As(
-					new(services.OrganizationRepository),
-				),
-				fx.As(new(services.FullOrganizationsRepository)),
-			),
-			fx.Annotate(
 				repository.NewUsers,
 				fx.As(new(services.UsersRepo)),
 			),
 			fx.Annotate(
 				repository.NewDevices,
-			),
-			fx.Annotate(
-				repository.NewOrgDevices,
-				fx.As(new(services.OrgDevicesRepo)),
+				fx.As(new(services.DeviceRepository)),
 			),
 			fx.Annotate(repository.NewRedisSessionStore,
 				fx.As(new(services.SessionStore)),
 			),
 			pkg.AsMigrationRepo(repository.NewUsers),
 			pkg.AsMigrationRepo(repository.NewDevices),
-			pkg.AsMigrationRepo(repository.NewOrgs),
 			pkg.AsMigrationRepo(repository.NewDevices),
 		),
 
@@ -94,17 +83,6 @@ func provideRepos() fx.Option {
 func provideServices() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			services.NewOrgDevices,
-			fx.Annotate(
-				services.NewOrgDevices,
-				fx.As(new(handlers.OrgDevicesService)),
-			),
-			services.NewOrganizations,
-			fx.Annotate(services.NewOrganizations,
-				fx.As(new(handlers.InvitationsService)),
-				fx.As(new(handlers.OrganizationService)),
-				fx.As(new(handlers.OrganizationMembersService)),
-			),
 			services.NewTopicPublisher,
 			fx.Annotate(services.NewEmailService,
 				fx.As(new(domain.EmailSender)),
@@ -132,9 +110,6 @@ func provideHandlers() fx.Option {
 		fx.Provide(handlers.NewAuthHandlers,
 			AsHandlers(handlers.NewAuthHandlers),
 			AsHandlers(handlers.NewDevice),
-			AsHandlers(handlers.NewInvitation),
-			AsHandlers(handlers.NewOrgDevice),
-			AsHandlers(handlers.NewOrgs),
 			AsHandlers(handlers.NewUser),
 		),
 	)

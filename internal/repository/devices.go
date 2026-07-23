@@ -100,15 +100,15 @@ func (d *DeviceRepo) DeviceExists(
 
 func (d *DeviceRepo) GetDevices(
 	ctx context.Context,
-	p paging.Paging,
+	page paging.Paging,
 ) ([]domain.Device, error) {
 	var devices []domain.Device
 
 	err := d.db.NewSelect().
 		Model(&devices).
 		Order("id ASC").
-		Limit(p.Size).
-		Offset(p.Page * p.Size).
+		Limit(page.Size).
+		Offset(page.Page * page.Size).
 		Scan(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("select devices: %w", err)
@@ -123,14 +123,24 @@ func (d *DeviceRepo) ConnectDevice(
 	userID uuid.UUID,
 	name string,
 ) (*domain.Device, error) {
-	_, err := d.db.NewUpdate().
+	result, err := d.db.NewUpdate().
 		Model((*domain.Device)(nil)).
 		Set("owner_id = ?", userID).
 		Set("name = ?", name).
 		Where("id = ?", deviceID).
+		Where("owner_id IS NULL").
 		Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("connect device: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("get affected device count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return nil, domain.ErrDeviceAlreadyConnected
 	}
 
 	device, err := d.GetDevice(ctx, deviceID)

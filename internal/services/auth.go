@@ -177,7 +177,7 @@ func (a *AuthService) StartEmailConfirmation(
 		Path:     viper.GetString("frontend.email-confirmation-path"),
 		RawQuery: query.Encode(),
 	}
-	e := email.Email{
+	email := email.Email{
 		To:      user.Email,
 		Subject: "Email confirmation",
 		Lang:    "en",
@@ -194,7 +194,7 @@ func (a *AuthService) StartEmailConfirmation(
 		),
 	}
 
-	if err := a.email.SendEmail(ctx, e); err != nil {
+	if err := a.email.SendEmail(ctx, email); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
 

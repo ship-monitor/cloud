@@ -107,16 +107,16 @@ func (c *DeviceStatesRepository) GetStates(
 	records := make([]domain.StateRecord, 0, len(values))
 
 	for _, val := range values {
-		var r domain.StateRecord
+		var record domain.StateRecord
 
-		err := json.Unmarshal([]byte(val), &r)
+		err := json.Unmarshal([]byte(val), &record)
 		if err != nil {
 			log.Error("Failed unmarshal record", "error", err)
 
 			continue
 		}
 
-		records = append(records, r)
+		records = append(records, record)
 	}
 
 	return records, nil

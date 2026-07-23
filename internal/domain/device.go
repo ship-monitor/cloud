@@ -1,10 +1,14 @@
 package domain
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var ErrDeviceAlreadyConnected = errors.New("device already connected")
 
 // DeviceID is the unique identifier for a device. Alias for [uuid.UUID].
 type (

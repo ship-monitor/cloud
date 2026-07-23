@@ -33,19 +33,19 @@ func NewHTMLWriter(sender Sender) *HTMLWriter {
 	}
 }
 
-func (w *HTMLWriter) Write(e Email) ([]byte, error) {
-	encodedSubject := mime.QEncoding.Encode("utf-8", e.Subject)
+func (w *HTMLWriter) Write(email Email) ([]byte, error) {
+	encodedSubject := mime.QEncoding.Encode("utf-8", email.Subject)
 
 	headers := textproto.MIMEHeader{}
 	headers.Add("Content-Type", ContentTypeHTML)
 	headers.Add("Subject", encodedSubject)
 	headers.Add("From", fmt.Sprintf("%s <%s>", w.sender.Name, w.sender.Email))
 	headers.Add("Comments", Comment)
-	headers.Add("Language", e.Lang)
-	headers.Add("Content-Language", e.Lang)
+	headers.Add("Language", email.Lang)
+	headers.Add("Content-Language", email.Lang)
 	headers.Add("Date", time.Now().String())
 	headers.Add("Message-ID", uuid.NewString())
-	headers.Add("To", e.To)
+	headers.Add("To", email.To)
 	headers.Add("MIME-Version", "1.0")
 
 	var buf bytes.Buffer
@@ -60,7 +60,7 @@ func (w *HTMLWriter) Write(e Email) ([]byte, error) {
 		return nil, fmt.Errorf("write headers separator: %w", err)
 	}
 
-	_, err = fmt.Fprint(&buf, string(e.Body))
+	_, err = fmt.Fprint(&buf, string(email.Body))
 	if err != nil {
 		return nil, fmt.Errorf("write body: %w", err)
 	}

@@ -41,10 +41,10 @@ func (r *RedisSessionStore) IncrementVersion(
 func (r *RedisSessionStore) CreateSession(
 	ctx context.Context,
 	hash string,
-	s domain.Session,
+	session domain.Session,
 	ttl time.Duration,
 ) error {
-	data, err := s.JSON()
+	data, err := session.JSON()
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
 	}
@@ -58,7 +58,7 @@ func (r *RedisSessionStore) CreateSession(
 		return fmt.Errorf("set key in redis: %w", err)
 	}
 
-	if err := r.rdb.LPush(ctx, userSessionsListKey(s.UserID), hash).
+	if err := r.rdb.LPush(ctx, userSessionsListKey(session.UserID), hash).
 		Err(); err != nil {
 		return fmt.Errorf("push to session list: %w", err)
 	}
