@@ -33,6 +33,12 @@ type DevicesService interface {
 		command string,
 		args any,
 	) error
+	RenameDevice(
+		ctx context.Context,
+		applicant *domain.Principal,
+		deviceID uuid.UUID,
+		name string,
+	) error
 }
 
 var _ pkg.Handler = (*DevicesHandlers)(nil)
@@ -69,6 +75,11 @@ func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
 		d.middleware.RequireAuth(),
 		d.HandleSendCommand,
 	)
+	router.PATCH(
+		"/api/v2/devices/:id",
+		d.middleware.RequireAuth(),
+		d.HandlePatchDevice,
+	)
 }
 
 type ConnectDeviceRequest struct {
@@ -102,7 +113,7 @@ func (d *DevicesHandlers) HandleConnectDevice(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, requests.ResponseErr(err))
 	case errors.Is(err, services.ErrInvalidDevicePassword):
 		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
-	case errors.Is(err, services.ErrAlreadyConnected):
+	case errors.Is(err, domain.ErrDeviceAlreadyConnected):
 		c.AbortWithStatusJSON(http.StatusConflict, requests.ResponseErr(err))
 	case err != nil:
 		c.AbortWithStatusJSON(
@@ -176,7 +187,45 @@ func (d *DevicesHandlers) HandleSendCommand(c *gin.Context) {
 	)
 
 	switch {
-	case errors.Is(err, services.ErrForbidden):
+	case errors.Is(err, domain.ErrForbidden):
+		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		c.Status(http.StatusOK)
+	}
+}
+
+func (d *DevicesHandlers) HandlePatchDevice(c *gin.Context) {
+	var uriRequest struct {
+		DeviceID uuid.UUID `uri:"id" binding:"required"`
+	}
+	if err := c.BindUri(&uriRequest); err != nil {
+		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+
+		return
+	}
+
+	var request struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+
+		return
+	}
+
+	principal := middleware.MustPrincipal(c)
+
+	err := d.devices.RenameDevice(
+		c.Request.Context(),
+		principal,
+		uriRequest.DeviceID,
+		request.Name,
+	)
+
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
 		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
 		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))

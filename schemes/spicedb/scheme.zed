@@ -5,6 +5,10 @@ definition device {
     relation administrator: user
     relation viewer: user
 
-    permission manage = owner + administrator
     permission view = owner + administrator + viewer
+    permission view_state = owner + administrator + viewer
+    permission send_command = owner + administrator
+    permission disconnect = owner
+    permission rename = owner + administrator
+    permission share = owner + administrator
 }

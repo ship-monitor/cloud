@@ -30,6 +30,7 @@ func main() {
 			di.NewRabbitMQClient,
 			di.NewRedisClient,
 			di.NewDatabaseClient,
+			di.NewSpiceDB,
 		),
 		provideRepos(),
 		provideServices(),

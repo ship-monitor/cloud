@@ -2,6 +2,7 @@ cors:
   allow-origins:
     - "http://localhost:5173"
 debug: false
+spicedb-url: "localhost:50051"
 database-url: "postgres://katy:postgres@localhost:5432/auth-db?sslmode=disable"
 
 auth:

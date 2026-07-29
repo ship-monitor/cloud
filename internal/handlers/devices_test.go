@@ -15,6 +15,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
 
+var _ handlers.DevicesService = (*devicesServiceStub)(nil)
+
 type devicesServiceStub struct {
 	connect func(
 		ctx context.Context,
@@ -49,6 +51,15 @@ func (*devicesServiceStub) SendCommand(
 	any,
 ) error {
 	panic("unexpected SendCommand call")
+}
+
+func (*devicesServiceStub) RenameDevice(
+	context.Context,
+	*domain.Principal,
+	uuid.UUID,
+	string,
+) error {
+	panic("unexpected UpdateDevice call")
 }
 
 func TestHandleConnectDevice(t *testing.T) {
@@ -92,7 +103,7 @@ func TestHandleConnectDevice(t *testing.T) {
 		{
 			name:       "already connected",
 			body:       `{"deviceId":"` + deviceID.String() + `","password":"secret"}`,
-			serviceErr: services.ErrAlreadyConnected,
+			serviceErr: domain.ErrDeviceAlreadyConnected,
 			wantStatus: http.StatusConflict,
 			wantCall:   true,
 		},

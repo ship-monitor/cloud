@@ -1,9 +1,12 @@
 volumes:
   auth_data:
   rabbitmq_data:
+  spice_data:
 
 networks:
   auth-net:
+    driver: bridge
+  spice-net:
     driver: bridge
 
 services:
@@ -105,3 +108,54 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  spice-postgres:
+    networks:
+      - spice-net
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: spicedb
+      POSTGRES_USER: ${SPICE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${SPICE_POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - spice_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPICE_POSTGRES_USER} -d spicedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    # 2. Schema Migration Runner (Runs once, then exits)
+  spicedb-migrate:
+    networks:
+      - spice-net
+    image: authzed/spicedb:latest
+    command: datastore migrate head
+    environment:
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgres://${SPICE_POSTGRES_USER}:${SPICE_POSTGRES_PASSWORD}@spice-postgres:5432/spicedb?sslmode=disable
+    depends_on:
+      spice-postgres:
+        condition: service_healthy
+    volumes:
+      # Mounts your local schema file into the container
+      - ./schemes/spicedb/scheme.zed:/etc/spicedb/schema.zed:ro
+
+    # 3. Primary SpiceDB Engine
+  spicedb:
+    networks:
+      - spice-net
+    image: authzed/spicedb:latest
+    command: serve
+    ports:
+      - "50051:50051" # gRPC
+      - "50052:50052" # HTTP
+      - "9090:9090" # Metrics
+    environment:
+      - SPICEDB_GRPC_PRESHARED_KEY=${SPICEDB_GRPC_PRESHARED_KEY}
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=postgres://${SPICE_POSTGRES_USER}:${SPICE_POSTGRES_PASSWORD}@spice-postgres:5432/spicedb?sslmode=disable
+    depends_on:
+      spicedb-migrate:
+        condition: service_completed_successfully

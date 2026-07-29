@@ -8,7 +8,7 @@ Use `--devel` flag or set environment variable `DEVEL=true`
 
 [source,console]
 ----
-$ docker compose up -d auth-db rabbitmq redis
+$ docker compose up -d auth-db rabbitmq redis spicedb
 $ SHIP_CONFIG="ship-devel.yml" go run cmd/api/main.go --devel
 ----
 

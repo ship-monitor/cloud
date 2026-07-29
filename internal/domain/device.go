@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ErrDeviceAlreadyConnected is returned when a device is already connected.
 var ErrDeviceAlreadyConnected = errors.New("device already connected")
 
 // DeviceID is the unique identifier for a device. Alias for [uuid.UUID].

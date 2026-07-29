@@ -40,6 +40,14 @@ func (s *deviceRepositoryStub) ConnectDevice(
 	return s.device, s.connectErr
 }
 
+func (s *deviceRepositoryStub) RenameDevice(
+	_ context.Context,
+	_ domain.DeviceID,
+	_ string,
+) error {
+	return nil
+}
+
 func TestConnectDevice(t *testing.T) {
 	t.Parallel()
 
@@ -86,7 +94,7 @@ func TestConnectDevice(t *testing.T) {
 				OwnerID:      new(uuid.UUID),
 			}},
 			password: password,
-			wantErr:  services.ErrAlreadyConnected,
+			wantErr:  domain.ErrDeviceAlreadyConnected,
 		},
 		{
 			name: "concurrent connection",
@@ -98,7 +106,7 @@ func TestConnectDevice(t *testing.T) {
 				connectErr: domain.ErrDeviceAlreadyConnected,
 			},
 			password:  password,
-			wantErr:   services.ErrAlreadyConnected,
+			wantErr:   domain.ErrDeviceAlreadyConnected,
 			wantCalls: 1,
 		},
 	}
@@ -107,7 +115,7 @@ func TestConnectDevice(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			service := services.NewDevices(nil, test.repository, nil, nil)
+			service := services.NewDevices(nil, test.repository, nil, nil, nil)
 			err := service.ConnectDevice(
 				t.Context(),
 				deviceID,
