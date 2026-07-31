@@ -18,3 +18,19 @@ Start RabbitMQ:
 ----
 $ docker compose up rabbitmq --detach
 ----
+
+== Configuration
+
+Configuring environment variables:
+
+`EMAIL_SMTP_HOST` - email service smtp host (example: `smtp.mail.ru`)
+`EMAIL_SMTP_PORT` - email service smtp port (example: `587`)
+`EMAIL_EMAIL` - email service smtp email for authentication in service (example: `ship@mail.ru`)
+`EMAIL_PASSWORD` - email service smtp password for authentication in service
+`SPICE_POSTGRES_USER` - PostgreSQL database user for spicedb
+`SPICE_POSTGRES_PASSWORD` - PostgreSQL database password for spicedb
+`SPICEDB_GRPC_PRESHARED_KEY` - preshared key for gRPC connection to SpiceDB
+`SHIP_DATABASE_USER` - PostgreSQL database user for Ship database
+`SHIP_DATABASE_PASSWORD` - PostgreSQL database password for Ship database
+`SHIP_DATABASE_NAME` - PostgreSQL database name for Ship database
+`REDIS_PASSWORD` - Redis password

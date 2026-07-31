@@ -3,7 +3,6 @@ cors:
     - "https://ship-monitor.ru"
     - "http://localhost:5173"
 debug: false
-database-url: "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
 
 auth:
   session:
@@ -23,7 +22,6 @@ session:
 email:
   sender-name: "ШиП Мониторинг"
 
-rabbitmq-url: "amqp://guest:guest@rabbitmq:5672/"
 redis:
   url: redis:6379
   password: ""
