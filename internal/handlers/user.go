@@ -8,7 +8,6 @@ import (
 	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
 
 type UserService interface {
@@ -17,7 +16,7 @@ type UserService interface {
 
 type UserHandler struct {
 	users      UserService
-	middleware *middleware.AuthMiddleware
+	middleware AuthMiddleware
 	logger     *log.Logger
 }
 
@@ -29,7 +28,7 @@ var _ pkg.Handler = (*UserHandler)(nil)
 
 func NewUser(
 	users UserService,
-	middleware *middleware.AuthMiddleware,
+	middleware AuthMiddleware,
 	logger *log.Logger,
 ) *UserHandler {
 	return &UserHandler{

@@ -17,6 +17,20 @@ linters:
     - funlen
 
   settings:
+    wrapcheck:
+      report-internal-errors: true
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - .Wrap(
+        - .Wrapf(
+        - .WithMessage(
+        - .WithMessagef(
+        - .WithStack(
+        - .JSON(
+        - .NoContent(
+
     varnamelen:
       ignore-names:
         - ch
@@ -28,14 +42,20 @@ linters:
         - c # c *gin.Context
     depguard:
       rules:
-        prevent_bad_architecture:
+        prevent_repo_in_service:
           list-mode: lax # allow unless explicitely denied
           files:
-            - $all
-            - "!$test"
+            - "**/internal/services/*"
           deny:
-            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/services/*
-              desc: "Should be replaced"
+            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository
+              desc: Should inverse this dependency
+        prevent_service_in_handlers:
+          list-mode: lax # allow unless explicitely denied
+          files:
+            - "**/internal/handlers/*"
+          deny:
+            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services
+              desc: Should inverse this dependency
         prevent_unmaintained_packages:
           list-mode: lax
           files:

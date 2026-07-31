@@ -84,6 +84,8 @@ func (r *RedisSessionStore) DeleteSession(
 	return nil
 }
 
+var ErrNoSession = errors.New("no session in redis")
+
 // GetSession implements [services.SessionStore].
 func (r *RedisSessionStore) GetSession(
 	ctx context.Context,
@@ -92,7 +94,7 @@ func (r *RedisSessionStore) GetSession(
 	data, err := r.rdb.Get(ctx, sessionKey(hash)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return nil, services.ErrSessionNotFound
+			return nil, ErrNoSession
 		}
 
 		return nil, fmt.Errorf("get session: %w", err)
@@ -138,7 +140,7 @@ func (r *RedisSessionStore) ListSessions(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, services.ErrSessionNotFound) {
+			if errors.Is(err, ErrNoSession) {
 				continue
 			}
 
@@ -179,7 +181,7 @@ func (r *RedisSessionStore) RevokeByID(
 ) error {
 	hash, err := r.findHashBySessionID(ctx, userID, sessionID)
 	if err != nil {
-		return err
+		return fmt.Errorf("find hash by session id: %w", err)
 	}
 
 	if err := r.DeleteSession(ctx, userID, hash); err != nil {
@@ -204,7 +206,7 @@ func (r *RedisSessionStore) RevokeAllExcept(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, services.ErrSessionNotFound) {
+			if errors.Is(err, ErrNoSession) {
 				continue
 			}
 
@@ -239,7 +241,7 @@ func (r *RedisSessionStore) findHashBySessionID(
 	for _, hash := range hashes {
 		session, err := r.GetSession(ctx, hash)
 		if err != nil {
-			if errors.Is(err, services.ErrSessionNotFound) {
+			if errors.Is(err, ErrNoSession) {
 				continue
 			}
 
@@ -251,7 +253,7 @@ func (r *RedisSessionStore) findHashBySessionID(
 		}
 	}
 
-	return "", services.ErrSessionNotFound
+	return "", ErrNoSession
 }
 
 func sessionKey(hash string) string {

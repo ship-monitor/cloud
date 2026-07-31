@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/spf13/viper"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 )
 
 type CookieConfig struct {
@@ -21,6 +22,8 @@ type CookieConfig struct {
 type AuthCookieManager struct {
 	config CookieConfig
 }
+
+var _ handlers.CookieManager = (*AuthCookieManager)(nil)
 
 func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
 	return &AuthCookieManager{config: CookieConfig{

@@ -9,8 +9,14 @@ import (
 	"charm.land/log/v2"
 	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+)
+
+var (
+	ErrUnauthenticated = errors.New("unauthenticated")
+	ErrSessionExpired  = errors.New("session expired")
+	ErrSessionRevoked  = errors.New("session revoked")
 )
 
 type AuthService interface {
@@ -27,6 +33,8 @@ type AuthMiddleware struct {
 	cookies     *AuthCookieManager
 	logger      *log.Logger
 }
+
+var _ handlers.AuthMiddleware = (*AuthMiddleware)(nil)
 
 func NewAuthMiddleware(
 	auth AuthService,
@@ -47,7 +55,9 @@ var (
 	ErrUnknownValueType = errors.New("unknown value type")
 )
 
-func PrincipalFromContext(ctx *echo.Context) (*domain.Principal, error) {
+func (m *AuthMiddleware) PrincipalFromContext(
+	ctx *echo.Context,
+) (*domain.Principal, error) {
 	principal, err := echo.ContextGet[*domain.Principal](
 		ctx,
 		principalContextKey,
@@ -63,8 +73,8 @@ func AddToContext(ctx *echo.Context, p *domain.Principal) {
 	ctx.Set(principalContextKey, p)
 }
 
-func MustPrincipal(c *echo.Context) *domain.Principal {
-	principal, err := PrincipalFromContext(c)
+func (m *AuthMiddleware) MustPrincipal(c *echo.Context) *domain.Principal {
+	principal, err := m.PrincipalFromContext(c)
 	if err != nil {
 		panic("principal is not registered in context, error: " + err.Error())
 	}
@@ -88,9 +98,9 @@ func (s *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
 				token,
 			)
 			switch {
-			case errors.Is(err, services.ErrUnauthenticated),
-				errors.Is(err, services.ErrSessionExpired),
-				errors.Is(err, services.ErrSessionRevoked):
+			case errors.Is(err, ErrUnauthenticated),
+				errors.Is(err, ErrSessionExpired),
+				errors.Is(err, ErrSessionRevoked):
 				s.cookies.Clear(c)
 
 				return c.JSON(

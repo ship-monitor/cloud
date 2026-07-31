@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -29,22 +28,74 @@ type AuthService interface {
 	) error
 	ChangeEmail(ctx context.Context, userID uuid.UUID, newEmail string) error
 }
+type ClientInfo struct {
+	UserAgent string
+	ClientIP  string
+}
+type CreatedSession struct {
+	Session domain.Session
+	Token   string
+}
+
+type SessionsService interface {
+	List(ctx context.Context, userID uuid.UUID) ([]domain.Session, error)
+	Create(
+		ctx context.Context,
+		userID uuid.UUID, info ClientInfo,
+	) (*CreatedSession, error)
+	Authenticate(
+		ctx context.Context,
+		token string,
+	) (*domain.Principal, error)
+	Logout(
+		ctx context.Context,
+		token string,
+	) error
+	LogoutAll(
+		ctx context.Context,
+		w http.ResponseWriter,
+		r *http.Request,
+		userID uuid.UUID,
+	) error
+	RevokeByID(
+		ctx context.Context,
+		userID uuid.UUID,
+		sessionID uuid.UUID,
+	) error
+	RevokeOthers(
+		ctx context.Context,
+		userID uuid.UUID,
+		currentSessionID uuid.UUID,
+	) error
+}
 
 var _ pkg.Handler = (*AuthHandlers)(nil)
+
+type CookieManager interface {
+	Clear(c *echo.Context)
+	Read(c *echo.Context) (string, error)
+	Set(c *echo.Context, token string, expiresAt time.Time)
+}
+
+type AuthMiddleware interface {
+	RequireAuth() echo.MiddlewareFunc
+	Logout(ctx *echo.Context) error
+	MustPrincipal(c *echo.Context) *domain.Principal
+}
 
 type AuthHandlers struct {
 	logger      *log.Logger
 	authService AuthService
-	sessions    *services.Sessions
-	middleware  *middleware.AuthMiddleware
-	cookie      *middleware.AuthCookieManager
+	sessions    SessionsService
+	middleware  AuthMiddleware
+	cookie      CookieManager
 }
 
 func NewAuthHandlers(
 	authService AuthService,
-	sessions *services.Sessions,
-	middleware *middleware.AuthMiddleware,
-	cookie *middleware.AuthCookieManager,
+	sessions SessionsService,
+	middleware AuthMiddleware,
+	cookie CookieManager,
 ) *AuthHandlers {
 	return &AuthHandlers{
 		authService: authService,
@@ -76,6 +127,11 @@ func (a *AuthHandlers) SetupRoutes(router *echo.Group) {
 	sessions.DELETE("", a.HandleRevokeOtherSessions)
 }
 
+var (
+	ErrEmailTaken          = errors.New("email already taken")
+	ErrInvalidRegisterData = errors.New("invalid register data")
+)
+
 func (a *AuthHandlers) HandleRegister(c *echo.Context) error {
 	var request domain.RegisterUserData
 
@@ -85,9 +141,9 @@ func (a *AuthHandlers) HandleRegister(c *echo.Context) error {
 
 	err := a.authService.Register(c.Request().Context(), request)
 	switch {
-	case errors.Is(err, services.ErrEmailTaken):
+	case errors.Is(err, ErrEmailTaken):
 		return c.JSON(http.StatusConflict, requests.ResponseErr(err))
-	case errors.Is(err, services.ErrInvalidRegisterData):
+	case errors.Is(err, ErrInvalidRegisterData):
 		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	case err != nil:
 		return c.JSON(
@@ -98,6 +154,10 @@ func (a *AuthHandlers) HandleRegister(c *echo.Context) error {
 		return c.NoContent(http.StatusCreated)
 	}
 }
+
+// ErrBadCredentials is returned when the user provides invalid credentials
+// (email or password).
+var ErrBadCredentials = errors.New("bad credentials")
 
 func (a *AuthHandlers) HandleLogin(c *echo.Context) error {
 	var request struct {
@@ -115,7 +175,7 @@ func (a *AuthHandlers) HandleLogin(c *echo.Context) error {
 		request.Password,
 	)
 	switch {
-	case errors.Is(err, services.ErrBadCredentials):
+	case errors.Is(err, ErrBadCredentials):
 		log.Error("Invalid credentials", "error", err, "email", request.Email)
 
 		return c.JSON(
@@ -135,7 +195,7 @@ func (a *AuthHandlers) HandleLogin(c *echo.Context) error {
 	session, err := a.sessions.Create(
 		c.Request().Context(),
 		user.ID,
-		services.ClientInfo{
+		ClientInfo{
 			UserAgent: c.Request().UserAgent(),
 			ClientIP:  c.RealIP(),
 		},
@@ -170,7 +230,7 @@ type sessionItem struct {
 
 // HandleListSessions returns all active sessions of the current user.
 func (a *AuthHandlers) HandleListSessions(c *echo.Context) error {
-	principal := middleware.MustPrincipal(c)
+	principal := a.middleware.MustPrincipal(c)
 
 	list, err := a.sessions.List(c.Request().Context(), principal.UserID)
 	if err != nil {
@@ -191,9 +251,11 @@ func (a *AuthHandlers) HandleListSessions(c *echo.Context) error {
 	return c.JSON(http.StatusOK, gin.H{"sessions": items})
 }
 
+var ErrSessionNotFound = errors.New("session not found")
+
 // HandleRevokeSession terminates a single session by its ID.
 func (a *AuthHandlers) HandleRevokeSession(c *echo.Context) error {
-	principal := middleware.MustPrincipal(c)
+	principal := a.middleware.MustPrincipal(c)
 
 	var request struct {
 		SessionID uuid.UUID `param:"id"`
@@ -208,7 +270,7 @@ func (a *AuthHandlers) HandleRevokeSession(c *echo.Context) error {
 		request.SessionID,
 	)
 	switch {
-	case errors.Is(err, services.ErrSessionNotFound):
+	case errors.Is(err, ErrSessionNotFound):
 		return c.NoContent(http.StatusNotFound)
 	case err != nil:
 		return c.JSON(
@@ -222,7 +284,7 @@ func (a *AuthHandlers) HandleRevokeSession(c *echo.Context) error {
 
 // HandleRevokeOtherSessions terminates every session except the current one.
 func (a *AuthHandlers) HandleRevokeOtherSessions(c *echo.Context) error {
-	principal := middleware.MustPrincipal(c)
+	principal := a.middleware.MustPrincipal(c)
 
 	err := a.sessions.RevokeOthers(
 		c.Request().Context(),
@@ -240,14 +302,14 @@ func (a *AuthHandlers) HandleRevokeOtherSessions(c *echo.Context) error {
 }
 
 func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *echo.Context) error {
-	session := middleware.MustPrincipal(ctx)
+	session := a.middleware.MustPrincipal(ctx)
 
 	err := a.authService.StartEmailConfirmation(
 		ctx.Request().Context(),
 		session.UserID,
 	)
 	switch {
-	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
+	case errors.Is(err, ErrEmailAlreadyConfirmed):
 		return ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
 		return ctx.JSON(
@@ -259,8 +321,10 @@ func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *echo.Context) error {
 	}
 }
 
+var ErrEmailAlreadyConfirmed = errors.New("email is already confirmed")
+
 func (a *AuthHandlers) HandleConfirmEmail(ctx *echo.Context) error {
-	session := middleware.MustPrincipal(ctx)
+	session := a.middleware.MustPrincipal(ctx)
 
 	token := ctx.Param("token")
 
@@ -270,7 +334,7 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *echo.Context) error {
 		token,
 	)
 	switch {
-	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
+	case errors.Is(err, ErrEmailAlreadyConfirmed):
 		return ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
 		return ctx.JSON(
@@ -283,7 +347,7 @@ func (a *AuthHandlers) HandleConfirmEmail(ctx *echo.Context) error {
 }
 
 func (a *AuthHandlers) HandleGetMe(ctx *echo.Context) error {
-	principal := middleware.MustPrincipal(ctx)
+	principal := a.middleware.MustPrincipal(ctx)
 
 	user, err := a.authService.GetUser(
 		ctx.Request().Context(),
@@ -310,7 +374,7 @@ func (a *AuthHandlers) HandleGetUser(ctx *echo.Context) error {
 }
 
 func (a *AuthHandlers) HandleUserSetPassword(ctx *echo.Context) error {
-	session := middleware.MustPrincipal(ctx)
+	session := a.middleware.MustPrincipal(ctx)
 
 	var request struct {
 		OldPassword string `binding:"required" json:"oldPassword"`
@@ -339,7 +403,7 @@ func (a *AuthHandlers) HandleUserSetPassword(ctx *echo.Context) error {
 var ErrNotAllowedSetEmail = errors.New("not allowed to set email for this user")
 
 func (a *AuthHandlers) HandleUserSetEmail(ctx *echo.Context) error {
-	session := middleware.MustPrincipal(ctx)
+	session := a.middleware.MustPrincipal(ctx)
 
 	var request struct {
 		Email string `binding:"required" json:"email"`

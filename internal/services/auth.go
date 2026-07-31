@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
 
@@ -54,15 +55,10 @@ func NewAuthService(
 	}
 }
 
-var (
-	ErrEmailTaken          = errors.New("email already taken")
-	ErrInvalidRegisterData = errors.New("invalid register data")
-)
-
 // Register registers a new user with the given name, email, and password.
 // It returns an error
-// if the email is already taken ([ErrEmailTaken]),
-// if the data invalid ([ErrInvalidRegisterData])
+// if the email is already taken ([handlers.ErrEmailTaken]),
+// if the data invalid ([handlers.ErrInvalidRegisterData])
 // or if there is an error while creating the user.
 func (a *AuthService) Register(
 	ctx context.Context,
@@ -74,11 +70,11 @@ func (a *AuthService) Register(
 
 	taken, err := a.users.EmailTaken(ctx, data.Email)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidRegisterData, err)
+		return fmt.Errorf("%w: %w", handlers.ErrInvalidRegisterData, err)
 	}
 
 	if taken {
-		return ErrEmailTaken
+		return handlers.ErrEmailTaken
 	}
 
 	userID := uuid.New()
@@ -149,7 +145,7 @@ func (a *AuthService) StartEmailConfirmation(
 	}
 
 	if user.EmailVerified {
-		return ErrEmailAlreadyConfirmed
+		return handlers.ErrEmailAlreadyConfirmed
 	}
 
 	token := genEmailConfirmationToken()
@@ -201,10 +197,8 @@ func (a *AuthService) StartEmailConfirmation(
 	return nil
 }
 
-var ErrEmailAlreadyConfirmed = errors.New("user email already confirmed")
-
 // ConfirmEmail try to confirm email by token. Returns
-// [ErrEmailAlreadyConfirmed] if it is so.
+// [handlers.ErrEmailAlreadyConfirmed] if it is so.
 func (a *AuthService) ConfirmEmail(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -235,7 +229,7 @@ func (a *AuthService) ConfirmEmail(
 	}
 
 	if user.EmailVerified {
-		return ErrEmailAlreadyConfirmed
+		return handlers.ErrEmailAlreadyConfirmed
 	}
 
 	if err := a.users.SetEmailVerified(ctx, user.ID, true); err != nil {
@@ -249,10 +243,6 @@ var (
 	ErrWrongUserToConfirm  = errors.New("wrong user to confirm email")
 	ErrWrongEmailToConfirm = errors.New("wrong email to confirm")
 )
-
-// ErrBadCredentials is returned when the user provides invalid credentials
-// (email or password).
-var ErrBadCredentials = errors.New("wrong password")
 
 func (a *AuthService) Login(
 	ctx context.Context,
@@ -272,7 +262,7 @@ func (a *AuthService) Login(
 			user.Email,
 		)
 
-		return nil, ErrBadCredentials
+		return nil, handlers.ErrBadCredentials
 	}
 
 	return user, nil

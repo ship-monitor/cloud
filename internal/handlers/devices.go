@@ -9,9 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
@@ -43,13 +41,13 @@ type DevicesService interface {
 var _ pkg.Handler = (*DevicesHandlers)(nil)
 
 type DevicesHandlers struct {
-	middleware *middleware.AuthMiddleware
+	middleware AuthMiddleware
 	devices    DevicesService
 }
 
 func NewDevice(
 	devices DevicesService,
-	middleware *middleware.AuthMiddleware,
+	middleware AuthMiddleware,
 ) *DevicesHandlers {
 	return &DevicesHandlers{
 		devices:    devices,
@@ -84,8 +82,14 @@ type ConnectDeviceRequest struct {
 	Name     string    `json:"name" binding:"required"`
 }
 
+var (
+	ErrDeviceNotFound         = errors.New("device not found")
+	ErrInvalidDevicePassword  = errors.New("invalid device password")
+	ErrDeviceAlreadyConnected = errors.New("device already connected")
+)
+
 func (d *DevicesHandlers) HandleConnectDevice(c *echo.Context) error {
-	principal := middleware.MustPrincipal(c)
+	principal := d.middleware.MustPrincipal(c)
 
 	var request ConnectDeviceRequest
 	if err := c.Bind(&request); err != nil {
@@ -103,9 +107,9 @@ func (d *DevicesHandlers) HandleConnectDevice(c *echo.Context) error {
 		request.Name,
 	)
 	switch {
-	case errors.Is(err, services.ErrDeviceNotFound):
+	case errors.Is(err, ErrDeviceNotFound):
 		return c.JSON(http.StatusNotFound, requests.ResponseErr(err))
-	case errors.Is(err, services.ErrInvalidDevicePassword):
+	case errors.Is(err, ErrInvalidDevicePassword):
 		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case errors.Is(err, domain.ErrDeviceAlreadyConnected):
 		return c.JSON(http.StatusConflict, requests.ResponseErr(err))
@@ -129,7 +133,7 @@ func (d *DevicesHandlers) HandleGetState(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	}
 
-	session := middleware.MustPrincipal(c)
+	session := d.middleware.MustPrincipal(c)
 
 	states, err := d.devices.GetStates(
 		c.Request().Context(),
@@ -148,7 +152,7 @@ func (d *DevicesHandlers) HandleGetState(c *echo.Context) error {
 }
 
 func (d *DevicesHandlers) HandleSendCommand(c *echo.Context) error {
-	session := middleware.MustPrincipal(c)
+	session := d.middleware.MustPrincipal(c)
 
 	var req struct {
 		DeviceID uuid.UUID      `param:"id"`
@@ -187,7 +191,7 @@ func (d *DevicesHandlers) HandlePatchDevice(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	}
 
-	principal := middleware.MustPrincipal(c)
+	principal := d.middleware.MustPrincipal(c)
 
 	err := d.devices.RenameDevice(
 		c.Request().Context(),

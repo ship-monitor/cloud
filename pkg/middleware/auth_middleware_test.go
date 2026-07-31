@@ -21,7 +21,9 @@ func TestPrincipalInCtx(t *testing.T) {
 
 	middleware.AddToContext(ctx, &principal)
 
-	if _, err := middleware.PrincipalFromContext(ctx); err != nil {
+	m := middleware.NewAuthMiddleware(nil, nil, nil)
+
+	if _, err := m.PrincipalFromContext(ctx); err != nil {
 		t.Errorf("must be principal, but returned error: %v", err)
 	}
 }

@@ -75,11 +75,11 @@ func (q *QueueWorker) Stop(ctx context.Context) error {
 
 func (q *QueueWorker) Start(ctx context.Context) error {
 	if err := q.openChannel(); err != nil {
-		return err
+		return fmt.Errorf("open channel: %w", err)
 	}
 
 	if err := q.declareQueue(); err != nil {
-		return err
+		return fmt.Errorf("declare queue: %w", err)
 	}
 
 	go q.handleMessageCycle(ctx)

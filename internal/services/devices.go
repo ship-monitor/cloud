@@ -11,6 +11,7 @@ import (
 	"github.com/authzed/authzed-go/v1"
 	"github.com/google/uuid"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
 )
 
@@ -48,6 +49,8 @@ type DevicesService struct {
 	spicedb        *authzed.Client
 }
 
+var _ handlers.DevicesService = (*DevicesService)(nil)
+
 func NewDevices(
 	states StatesRepository,
 	devices DeviceRepository,
@@ -69,9 +72,7 @@ var (
 		"%w: this action forbidden",
 		domain.ErrForbidden,
 	)
-	ErrInvalidHistoryLength  = errors.New("invalid history length specified")
-	ErrDeviceNotFound        = errors.New("device not found")
-	ErrInvalidDevicePassword = errors.New("invalid device password")
+	ErrInvalidHistoryLength = errors.New("invalid history length specified")
 )
 
 func (d *DevicesService) ConnectDevice(
@@ -82,7 +83,7 @@ func (d *DevicesService) ConnectDevice(
 	device, err := d.devices.GetDevice(ctx, deviceID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return ErrDeviceNotFound
+		return handlers.ErrDeviceNotFound
 	case err != nil:
 		return fmt.Errorf("get device: %w", err)
 	case device.OwnerID != nil:
@@ -91,7 +92,7 @@ func (d *DevicesService) ConnectDevice(
 			domain.ErrDeviceAlreadyConnected,
 		)
 	case !device.CheckPassword(password):
-		return ErrInvalidDevicePassword
+		return handlers.ErrInvalidDevicePassword
 	}
 
 	// TODO: return error if name is empty
