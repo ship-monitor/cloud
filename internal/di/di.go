@@ -9,7 +9,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/db"
 )
 
 func NewRedisClient(lc fx.Lifecycle, config *viper.Viper) *redis.Client {
@@ -53,7 +52,7 @@ func NewRabbitMQClient(
 }
 
 func NewDatabaseClient(lc fx.Lifecycle, config *viper.Viper) (*sql.DB, error) {
-	db, err := db.Connect()
+	db, err := ConnectDB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

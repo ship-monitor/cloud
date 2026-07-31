@@ -1,4 +1,4 @@
-package db
+package di
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ var ErrNoConnectionString = errors.New(
 	"connection string not specified (key database-url)",
 )
 
-func Connect() (*sql.DB, error) {
+func ConnectDB() (*sql.DB, error) {
 	dsn := viper.GetString("database-url")
 	if dsn == "" {
 		return nil, ErrNoConnectionString
