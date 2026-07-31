@@ -7,8 +7,8 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
@@ -56,16 +56,17 @@ func NewAuthHandlers(
 }
 
 // SetupRoutes implements [pkg.Handler].
-func (a *AuthHandlers) SetupRoutes(router gin.IRouter) {
+func (a *AuthHandlers) SetupRoutes(router *echo.Group) {
 	auth := router.Group("/api/auth")
 	auth.POST("/register", a.HandleRegister)
 	auth.POST("/login", a.HandleLogin)
-	auth.POST("/logout", a.middleware.RequireAuth(), a.HandleLogout)
+	auth.POST("/logout", a.HandleLogout, a.middleware.RequireAuth())
+
 	users := router.Group("/api/users", a.middleware.RequireAuth())
-	users.GET("/me", a.HandleGetUser)
+	users.GET("/me", a.HandleGetMe)
 	users.GET("/:id", a.HandleGetUser)
-	users.POST("/:id/set-password", a.HandleUserSetPassword)
-	users.POST("/:id/set-email", a.HandleUserSetEmail)
+	users.POST("/set-password", a.HandleUserSetPassword)
+	users.POST("/set-email", a.HandleUserSetEmail)
 	users.POST("/start-email-confirmation", a.HandleStartEmailConfirmation)
 	users.POST("/confirm-email/:token", a.HandleConfirmEmail)
 
@@ -75,86 +76,89 @@ func (a *AuthHandlers) SetupRoutes(router gin.IRouter) {
 	sessions.DELETE("", a.HandleRevokeOtherSessions)
 }
 
-func (a *AuthHandlers) HandleRegister(c *gin.Context) {
+func (a *AuthHandlers) HandleRegister(c *echo.Context) error {
 	var request domain.RegisterUserData
-	a.bindJSON(c, &request)
 
-	err := a.authService.Register(c.Request.Context(), request)
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	err := a.authService.Register(c.Request().Context(), request)
 	switch {
 	case errors.Is(err, services.ErrEmailTaken):
-		c.AbortWithStatusJSON(http.StatusConflict, requests.ResponseErr(err))
+		return c.JSON(http.StatusConflict, requests.ResponseErr(err))
 	case errors.Is(err, services.ErrInvalidRegisterData):
-		c.AbortWithStatusJSON(http.StatusBadRequest, requests.ResponseErr(err))
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	case err != nil:
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
 	default:
-		c.Status(http.StatusCreated)
+		return c.NoContent(http.StatusCreated)
 	}
 }
 
-func (a *AuthHandlers) HandleLogin(c *gin.Context) {
+func (a *AuthHandlers) HandleLogin(c *echo.Context) error {
 	var request struct {
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	a.bindJSON(c, &request)
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
 
 	user, err := a.authService.Login(
-		c.Request.Context(),
+		c.Request().Context(),
 		request.Email,
 		request.Password,
 	)
 	switch {
 	case errors.Is(err, services.ErrBadCredentials):
 		log.Error("Invalid credentials", "error", err, "email", request.Email)
-		c.JSON(
+
+		return c.JSON(
 			http.StatusUnauthorized,
 			requests.ResponseBad("invalid credentials"),
 		)
 
-		return
 	case err != nil:
 		log.Error("Internal error", "error", err)
-		c.JSON(
+
+		return c.JSON(
 			http.StatusUnauthorized,
 			requests.ResponseBad("invalid credentials"),
 		)
-
-		return
 	}
 
 	session, err := a.sessions.Create(
-		c.Request.Context(),
+		c.Request().Context(),
 		user.ID,
 		services.ClientInfo{
-			UserAgent: c.Request.UserAgent(),
-			ClientIP:  c.ClientIP(),
+			UserAgent: c.Request().UserAgent(),
+			ClientIP:  c.RealIP(),
 		},
 	)
 	if err != nil {
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
 	a.cookie.Set(c, session.Token, session.Session.ExpiresAt)
 
-	c.JSON(http.StatusOK, gin.H{
+	return c.JSON(http.StatusOK, gin.H{
 		"user": user,
 	})
 }
 
-func (a *AuthHandlers) HandleLogout(c *gin.Context) {
+func (a *AuthHandlers) HandleLogout(c *echo.Context) error {
 	if err := a.middleware.Logout(c); err != nil {
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	} else {
-		c.Status(http.StatusOK)
+		return c.NoContent(http.StatusOK)
 	}
 }
 
@@ -165,17 +169,15 @@ type sessionItem struct {
 }
 
 // HandleListSessions returns all active sessions of the current user.
-func (a *AuthHandlers) HandleListSessions(c *gin.Context) {
+func (a *AuthHandlers) HandleListSessions(c *echo.Context) error {
 	principal := middleware.MustPrincipal(c)
 
-	list, err := a.sessions.List(c.Request.Context(), principal.UserID)
+	list, err := a.sessions.List(c.Request().Context(), principal.UserID)
 	if err != nil {
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
 	items := make([]sessionItem, 0, len(list))
@@ -186,221 +188,177 @@ func (a *AuthHandlers) HandleListSessions(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"sessions": items})
+	return c.JSON(http.StatusOK, gin.H{"sessions": items})
 }
 
 // HandleRevokeSession terminates a single session by its ID.
-func (a *AuthHandlers) HandleRevokeSession(c *gin.Context) {
+func (a *AuthHandlers) HandleRevokeSession(c *echo.Context) error {
 	principal := middleware.MustPrincipal(c)
 
-	id := requests.MustGetParamUUID(c, "id")
+	var request struct {
+		SessionID uuid.UUID `param:"id"`
+	}
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
 
-	err := a.sessions.RevokeByID(c.Request.Context(), principal.UserID, id)
+	err := a.sessions.RevokeByID(
+		c.Request().Context(),
+		principal.UserID,
+		request.SessionID,
+	)
 	switch {
 	case errors.Is(err, services.ErrSessionNotFound):
-		c.AbortWithStatus(http.StatusNotFound)
+		return c.NoContent(http.StatusNotFound)
 	case err != nil:
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
 	default:
-		c.Status(http.StatusOK)
+		return c.NoContent(http.StatusOK)
 	}
 }
 
 // HandleRevokeOtherSessions terminates every session except the current one.
-func (a *AuthHandlers) HandleRevokeOtherSessions(c *gin.Context) {
+func (a *AuthHandlers) HandleRevokeOtherSessions(c *echo.Context) error {
 	principal := middleware.MustPrincipal(c)
 
 	err := a.sessions.RevokeOthers(
-		c.Request.Context(),
+		c.Request().Context(),
 		principal.UserID,
 		principal.SessionID,
 	)
 	if err != nil {
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
-	c.Status(http.StatusOK)
+	return c.NoContent(http.StatusOK)
 }
 
-func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *gin.Context) {
+func (a *AuthHandlers) HandleStartEmailConfirmation(ctx *echo.Context) error {
 	session := middleware.MustPrincipal(ctx)
 
 	err := a.authService.StartEmailConfirmation(
-		ctx.Request.Context(),
+		ctx.Request().Context(),
 		session.UserID,
 	)
 	switch {
 	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
-		ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
+		return ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
-		ctx.AbortWithStatusJSON(
+		return ctx.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
 	default:
-		ctx.Status(http.StatusOK)
+		return ctx.NoContent(http.StatusOK)
 	}
 }
 
-func (a *AuthHandlers) HandleConfirmEmail(ctx *gin.Context) {
+func (a *AuthHandlers) HandleConfirmEmail(ctx *echo.Context) error {
 	session := middleware.MustPrincipal(ctx)
 
 	token := ctx.Param("token")
 
 	err := a.authService.ConfirmEmail(
-		ctx.Request.Context(),
+		ctx.Request().Context(),
 		session.UserID,
 		token,
 	)
 	switch {
 	case errors.Is(err, services.ErrEmailAlreadyConfirmed):
-		ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
+		return ctx.JSON(http.StatusNotModified, requests.ResponseErr(err))
 	case err != nil:
-		ctx.AbortWithStatusJSON(
+		return ctx.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
 	default:
-		ctx.Status(http.StatusOK)
+		return ctx.NoContent(http.StatusOK)
 	}
 }
 
-func (a *AuthHandlers) HandleGetUser(ctx *gin.Context) {
-	session := middleware.MustPrincipal(ctx)
+func (a *AuthHandlers) HandleGetMe(ctx *echo.Context) error {
+	principal := middleware.MustPrincipal(ctx)
 
-	id, err := requests.GetParamUUID(ctx, "id")
-	if errors.Is(err, requests.ErrNoParam) {
-		id = session.UserID
-	}
-
-	if session.UserID != id {
-		ctx.AbortWithStatus(http.StatusNotFound)
-
-		return
-	}
-
-	user, err := a.authService.GetUser(ctx.Request.Context(), id)
+	user, err := a.authService.GetUser(
+		ctx.Request().Context(),
+		principal.UserID,
+	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, requests.ResponseErr(err))
-
-		return
+		return ctx.JSON(http.StatusNotFound, requests.ResponseErr(err))
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user": user})
+	return ctx.JSON(http.StatusOK, UserResponse{User: user})
 }
 
-func (a *AuthHandlers) HandleUserSetPassword(ctx *gin.Context) {
-	id := requests.MustGetParamUUID(ctx, "id")
-
-	session := middleware.MustPrincipal(ctx)
-	if session.UserID != id {
-		ctx.AbortWithStatus(http.StatusNotFound)
-
-		return
+func (a *AuthHandlers) HandleGetUser(ctx *echo.Context) error {
+	var request struct {
+		ID uuid.UUID `param:"id"`
 	}
+
+	user, err := a.authService.GetUser(ctx.Request().Context(), request.ID)
+	if err != nil {
+		return ctx.JSON(http.StatusNotFound, requests.ResponseErr(err))
+	}
+
+	return ctx.JSON(http.StatusOK, UserResponse{User: user})
+}
+
+func (a *AuthHandlers) HandleUserSetPassword(ctx *echo.Context) error {
+	session := middleware.MustPrincipal(ctx)
 
 	var request struct {
 		OldPassword string `binding:"required" json:"oldPassword"`
 		Password    string `binding:"required" json:"password"`
 	}
-	a.bindJSON(ctx, &request)
+	if err := ctx.Bind(&request); err != nil {
+		return ctx.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
 
 	err := a.authService.ChangePassword(
-		ctx.Request.Context(),
+		ctx.Request().Context(),
 		session.UserID,
 		request.OldPassword,
 		request.Password,
 	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(
+		return ctx.JSON(
 			http.StatusBadRequest,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
-	ctx.Status(http.StatusOK)
+	return ctx.NoContent(http.StatusOK)
 }
 
 var ErrNotAllowedSetEmail = errors.New("not allowed to set email for this user")
 
-func (a *AuthHandlers) HandleUserSetEmail(ctx *gin.Context) {
-	id := requests.MustGetParamUUID(ctx, "id")
-
+func (a *AuthHandlers) HandleUserSetEmail(ctx *echo.Context) error {
 	session := middleware.MustPrincipal(ctx)
-	if session.UserID != id {
-		ctx.AbortWithStatusJSON(
-			http.StatusForbidden,
-			requests.ResponseErr(ErrNotAllowedSetEmail),
-		)
-
-		return
-	}
 
 	var request struct {
 		Email string `binding:"required" json:"email"`
 	}
-	a.bindJSON(ctx, &request)
+	if err := ctx.Bind(&request); err != nil {
+		return ctx.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
 
 	err := a.authService.ChangeEmail(
-		ctx.Request.Context(),
+		ctx.Request().Context(),
 		session.UserID,
 		request.Email,
 	)
 	if err != nil {
-		ctx.AbortWithStatusJSON(
+		return ctx.JSON(
 			http.StatusBadRequest,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
-	ctx.Status(http.StatusOK)
-}
-
-func (a *AuthHandlers) bindJSON(ctx *gin.Context, data any) {
-	err := ctx.ShouldBindJSON(data)
-	if err != nil {
-		if vErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"details":          "body validation fails",
-				"validationErrors": mapErrors(vErrors),
-			})
-			a.logger.Error("Validation fails", "error", err)
-		}
-
-		a.logger.Error("Failed to bind JSON", "error", err)
-		ctx.AbortWithStatusJSON(
-			http.StatusBadRequest,
-			requests.BadResponse{Details: err.Error()},
-		)
-
-		return
-	}
-}
-
-func mapErrors(vErrors validator.ValidationErrors) []gin.H {
-	res := make([]gin.H, 0, len(vErrors))
-
-	for _, err := range vErrors {
-		res = append(res, gin.H{
-			"field":       err.Field(),
-			"error":       err.Error(),
-			"actualTag":   err.ActualTag(),
-			"tag":         err.Tag(),
-			"structField": err.StructField(),
-		})
-	}
-
-	return res
+	return ctx.NoContent(http.StatusOK)
 }

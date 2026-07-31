@@ -7,27 +7,30 @@ import (
 	"net/http"
 
 	"charm.land/log/v2"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
+	echoMiddleware "github.com/labstack/echo/v5/middleware"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
 
-func NewServerMux(handlers []pkg.Handler) http.Handler {
-	gin.SetMode(gin.ReleaseMode)
+func NewServerMux(handlers []pkg.Handler, config *viper.Viper) http.Handler {
+	mux := echo.New()
+	mux.Use(echoMiddleware.RequestLogger())
+	mux.Use(echoMiddleware.Recover())
+	mux.Use(echoMiddleware.CORS(config.GetStringSlice("cors.allow-origins")...))
 
-	engine := gin.Default()
-	engine.Use(middleware.NewCORS().Middleware())
-	engine.GET("/api/health", func(ctx *gin.Context) {
-		ctx.Status(http.StatusOK)
+	mux.GET("/api/health", func(ctx *echo.Context) error {
+		return ctx.JSON(http.StatusOK, map[string]string{
+			"ok": "ok",
+		})
 	})
 
 	for _, h := range handlers {
-		h.SetupRoutes(engine)
+		h.SetupRoutes(mux.Group("/"))
 	}
 
-	return engine
+	return mux
 }
 
 func NewHTTPServer(

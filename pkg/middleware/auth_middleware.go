@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"charm.land/log/v2"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
@@ -40,106 +40,79 @@ func NewAuthMiddleware(
 	}
 }
 
-type principalContextKey struct{}
+const principalContextKey = "principal-context-key"
 
 var (
 	ErrNoPrincipalInCtx = errors.New("no value in context")
 	ErrUnknownValueType = errors.New("unknown value type")
 )
 
-func PrincipalFromContext(ctx *gin.Context) (*domain.Principal, error) {
-	val, ok := ctx.Get(principalContextKey{})
-	if !ok {
-		return nil, ErrNoPrincipalInCtx
-	}
-
-	principal, ok := val.(*domain.Principal)
-	if !ok {
-		return nil, fmt.Errorf("%w: value type %T", ErrUnknownValueType, val)
+func PrincipalFromContext(ctx *echo.Context) (*domain.Principal, error) {
+	principal, err := echo.ContextGet[*domain.Principal](
+		ctx,
+		principalContextKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrNoPrincipalInCtx, err)
 	}
 
 	return principal, nil
 }
 
-func AddToContext(ctx *gin.Context, p *domain.Principal) {
-	ctx.Set(principalContextKey{}, p)
+func AddToContext(ctx *echo.Context, p *domain.Principal) {
+	ctx.Set(principalContextKey, p)
 }
 
-func MustPrincipal(c *gin.Context) *domain.Principal {
+func MustPrincipal(c *echo.Context) *domain.Principal {
 	principal, err := PrincipalFromContext(c)
 	if err != nil {
-		panic("principal is not registered in context: " + err.Error())
+		panic("principal is not registered in context, error: " + err.Error())
 	}
 
 	return principal
 }
 
-func (s *AuthMiddleware) RequireAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token, err := s.cookies.Read(c)
-		if err != nil {
-			s.abortUnauthorized(c, fmt.Errorf("read cookie: %w", err))
+func (s *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			token, err := s.cookies.Read(c)
+			if err != nil {
+				return c.JSON(
+					http.StatusUnauthorized,
+					requests.ResponseErr(err),
+				)
+			}
 
-			return
-		}
-
-		principal, err := s.authService.Authenticate(
-			c.Request.Context(),
-			token,
-		)
-		switch {
-		case errors.Is(err, services.ErrUnauthenticated),
-			errors.Is(err, services.ErrSessionExpired),
-			errors.Is(err, services.ErrSessionRevoked):
-			s.cookies.Clear(c)
-			s.abortUnauthorized(c, fmt.Errorf("service error: %w", err))
-		case err != nil:
-			c.AbortWithStatusJSON(
-				http.StatusServiceUnavailable,
-				requests.ResponseErr(err),
+			principal, err := s.authService.Authenticate(
+				c.Request().Context(),
+				token,
 			)
-		default:
-			AddToContext(c, principal)
+			switch {
+			case errors.Is(err, services.ErrUnauthenticated),
+				errors.Is(err, services.ErrSessionExpired),
+				errors.Is(err, services.ErrSessionRevoked):
+				s.cookies.Clear(c)
 
-			c.Next()
-		}
-	}
-}
+				return c.JSON(
+					http.StatusUnauthorized,
+					requests.ResponseErr(err),
+				)
+			case err != nil:
+				return c.JSON(
+					http.StatusServiceUnavailable,
+					requests.ResponseErr(err),
+				)
+			default:
+				AddToContext(c, principal)
 
-func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token, err := m.cookies.Read(c)
-		if err != nil {
-			c.Next()
-
-			return
-		}
-
-		principal, err := m.authService.Authenticate(
-			c.Request.Context(),
-			token,
-		)
-		switch {
-		case errors.Is(err, services.ErrUnauthenticated), // TODO: remove service dependency
-			errors.Is(err, services.ErrSessionExpired),
-			errors.Is(err, services.ErrSessionRevoked):
-			m.cookies.Clear(c)
-			c.Next()
-
-		case err != nil:
-			c.AbortWithStatusJSON(
-				http.StatusServiceUnavailable,
-				requests.ResponseErr(err),
-			)
-		default:
-			AddToContext(c, principal)
-			c.Next()
+				return next(c)
+			}
 		}
 	}
 }
 
 // Logout deletes session cookies and invoke [AuthService.Logout].
-func (a *AuthMiddleware) Logout(ctx *gin.Context) error {
+func (a *AuthMiddleware) Logout(ctx *echo.Context) error {
 	token, err := a.cookies.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("read cookie: %w", err)
@@ -147,18 +120,9 @@ func (a *AuthMiddleware) Logout(ctx *gin.Context) error {
 
 	a.cookies.Clear(ctx)
 
-	if err := a.authService.Logout(ctx.Request.Context(), token); err != nil {
+	if err := a.authService.Logout(ctx.Request().Context(), token); err != nil {
 		return fmt.Errorf("auth service logout: %w", err)
 	}
 
 	return nil
-}
-
-func (a *AuthMiddleware) abortUnauthorized(c *gin.Context, err error) {
-	log.Error("Abortin unauthorized", "error", err)
-
-	c.AbortWithStatusJSON(
-		http.StatusUnauthorized,
-		requests.ResponseBad("unauthenticated"),
-	)
 }

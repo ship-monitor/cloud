@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
 	"github.com/spf13/viper"
 )
 
@@ -33,26 +33,24 @@ func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
 	}}
 }
 
-func (m *AuthCookieManager) Read(c *gin.Context) (string, error) {
+func (m *AuthCookieManager) Read(c *echo.Context) (string, error) {
 	token, err := c.Cookie(m.config.Name)
 	if err != nil {
 		return "", fmt.Errorf("get cookie: %w", err)
 	}
 
-	return token, nil
+	return token.Value, nil
 }
 
 func (m *AuthCookieManager) Set(
-	c *gin.Context,
+	c *echo.Context,
 	token string,
 	expiresAt time.Time,
 ) {
 	maxAge := max(int(time.Until(expiresAt).Seconds()), 0)
 
-	c.SetSameSite(m.config.SameSite)
-
-	http.SetCookie(
-		c.Writer, &http.Cookie{
+	c.SetCookie(
+		&http.Cookie{
 			Name:     m.config.Name,
 			MaxAge:   maxAge,
 			Path:     m.config.Path,
@@ -65,19 +63,15 @@ func (m *AuthCookieManager) Set(
 	)
 }
 
-func (m *AuthCookieManager) Clear(c *gin.Context) {
-	c.SetSameSite(m.config.SameSite)
-
-	http.SetCookie(
-		c.Writer, &http.Cookie{
-			Name:     m.config.Name,
-			MaxAge:   -1,
-			Path:     m.config.Path,
-			Domain:   m.config.Domain,
-			Value:    "",
-			Secure:   m.config.Secure,
-			HttpOnly: m.config.HTTPOnly,
-			SameSite: m.config.SameSite,
-		},
-	)
+func (m *AuthCookieManager) Clear(c *echo.Context) {
+	c.SetCookie(&http.Cookie{
+		Name:     m.config.Name,
+		MaxAge:   -1,
+		Path:     m.config.Path,
+		Domain:   m.config.Domain,
+		Value:    "",
+		Secure:   m.config.Secure,
+		HttpOnly: m.config.HTTPOnly,
+		SameSite: m.config.SameSite,
+	})
 }

@@ -3,12 +3,11 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
@@ -59,25 +58,22 @@ func NewDevice(
 }
 
 // SetupRoutes implements [pkg.Handler].
-func (d *DevicesHandlers) SetupRoutes(router gin.IRouter) {
-	router.POST(
+func (d *DevicesHandlers) SetupRoutes(router *echo.Group) {
+	devRoutes := router.Group("/api/v2/devices/", d.middleware.RequireAuth())
+	devRoutes.POST(
 		"/api/v2/devices/connect",
-		d.middleware.RequireAuth(),
 		d.HandleConnectDevice,
 	)
-	router.GET(
+	devRoutes.GET(
 		"/api/v2/devices/:id/state/:state",
-		d.middleware.RequireAuth(),
 		d.HandleGetState,
 	)
-	router.POST(
+	devRoutes.POST(
 		"/api/v2/devices/:id/command",
-		d.middleware.RequireAuth(),
 		d.HandleSendCommand,
 	)
-	router.PATCH(
+	devRoutes.PATCH(
 		"/api/v2/devices/:id",
-		d.middleware.RequireAuth(),
 		d.HandlePatchDevice,
 	)
 }
@@ -88,21 +84,19 @@ type ConnectDeviceRequest struct {
 	Name     string    `json:"name" binding:"required"`
 }
 
-func (d *DevicesHandlers) HandleConnectDevice(c *gin.Context) {
+func (d *DevicesHandlers) HandleConnectDevice(c *echo.Context) error {
 	principal := middleware.MustPrincipal(c)
 
 	var request ConnectDeviceRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.AbortWithStatusJSON(
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(
 			http.StatusBadRequest,
 			requests.ResponseErr(err),
 		)
-
-		return
 	}
 
 	err := d.devices.ConnectDevice(
-		c.Request.Context(),
+		c.Request().Context(),
 		request.DeviceID,
 		principal.UserID,
 		request.Password,
@@ -110,77 +104,65 @@ func (d *DevicesHandlers) HandleConnectDevice(c *gin.Context) {
 	)
 	switch {
 	case errors.Is(err, services.ErrDeviceNotFound):
-		c.AbortWithStatusJSON(http.StatusNotFound, requests.ResponseErr(err))
+		return c.JSON(http.StatusNotFound, requests.ResponseErr(err))
 	case errors.Is(err, services.ErrInvalidDevicePassword):
-		c.AbortWithStatusJSON(http.StatusForbidden, requests.ResponseErr(err))
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case errors.Is(err, domain.ErrDeviceAlreadyConnected):
-		c.AbortWithStatusJSON(http.StatusConflict, requests.ResponseErr(err))
+		return c.JSON(http.StatusConflict, requests.ResponseErr(err))
 	case err != nil:
-		c.AbortWithStatusJSON(
+		return c.JSON(
 			http.StatusInternalServerError,
 			requests.ResponseErr(err),
 		)
 	default:
-		c.Status(http.StatusCreated)
+		return c.NoContent(http.StatusCreated)
 	}
 }
 
-func (d *DevicesHandlers) HandleGetState(c *gin.Context) {
-	deviceID := requests.MustGetParamUUID(c, "id")
-	state := c.Param("state")
-	session := middleware.MustPrincipal(c)
-
-	historyLength := 0
-
-	q, ok := c.GetQuery("history")
-	if ok {
-		length, err := strconv.ParseInt(q, 10, 64)
-		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				requests.ResponseErr(
-					fmt.Errorf("history query param: %w", err),
-				),
-			)
-		} else {
-			historyLength = int(length)
-		}
+func (d *DevicesHandlers) HandleGetState(c *echo.Context) error {
+	var request struct {
+		DeviceID uuid.UUID `param:"id"`
+		State    string    `param:"state"`
+		History  int       `query:"history"`
+	}
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	}
 
+	session := middleware.MustPrincipal(c)
+
 	states, err := d.devices.GetStates(
-		c.Request.Context(),
-		deviceID,
+		c.Request().Context(),
+		request.DeviceID,
 		session.UserID,
-		state,
-		historyLength,
+		request.State,
+		request.History,
 	)
 
 	switch {
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
-		c.JSON(http.StatusOK, gin.H{"result": states})
+		return c.JSON(http.StatusOK, gin.H{"result": states})
 	}
 }
 
-func (d *DevicesHandlers) HandleSendCommand(c *gin.Context) {
-	deviceID := requests.MustGetParamUUID(c, "id")
+func (d *DevicesHandlers) HandleSendCommand(c *echo.Context) error {
 	session := middleware.MustPrincipal(c)
 
 	var req struct {
-		Command string         `json:"command" binding:"required"`
-		Args    map[string]any `json:"args"`
+		DeviceID uuid.UUID      `param:"id"`
+		Command  string         `json:"command" binding:"required"`
+		Args     map[string]any `json:"args"`
 	}
 
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
-
-		return
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	}
 
 	err := d.devices.SendCommand(
-		c.Request.Context(),
-		deviceID,
+		c.Request().Context(),
+		req.DeviceID,
 		session.UserID,
 		req.Command,
 		req.Args,
@@ -188,48 +170,38 @@ func (d *DevicesHandlers) HandleSendCommand(c *gin.Context) {
 
 	switch {
 	case errors.Is(err, domain.ErrForbidden):
-		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
-		c.Status(http.StatusOK)
+		return c.NoContent(http.StatusOK)
 	}
 }
 
-func (d *DevicesHandlers) HandlePatchDevice(c *gin.Context) {
-	var uriRequest struct {
-		DeviceID uuid.UUID `uri:"id" binding:"required"`
-	}
-	if err := c.BindUri(&uriRequest); err != nil {
-		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
-
-		return
-	}
-
+func (d *DevicesHandlers) HandlePatchDevice(c *echo.Context) error {
 	var request struct {
-		Name string `json:"name" binding:"required"`
+		Name     string    `json:"name" binding:"required"`
+		DeviceID uuid.UUID `param:"id" binding:"required"`
 	}
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
-
-		return
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
 	}
 
 	principal := middleware.MustPrincipal(c)
 
 	err := d.devices.RenameDevice(
-		c.Request.Context(),
+		c.Request().Context(),
 		principal,
-		uriRequest.DeviceID,
+		request.DeviceID,
 		request.Name,
 	)
 
 	switch {
 	case errors.Is(err, domain.ErrForbidden):
-		c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
 	case err != nil:
-		c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
-		c.Status(http.StatusOK)
+		return c.NoContent(http.StatusOK)
 	}
 }

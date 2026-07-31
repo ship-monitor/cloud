@@ -3,8 +3,8 @@ package middleware_test
 import (
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
@@ -12,7 +12,7 @@ import (
 func TestPrincipalInCtx(t *testing.T) {
 	t.Parallel()
 
-	ctx := &gin.Context{}
+	ctx := &echo.Context{}
 
 	principal := domain.Principal{
 		UserID:    uuid.Max,

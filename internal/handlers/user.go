@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"charm.land/log/v2"
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
@@ -40,7 +40,7 @@ func NewUser(
 }
 
 // SetupRoutes implements [pkg.Handler].
-func (u *UserHandler) SetupRoutes(router gin.IRouter) {
+func (u *UserHandler) SetupRoutes(router *echo.Group) {
 	// u.logger.Info("Here")
 	// router.GET(
 	// 	"/api/users/me",

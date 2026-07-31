@@ -1,7 +1,7 @@
 package pkg
 
-import "github.com/gin-gonic/gin"
+import "github.com/labstack/echo/v5"
 
 type Handler interface {
-	SetupRoutes(router gin.IRouter)
+	SetupRoutes(router *echo.Group)
 }
