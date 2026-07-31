@@ -32,7 +32,7 @@ func NewSpiceDB(lc fx.Lifecycle, config *viper.Viper) (*authzed.Client, error) {
 	}
 
 	client, err := authzed.NewClient(
-		"grpc.authzed.com:443",
+		spicedbURL,
 		systemCerts,
 		grpcutil.WithBearerToken(presharedToken),
 	)
