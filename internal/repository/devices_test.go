@@ -46,7 +46,56 @@ func TestDeviceRepoMigrate(t *testing.T) {
 	}
 }
 
-const bridgeName = "Bridge"
+func TestDeviceRepoGetDevicesByIDs(t *testing.T) {
+	t.Parallel()
+
+	db := createDB(t)
+	defer closeDB(t, db)
+
+	repo := repository.NewDevices(db, log.Default())
+	if err := repo.Migrate(t.Context()); err != nil {
+		t.Fatalf("migrate devices: %v", err)
+	}
+
+	deviceID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
+	secondDeviceID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	for _, id := range []domain.DeviceID{deviceID, secondDeviceID} {
+		if err := repo.InsertDevice(t.Context(), &domain.Device{
+			ID:           id,
+			PasswordHash: []byte("password-hash"),
+			Model:        testDeviceModel,
+		}); err != nil {
+			t.Fatalf("insert device %s: %v", id, err)
+		}
+	}
+
+	available, err := repo.GetDevicesByIDs(
+		t.Context(),
+		[]domain.DeviceID{secondDeviceID},
+	)
+	if err != nil {
+		t.Fatalf("get devices by IDs: %v", err)
+	}
+
+	if len(available) != 1 || available[0].ID != secondDeviceID {
+		t.Fatalf("expected only device %s, got %+v", secondDeviceID, available)
+	}
+
+	empty, err := repo.GetDevicesByIDs(t.Context(), nil)
+	if err != nil {
+		t.Fatalf("get devices by empty ID list: %v", err)
+	}
+
+	if len(empty) != 0 {
+		t.Fatalf("expected no devices, got %+v", empty)
+	}
+}
+
+const (
+	bridgeName      = "Bridge"
+	testDeviceModel = "ship-monitor-v1"
+)
 
 func TestDeviceRepoMethods(t *testing.T) {
 	t.Parallel()
@@ -65,7 +114,7 @@ func TestDeviceRepoMethods(t *testing.T) {
 	if err := repo.InsertDevice(t.Context(), &domain.Device{
 		ID:           deviceID,
 		PasswordHash: []byte("password-hash"),
-		Model:        "ship-monitor-v1",
+		Model:        testDeviceModel,
 	}); err != nil {
 		t.Fatalf("insert device: %v", err)
 	}
@@ -87,8 +136,8 @@ func TestDeviceRepoMethods(t *testing.T) {
 		t.Fatalf("expected device id %s, got %s", deviceID, device.ID)
 	}
 
-	if device.Model != "ship-monitor-v1" {
-		t.Fatalf("expected model ship-monitor-v1, got %q", device.Model)
+	if device.Model != testDeviceModel {
+		t.Fatalf("expected model %s, got %q", testDeviceModel, device.Model)
 	}
 
 	if device.OwnerID != nil {

@@ -14,6 +14,8 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
+const responseResultKey = "result"
+
 type ConnectDeviceIn struct {
 	DeviceID domain.DeviceID `json:"deviceId" validate:"required"`
 	Name     string          `json:"name" validate:"required"`
@@ -26,6 +28,15 @@ type DevicesService interface {
 		applicant *domain.Principal,
 		in ConnectDeviceIn,
 	) error
+	GetDevice(
+		ctx context.Context,
+		applicant *domain.Principal,
+		deviceID domain.DeviceID,
+	) (*domain.Device, error)
+	GetDevices(
+		ctx context.Context,
+		applicant *domain.Principal,
+	) ([]domain.Device, error)
 	GetStates(
 		ctx context.Context,
 		deviceID, userID uuid.UUID,
@@ -80,7 +91,9 @@ func NewDevice(
 
 // SetupRoutes implements [pkg.Handler].
 func (d *DevicesHandlers) SetupRoutes(router *echo.Group) {
-	devRoutes := router.Group("/api/v2/devices/", d.middleware.RequireAuth())
+	devRoutes := router.Group("/api/v2/devices", d.middleware.RequireAuth())
+	devRoutes.GET("", d.HandleGetDevices)
+	devRoutes.GET("/:id", d.HandleGetDevice)
 	devRoutes.POST("/connect", d.HandleConnectDevice)
 	devRoutes.GET("/:id/state/:state", d.HandleGetState)
 	devRoutes.POST("/:id/command", d.HandleSendCommand)
@@ -102,6 +115,48 @@ var (
 	ErrInvalidDevicePassword  = errors.New("invalid device password")
 	ErrDeviceAlreadyConnected = errors.New("device already connected")
 )
+
+func (d *DevicesHandlers) HandleGetDevice(c *echo.Context) error {
+	var request struct {
+		DeviceID domain.DeviceID `param:"id" validate:"required"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	if err := validator.New().Struct(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	device, err := d.devices.GetDevice(
+		c.Request().Context(),
+		d.middleware.MustPrincipal(c),
+		request.DeviceID,
+	)
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case errors.Is(err, ErrDeviceNotFound):
+		return c.JSON(http.StatusNotFound, requests.ResponseErr(err))
+	case err != nil:
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		return c.JSON(http.StatusOK, gin.H{responseResultKey: device})
+	}
+}
+
+func (d *DevicesHandlers) HandleGetDevices(c *echo.Context) error {
+	devices, err := d.devices.GetDevices(
+		c.Request().Context(),
+		d.middleware.MustPrincipal(c),
+	)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	}
+
+	return c.JSON(http.StatusOK, gin.H{responseResultKey: devices})
+}
 
 func (d *DevicesHandlers) HandlePostDeviceAccess(c *echo.Context) error {
 	var request struct {
@@ -212,7 +267,7 @@ func (d *DevicesHandlers) HandleGetDeviceAccess(c *echo.Context) error {
 	case err != nil:
 		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
-		return c.JSON(http.StatusOK, gin.H{"result": access})
+		return c.JSON(http.StatusOK, gin.H{responseResultKey: access})
 	}
 }
 
@@ -277,7 +332,7 @@ func (d *DevicesHandlers) HandleGetState(c *echo.Context) error {
 	case err != nil:
 		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
 	default:
-		return c.JSON(http.StatusOK, gin.H{"result": states})
+		return c.JSON(http.StatusOK, gin.H{responseResultKey: states})
 	}
 }
 

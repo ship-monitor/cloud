@@ -81,6 +81,28 @@ func (d *DeviceRepo) GetDevice(
 	return &device, nil
 }
 
+func (d *DeviceRepo) GetDevicesByIDs(
+	ctx context.Context,
+	ids []domain.DeviceID,
+) ([]domain.Device, error) {
+	if len(ids) == 0 {
+		return []domain.Device{}, nil
+	}
+
+	devices := make([]domain.Device, 0, len(ids))
+
+	err := d.db.NewSelect().
+		Model(&devices).
+		Where("id IN (?)", bun.List(ids)).
+		Order("id ASC").
+		Scan(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("select devices by IDs: %w", err)
+	}
+
+	return devices, nil
+}
+
 func (d *DeviceRepo) DeviceExists(
 	ctx context.Context,
 	id domain.DeviceID,

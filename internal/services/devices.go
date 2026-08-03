@@ -30,6 +30,10 @@ type DeviceRepository interface {
 		ctx context.Context,
 		deviceID domain.DeviceID,
 	) (*domain.Device, error)
+	GetDevicesByIDs(
+		ctx context.Context,
+		deviceIDs []domain.DeviceID,
+	) ([]domain.Device, error)
 	ConnectDevice(
 		ctx context.Context,
 		deviceID domain.DeviceID,
@@ -94,6 +98,7 @@ func (d *DevicesService) ConnectDevice(
 	if err := validator.New().Struct(&in); err != nil {
 		return fmt.Errorf("invalid input data: %w", err)
 	}
+
 	device, err := d.devices.GetDevice(ctx, in.DeviceID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -118,7 +123,12 @@ func (d *DevicesService) ConnectDevice(
 		return fmt.Errorf("add relation: %w", err)
 	}
 
-	_, err = d.devices.ConnectDevice(ctx, in.DeviceID, applicant.UserID, in.Name)
+	_, err = d.devices.ConnectDevice(
+		ctx,
+		in.DeviceID,
+		applicant.UserID,
+		in.Name,
+	)
 	switch {
 	case errors.Is(err, domain.ErrDeviceAlreadyConnected):
 		return fmt.Errorf(
@@ -130,6 +140,48 @@ func (d *DevicesService) ConnectDevice(
 	default:
 		return nil
 	}
+}
+
+func (d *DevicesService) GetDevice(
+	ctx context.Context,
+	applicant *domain.Principal,
+	deviceID domain.DeviceID,
+) (*domain.Device, error) {
+	if err := d.checkPermissions(
+		ctx,
+		deviceID,
+		applicant.UserID,
+		DevicePermissionView,
+	); err != nil {
+		return nil, fmt.Errorf("check permission: %w", err)
+	}
+
+	device, err := d.devices.GetDevice(ctx, deviceID)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, fmt.Errorf("get device: %w", handlers.ErrDeviceNotFound)
+	case err != nil:
+		return nil, fmt.Errorf("get device: %w", err)
+	default:
+		return device, nil
+	}
+}
+
+func (d *DevicesService) GetDevices(
+	ctx context.Context,
+	applicant *domain.Principal,
+) ([]domain.Device, error) {
+	deviceIDs, err := d.lookupAccessibleDeviceIDs(ctx, applicant.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("lookup accessible devices: %w", err)
+	}
+
+	devices, err := d.devices.GetDevicesByIDs(ctx, deviceIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get devices by IDs: %w", err)
+	}
+
+	return devices, nil
 }
 
 func (d *DevicesService) GetStates(
@@ -324,6 +376,69 @@ func (d *DevicesService) DisconnectDevice(
 	}
 
 	return nil
+}
+
+func (d *DevicesService) lookupAccessibleDeviceIDs(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]domain.DeviceID, error) {
+	stream, err := d.spicedb.LookupResources(
+		ctx,
+		&v1.LookupResourcesRequest{
+			Consistency: &v1.Consistency{
+				Requirement: &v1.Consistency_FullyConsistent{
+					FullyConsistent: true,
+				},
+			},
+			ResourceObjectType: DeviceObjectType,
+			Permission:         string(DevicePermissionView),
+			Subject: &v1.SubjectReference{
+				Object: &v1.ObjectReference{
+					ObjectType: UserObjectType,
+					ObjectId:   userID.String(),
+				},
+			},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("lookup resources: %w", err)
+	}
+
+	deviceIDsByID := make(map[domain.DeviceID]struct{})
+
+	for {
+		response, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("receive resource: %w", err)
+		}
+
+		if response.GetPermissionship() !=
+			v1.LookupPermissionship_LOOKUP_PERMISSIONSHIP_HAS_PERMISSION {
+			continue
+		}
+
+		deviceID, err := uuid.Parse(response.GetResourceObjectId())
+		if err != nil {
+			return nil, fmt.Errorf("parse accessible device ID: %w", err)
+		}
+
+		deviceIDsByID[deviceID] = struct{}{}
+	}
+
+	deviceIDs := make([]domain.DeviceID, 0, len(deviceIDsByID))
+	for deviceID := range deviceIDsByID {
+		deviceIDs = append(deviceIDs, deviceID)
+	}
+
+	sort.Slice(deviceIDs, func(i, j int) bool {
+		return deviceIDs[i].String() < deviceIDs[j].String()
+	})
+
+	return deviceIDs, nil
 }
 
 // checkPermissions checks if the user has the specified permission for the
