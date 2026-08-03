@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
@@ -13,11 +14,17 @@ import (
 	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
 )
 
+type ConnectDeviceIn struct {
+	DeviceID domain.DeviceID `json:"deviceId" validate:"required"`
+	Name     string          `json:"name" validate:"required"`
+	Password string          `json:"password" validate:"required"`
+}
+
 type DevicesService interface {
 	ConnectDevice(
 		ctx context.Context,
-		deviceID, userID uuid.UUID,
-		password, name string,
+		applicant *domain.Principal,
+		in ConnectDeviceIn,
 	) error
 	GetStates(
 		ctx context.Context,
@@ -36,6 +43,22 @@ type DevicesService interface {
 		deviceID uuid.UUID,
 		name string,
 	) error
+	SetDeviceAccess(
+		ctx context.Context,
+		applicant *domain.Principal,
+		deviceID uuid.UUID,
+		access domain.DeviceAccess,
+	) error
+	DeleteDeviceAccess(
+		ctx context.Context,
+		applicant *domain.Principal,
+		deviceID, userID uuid.UUID,
+	) error
+	GetDeviceAccess(
+		ctx context.Context,
+		applicant *domain.Principal,
+		deviceID uuid.UUID,
+	) ([]domain.DeviceAccess, error)
 }
 
 var _ pkg.Handler = (*DevicesHandlers)(nil)
@@ -58,22 +81,14 @@ func NewDevice(
 // SetupRoutes implements [pkg.Handler].
 func (d *DevicesHandlers) SetupRoutes(router *echo.Group) {
 	devRoutes := router.Group("/api/v2/devices/", d.middleware.RequireAuth())
-	devRoutes.POST(
-		"/api/v2/devices/connect",
-		d.HandleConnectDevice,
-	)
-	devRoutes.GET(
-		"/api/v2/devices/:id/state/:state",
-		d.HandleGetState,
-	)
-	devRoutes.POST(
-		"/api/v2/devices/:id/command",
-		d.HandleSendCommand,
-	)
-	devRoutes.PATCH(
-		"/api/v2/devices/:id",
-		d.HandlePatchDevice,
-	)
+	devRoutes.POST("/connect", d.HandleConnectDevice)
+	devRoutes.GET("/:id/state/:state", d.HandleGetState)
+	devRoutes.POST("/:id/command", d.HandleSendCommand)
+	devRoutes.PATCH("/:id", d.HandlePatchDevice)
+
+	devRoutes.POST("/:id/access", d.HandlePostDeviceAccess)
+	devRoutes.GET("/:id/access", d.HandleGetDeviceAccess)
+	devRoutes.DELETE("/:id/access/:userId", d.HandleDeleteDeviceAccess)
 }
 
 type ConnectDeviceRequest struct {
@@ -88,6 +103,119 @@ var (
 	ErrDeviceAlreadyConnected = errors.New("device already connected")
 )
 
+func (d *DevicesHandlers) HandlePostDeviceAccess(c *echo.Context) error {
+	var request struct {
+		DeviceID uuid.UUID               `param:"id"`
+		UserID   uuid.UUID               `json:"userId"`
+		Role     domain.DeviceAccessRole `json:"role"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	if request.DeviceID == uuid.Nil ||
+		request.UserID == uuid.Nil ||
+		!request.Role.Valid() {
+		return c.JSON(
+			http.StatusBadRequest,
+			requests.ResponseBad(
+				"device id, user id and a valid role are required",
+			),
+		)
+	}
+
+	err := d.devices.SetDeviceAccess(
+		c.Request().Context(),
+		d.middleware.MustPrincipal(c),
+		request.DeviceID,
+		domain.DeviceAccess{
+			UserID: request.UserID,
+			Role:   request.Role,
+		},
+	)
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case errors.Is(err, domain.ErrInvalidDeviceAccessRole):
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	case err != nil:
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		return c.NoContent(http.StatusOK)
+	}
+}
+
+func (d *DevicesHandlers) HandleDeleteDeviceAccess(c *echo.Context) error {
+	var request struct {
+		DeviceID uuid.UUID `param:"id" validate:"required"`
+		UserID   uuid.UUID `param:"userId" validate:"required"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	if err := validator.New().Struct(&request); err != nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			requests.ResponseErr(err),
+		)
+	}
+
+	err := d.devices.DeleteDeviceAccess(
+		c.Request().Context(),
+		d.middleware.MustPrincipal(c),
+		request.DeviceID,
+		request.UserID,
+	)
+
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case errors.Is(err, domain.ErrInvalidDeviceAccessRole):
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	case err != nil:
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		return c.NoContent(http.StatusNoContent)
+	}
+}
+
+func (d *DevicesHandlers) HandleGetDeviceAccess(c *echo.Context) error {
+	var request struct {
+		DeviceID uuid.UUID `param:"id"`
+	}
+
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	}
+
+	if request.DeviceID == uuid.Nil {
+		return c.JSON(
+			http.StatusBadRequest,
+			requests.ResponseBad("device id is required"),
+		)
+	}
+
+	access, err := d.devices.GetDeviceAccess(
+		c.Request().Context(),
+		d.middleware.MustPrincipal(c),
+		request.DeviceID,
+	)
+
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		return c.JSON(http.StatusForbidden, requests.ResponseErr(err))
+	case errors.Is(err, domain.ErrInvalidDeviceAccessRole):
+		return c.JSON(http.StatusBadRequest, requests.ResponseErr(err))
+	case err != nil:
+		return c.JSON(http.StatusInternalServerError, requests.ResponseErr(err))
+	default:
+		return c.JSON(http.StatusOK, gin.H{"result": access})
+	}
+}
+
 func (d *DevicesHandlers) HandleConnectDevice(c *echo.Context) error {
 	principal := d.middleware.MustPrincipal(c)
 
@@ -101,10 +229,12 @@ func (d *DevicesHandlers) HandleConnectDevice(c *echo.Context) error {
 
 	err := d.devices.ConnectDevice(
 		c.Request().Context(),
-		request.DeviceID,
-		principal.UserID,
-		request.Password,
-		request.Name,
+		principal,
+		ConnectDeviceIn{
+			Password: request.Password,
+			Name:     request.Name,
+			DeviceID: request.DeviceID,
+		},
 	)
 	switch {
 	case errors.Is(err, ErrDeviceNotFound):

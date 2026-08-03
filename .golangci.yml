@@ -39,7 +39,8 @@ linters:
         - ok
         - lc
         - db
-        - c # c *gin.Context
+        - in
+        - c # c *echo.Context
     depguard:
       rules:
         prevent_repo_in_service:
