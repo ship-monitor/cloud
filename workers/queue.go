@@ -11,9 +11,9 @@ import (
 	"charm.land/log/v2"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/pkg/amqputils"
 	"go.uber.org/fx"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/amqputils"
 )
 
 const (

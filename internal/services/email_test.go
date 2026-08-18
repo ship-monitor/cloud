@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator/v10"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"github.com/ship-monitor/cloud/internal/services"
 )
 
 func TestEmailServiceConfig(t *testing.T) {

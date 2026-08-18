@@ -7,12 +7,12 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/pkg"
+	"github.com/ship-monitor/cloud/pkg/names"
+	"github.com/ship-monitor/cloud/pkg/paging"
 	"github.com/spf13/viper"
 	"github.com/uptrace/bun"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/names"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 )
 
 var _ pkg.MigrationRepo = (*DeviceRepo)(nil)

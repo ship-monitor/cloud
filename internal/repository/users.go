@@ -7,8 +7,8 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/domain"
 	"github.com/uptrace/bun"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 type UsersRepo struct {

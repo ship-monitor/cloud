@@ -12,11 +12,11 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/handlers"
+	"github.com/ship-monitor/cloud/pkg/email"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
 
 const (

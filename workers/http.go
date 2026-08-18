@@ -9,9 +9,9 @@ import (
 	"charm.land/log/v2"
 	"github.com/labstack/echo/v5"
 	echoMiddleware "github.com/labstack/echo/v5/middleware"
+	"github.com/ship-monitor/cloud/pkg"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
 )
 
 func NewServerMux(handlers []pkg.Handler, config *viper.Viper) http.Handler {

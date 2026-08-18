@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
+	"github.com/ship-monitor/cloud/internal/handlers"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
 )
 
 type CookieConfig struct {

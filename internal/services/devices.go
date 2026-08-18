@@ -13,8 +13,8 @@ import (
 	"github.com/authzed/authzed-go/v1"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/handlers"
 )
 
 type StatesRepository interface {

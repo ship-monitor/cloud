@@ -6,8 +6,8 @@ import (
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/pkg"
 )
 
 type UserService interface {

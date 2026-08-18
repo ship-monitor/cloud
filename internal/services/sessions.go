@@ -9,10 +9,10 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/handlers"
+	"github.com/ship-monitor/cloud/pkg/middleware"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
 )
 
 type Sessions struct {

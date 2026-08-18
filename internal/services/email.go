@@ -6,9 +6,9 @@ import (
 	"net/smtp"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/pkg/email"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
 )
 
 var _ domain.EmailSender = (*EmailService)(nil)

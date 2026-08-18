@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"github.com/ship-monitor/cloud/internal/domain"
 )
 
 func newToken(s domain.Session) string {

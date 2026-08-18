@@ -3,17 +3,17 @@ package main
 import (
 	"net/http"
 
+	"github.com/ship-monitor/cloud/config"
+	"github.com/ship-monitor/cloud/internal/di"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/handlers"
+	"github.com/ship-monitor/cloud/internal/repository"
+	"github.com/ship-monitor/cloud/internal/services"
+	"github.com/ship-monitor/cloud/logger"
+	"github.com/ship-monitor/cloud/pkg"
+	"github.com/ship-monitor/cloud/pkg/middleware"
+	"github.com/ship-monitor/cloud/workers"
 	"go.uber.org/fx"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/config"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/di"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/logger"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/middleware"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/workers"
 )
 
 func main() {

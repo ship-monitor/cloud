@@ -7,10 +7,10 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/repository"
+	"github.com/ship-monitor/cloud/pkg/paging"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/paging"
 )
 
 func createDB(t *testing.T) *sql.DB {

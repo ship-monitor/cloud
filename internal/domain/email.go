@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/email"
+	"github.com/ship-monitor/cloud/pkg/email"
 )
 
 type EmailSender interface {

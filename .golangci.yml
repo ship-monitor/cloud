@@ -48,14 +48,14 @@ linters:
           files:
             - "**/internal/services/*"
           deny:
-            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/repository
+            - pkg: github.com/ship-monitor/cloud/internal/repository
               desc: Should inverse this dependency
         prevent_service_in_handlers:
           list-mode: lax # allow unless explicitely denied
           files:
             - "**/internal/handlers/*"
           deny:
-            - pkg: sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services
+            - pkg: github.com/ship-monitor/cloud/internal/services
               desc: Should inverse this dependency
         prevent_unmaintained_packages:
           list-mode: lax

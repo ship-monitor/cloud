@@ -3,7 +3,7 @@ package services_test
 import (
 	"testing"
 
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/services"
+	"github.com/ship-monitor/cloud/internal/services"
 )
 
 func TestCheckPassword(t *testing.T) {

@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/pkg"
+	"github.com/ship-monitor/cloud/pkg/requests"
 )
 
 type AuthService interface {

@@ -3,7 +3,7 @@ package domain_test
 import (
 	"testing"
 
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
+	"github.com/ship-monitor/cloud/internal/domain"
 )
 
 func TestDeviceAccessRoleValid(t *testing.T) {

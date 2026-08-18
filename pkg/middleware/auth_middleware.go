@@ -8,9 +8,9 @@ import (
 
 	"charm.land/log/v2"
 	"github.com/labstack/echo/v5"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/handlers"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/pkg/requests"
+	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/handlers"
+	"github.com/ship-monitor/cloud/pkg/requests"
 )
 
 var (

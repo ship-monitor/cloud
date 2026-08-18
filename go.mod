@@ -1,4 +1,4 @@
-module sourcecraft.dev/organization-shipmonitor/ship-cloud-auth
+module github.com/ship-monitor/cloud
 
 go 1.26.1
 

@@ -9,8 +9,8 @@ import (
 	"charm.land/log/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
+	"github.com/ship-monitor/cloud/internal/domain"
 	"github.com/spf13/viper"
-	"sourcecraft.dev/organization-shipmonitor/ship-cloud-auth/internal/domain"
 )
 
 // DeviceStatesRepository manages state records in redis.
