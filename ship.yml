@@ -4,6 +4,9 @@ cors:
     - "http://localhost:5173"
 debug: false
 
+clickhouse:
+  database: default
+
 auth:
   session:
     cookie:

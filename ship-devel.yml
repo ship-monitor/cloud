@@ -4,6 +4,14 @@ cors:
 debug: false
 spicedb.url: "localhost:50051"
 database-url: "postgres://katy:postgres@localhost:5432/auth-db?sslmode=disable"
+# database-url: "postgres://katy:postgres@localhost:5432/auth-db?sslmode=disable"
+clickhouse:
+  addr: "localhost:9000"
+  database: default
+rabbitmq-url: "amqp://guest:guest@localhost:5672/"
+redis:
+  url: redis:6379
+  password: ""
 
 auth:
   session:
@@ -23,11 +31,6 @@ session:
 email:
   disabled: true
   sender-name: "ШиП Мониторинг"
-
-rabbitmq-url: "amqp://guest:guest@localhost:5672/"
-redis:
-  url: redis:6379
-  password: ""
 
 frontend:
   host: ship-monitor.ru

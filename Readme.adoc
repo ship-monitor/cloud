@@ -8,7 +8,7 @@ Use `--devel` flag or set environment variable `DEVEL=true`
 
 [source,console]
 ----
-$ docker compose up -d auth-db rabbitmq redis spicedb
+$ docker compose up -d auth-db rabbitmq redis spicedb clickhouse
 $ SHIP_CONFIG="ship-devel.yml" go run cmd/api/main.go --devel
 ----
 
@@ -34,3 +34,6 @@ Configuring environment variables:
 `SHIP_DATABASE_PASSWORD` - PostgreSQL database password for Ship database
 `SHIP_DATABASE_NAME` - PostgreSQL database name for Ship database
 `REDIS_PASSWORD` - Redis password
+`CLICKHOUSE_PASSWORD` - ClickHouse password
+`CLICKHOUSE_USER` - ClickHouse user
+`CLICKHOUSE_DATABASE` - ClickHouse database
