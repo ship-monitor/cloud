@@ -146,7 +146,8 @@ func (q *QueueWorker) declareQueue() error {
 
 	statesQ, err := q.channel.QueueDeclare(
 		"device_state",
-		QueueDurable, QueueDeleteWhenUnused, QueueExclusive, QueueNoWait, nil)
+		QueueDurable, QueueDeleteWhenUnused, QueueExclusive, QueueNoWait, nil,
+	)
 	if err != nil {
 		return fmt.Errorf("declare queue: %w", err)
 	}
@@ -177,7 +178,8 @@ func (q *QueueWorker) handleDelivery(
 ) error {
 	ctx, cancel := context.WithTimeout(
 		ctx,
-		MessageHandlerTimeout)
+		MessageHandlerTimeout,
+	)
 	defer cancel()
 
 	done := make(chan error)

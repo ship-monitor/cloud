@@ -15,7 +15,10 @@ var (
 	ErrPresharedTokenMissing = errors.New("preshared-token is not set")
 )
 
-func NewSpiceDB(lc fx.Lifecycle, config *config.Config) (*authzed.Client, error) {
+func NewSpiceDB(
+	lc fx.Lifecycle,
+	config *config.Config,
+) (*authzed.Client, error) {
 	spicedbURL := config.SpiceDB.URL
 	if spicedbURL == "" {
 		return nil, ErrSpiceDBURLMissing

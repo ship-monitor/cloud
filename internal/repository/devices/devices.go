@@ -1,4 +1,4 @@
-package repository
+package devices
 
 import (
 	"context"
@@ -6,32 +6,43 @@ import (
 	"fmt"
 
 	"charm.land/log/v2"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/ship-monitor/cloud/internal/domain"
 	"github.com/ship-monitor/cloud/pkg"
 	"github.com/ship-monitor/cloud/pkg/names"
 	"github.com/ship-monitor/cloud/pkg/paging"
-	"github.com/spf13/viper"
+	"github.com/spf13/viper" //nolint:depguard
 	"github.com/uptrace/bun"
 )
 
-var _ pkg.MigrationRepo = (*DeviceRepo)(nil)
+var _ pkg.MigrationRepo = (*Repository)(nil)
 
-type DeviceRepo struct {
+type Repository struct {
 	db     *bun.DB
 	logger *log.Logger
+	redis  *redis.Client
+	ch     clickhouse.Conn
 }
 
-func NewDevices(db *sql.DB, logger *log.Logger) *DeviceRepo {
-	return &DeviceRepo{
+func New(
+	db *sql.DB,
+	logger *log.Logger,
+	redis *redis.Client,
+	ch clickhouse.Conn,
+) *Repository {
+	return &Repository{
 		db:     newBunDB(db),
 		logger: logger,
+		redis:  redis,
+		ch:     ch,
 	}
 }
 
 // Migrate implements [pkg.MigrationRepo].
-func (d *DeviceRepo) Migrate(ctx context.Context) error {
-	_, err := d.db.NewCreateTable().
+func (r *Repository) Migrate(ctx context.Context) error {
+	_, err := r.db.NewCreateTable().
 		Model((*domain.Device)(nil)).
 		IfNotExists().
 		Exec(ctx)
@@ -39,7 +50,7 @@ func (d *DeviceRepo) Migrate(ctx context.Context) error {
 		return fmt.Errorf("failed to migrate devices: %w", err)
 	}
 
-	_, err = d.db.NewCreateIndex().
+	_, err = r.db.NewCreateIndex().
 		Model((*domain.Device)(nil)).
 		IfNotExists().
 		Index("idx_device_owner_id").
@@ -49,28 +60,50 @@ func (d *DeviceRepo) Migrate(ctx context.Context) error {
 		return fmt.Errorf("failed to create device index: %w", err)
 	}
 
+	// TODO: remove device migration
 	ids := viper.GetStringSlice("builtin-devices")
-	d.logger.Info("Migrating devices", "devices", ids)
+	r.logger.Info("Migrating devices", "devices", ids)
 
 	for _, id := range ids {
-		d.logger.Info("Migrating builtin device", "id", id)
+		r.logger.Info("Migrating builtin device", "id", id)
 
 		deviceID := uuid.MustParse(id)
-		if err := d.migrateDevice(ctx, deviceID); err != nil {
+		if err := r.migrateDevice(ctx, deviceID); err != nil {
 			return fmt.Errorf("migrate device: %w", err)
 		}
+	}
+
+	const query = `
+		CREATE TABLE IF NOT EXISTS device_states
+		(
+			device_id String,
+			state String,
+			timestamp DateTime64(6, 'UTC'),
+
+			value_float Nullable(Float64),
+			value_int Nullable(Int64),
+			value_bool Nullable(Bool),
+			value_string Nullable(String),
+			inserted_at DateTime64(6, 'UTC') DEFAULT now64(6)
+		)
+		ENGINE = MergeTree
+		ORDER BY (device_id, state, timestamp)
+	`
+
+	if err := r.ch.Exec(ctx, query); err != nil {
+		return fmt.Errorf("create %s table: %w", deviceStatesTable, err)
 	}
 
 	return nil
 }
 
-func (d *DeviceRepo) GetDevice(
+func (r *Repository) GetDevice(
 	ctx context.Context,
 	id domain.DeviceID,
 ) (*domain.Device, error) {
 	var device domain.Device
 
-	err := d.db.NewSelect().
+	err := r.db.NewSelect().
 		Model(&device).
 		Where("id = ?", id).
 		Scan(ctx)
@@ -81,7 +114,7 @@ func (d *DeviceRepo) GetDevice(
 	return &device, nil
 }
 
-func (d *DeviceRepo) GetDevicesByIDs(
+func (r *Repository) GetDevicesByIDs(
 	ctx context.Context,
 	ids []domain.DeviceID,
 ) ([]domain.Device, error) {
@@ -91,7 +124,7 @@ func (d *DeviceRepo) GetDevicesByIDs(
 
 	devices := make([]domain.Device, 0, len(ids))
 
-	err := d.db.NewSelect().
+	err := r.db.NewSelect().
 		Model(&devices).
 		Where("id IN (?)", bun.List(ids)).
 		Order("id ASC").
@@ -103,13 +136,13 @@ func (d *DeviceRepo) GetDevicesByIDs(
 	return devices, nil
 }
 
-func (d *DeviceRepo) DeviceExists(
+func (r *Repository) DeviceExists(
 	ctx context.Context,
 	id domain.DeviceID,
 ) (bool, error) {
 	var device domain.Device
 
-	exists, err := d.db.NewSelect().
+	exists, err := r.db.NewSelect().
 		Model(&device).
 		Where("id = ?", id).
 		Exists(ctx)
@@ -120,13 +153,13 @@ func (d *DeviceRepo) DeviceExists(
 	return exists, nil
 }
 
-func (d *DeviceRepo) GetDevices(
+func (r *Repository) GetDevices(
 	ctx context.Context,
 	page paging.Paging,
 ) ([]domain.Device, error) {
 	var devices []domain.Device
 
-	err := d.db.NewSelect().
+	err := r.db.NewSelect().
 		Model(&devices).
 		Order("id ASC").
 		Limit(page.Size).
@@ -139,13 +172,13 @@ func (d *DeviceRepo) GetDevices(
 	return devices, nil
 }
 
-func (d *DeviceRepo) ConnectDevice(
+func (r *Repository) ConnectDevice(
 	ctx context.Context,
 	deviceID domain.DeviceID,
 	userID uuid.UUID,
 	name string,
 ) (*domain.Device, error) {
-	result, err := d.db.NewUpdate().
+	result, err := r.db.NewUpdate().
 		Model((*domain.Device)(nil)).
 		Set("owner_id = ?", userID).
 		Set("name = ?", name).
@@ -165,7 +198,7 @@ func (d *DeviceRepo) ConnectDevice(
 		return nil, domain.ErrDeviceAlreadyConnected
 	}
 
-	device, err := d.GetDevice(ctx, deviceID)
+	device, err := r.GetDevice(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get connected device: %w", err)
 	}
@@ -173,11 +206,11 @@ func (d *DeviceRepo) ConnectDevice(
 	return device, nil
 }
 
-func (d *DeviceRepo) DisconnectDevice(
+func (r *Repository) DisconnectDevice(
 	ctx context.Context,
 	deviceID domain.DeviceID,
 ) error {
-	_, err := d.db.NewUpdate().
+	_, err := r.db.NewUpdate().
 		Model((*domain.Device)(nil)).
 		Set("owner_id = NULL").
 		Set("name = NULL").
@@ -190,11 +223,11 @@ func (d *DeviceRepo) DisconnectDevice(
 	return nil
 }
 
-func (d *DeviceRepo) InsertDevice(
+func (r *Repository) InsertDevice(
 	ctx context.Context,
 	device *domain.Device,
 ) error {
-	_, err := d.db.NewInsert().Model(device).Exec(ctx)
+	_, err := r.db.NewInsert().Model(device).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
 	}
@@ -202,12 +235,12 @@ func (d *DeviceRepo) InsertDevice(
 	return nil
 }
 
-func (d *DeviceRepo) RenameDevice(
+func (r *Repository) RenameDevice(
 	ctx context.Context,
 	id domain.DeviceID,
 	name string,
 ) error {
-	_, err := d.db.NewUpdate().
+	_, err := r.db.NewUpdate().
 		Model((*domain.Device)(nil)).
 		Set("name = ?", name).
 		Where("id = ?", id).
@@ -219,11 +252,11 @@ func (d *DeviceRepo) RenameDevice(
 	return nil
 }
 
-func (d *DeviceRepo) migrateDevice(
+func (r *Repository) migrateDevice(
 	ctx context.Context,
 	id domain.DeviceID,
 ) error {
-	exists, err := d.DeviceExists(ctx, id)
+	exists, err := r.DeviceExists(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed check device in DB: %w", err)
 	}
@@ -232,12 +265,15 @@ func (d *DeviceRepo) migrateDevice(
 		return nil
 	}
 
-	if err := d.InsertDevice(ctx, &domain.Device{
-		ID:           id,
-		Name:         new(names.Gen()),
-		PasswordHash: domain.HashPassword("password"),
-		Model:        "Ship 0.1 (test)",
-	}); err != nil {
+	if err := r.InsertDevice(
+		ctx,
+		&domain.Device{ //nolint:exhaustruct_v5
+			ID:           id,
+			Name:         new(names.Gen()),
+			PasswordHash: domain.HashPassword("password"),
+			Model:        "Ship 0.1 (test)",
+		},
+	); err != nil {
 		return fmt.Errorf("insert device: %w", err)
 	}
 

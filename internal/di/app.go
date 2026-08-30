@@ -7,16 +7,18 @@ import (
 	"github.com/ship-monitor/cloud/internal/domain"
 	"github.com/ship-monitor/cloud/internal/handlers"
 	"github.com/ship-monitor/cloud/internal/repository"
+	devicesRepo "github.com/ship-monitor/cloud/internal/repository/devices"
 	"github.com/ship-monitor/cloud/internal/services"
+	"github.com/ship-monitor/cloud/internal/services/device"
 	"github.com/ship-monitor/cloud/logger"
 	"github.com/ship-monitor/cloud/pkg"
 	"github.com/ship-monitor/cloud/pkg/middleware"
 	"github.com/ship-monitor/cloud/workers"
+	"github.com/ship-monitor/cloud/workers/server"
 	"go.uber.org/fx"
 )
 
 func NewApp() *fx.App {
-
 	return fx.New(
 		fx.Provide(config.NewConfig),
 		fx.Provide(logger.NewLogger),
@@ -42,8 +44,8 @@ func NewApp() *fx.App {
 			),
 		),
 		fx.Provide(
-			workers.NewHTTPServer,
-			fx.Annotate(workers.NewServerMux, fx.ParamTags(`group:"handlers"`)),
+			server.NewHTTPServer,
+			fx.Annotate(server.NewServerMux, fx.ParamTags(`group:"handlers"`)),
 		),
 		fx.Invoke(func(server *http.Server) {}),
 		fx.Invoke(func(server *workers.QueueWorker) {}),
@@ -54,9 +56,9 @@ func provideRepos() fx.Option {
 	return fx.Options(
 		fx.Provide(
 			fx.Annotate(
-				repository.NewDeviceStatesRepo,
+				devicesRepo.New,
 				fx.As(
-					new(services.StatesRepository),
+					new(device.StatesRepository),
 				),
 				fx.As(
 					new(workers.RecordsService),
@@ -67,15 +69,14 @@ func provideRepos() fx.Option {
 				fx.As(new(services.UsersRepo)),
 			),
 			fx.Annotate(
-				repository.NewDevices,
-				fx.As(new(services.DeviceRepository)),
+				devicesRepo.New,
+				fx.As(new(device.DeviceRepository)),
 			),
 			fx.Annotate(repository.NewRedisSessionStore,
 				fx.As(new(services.SessionStore)),
 			),
 			pkg.AsMigrationRepo(repository.NewUsers),
-			pkg.AsMigrationRepo(repository.NewDevices),
-			pkg.AsMigrationRepo(repository.NewDevices),
+			pkg.AsMigrationRepo(devicesRepo.New),
 		),
 
 		pkg.ProvideMigrations(),
@@ -95,7 +96,7 @@ func provideServices() fx.Option {
 				fx.As(new(handlers.UserService)),
 			),
 			fx.Annotate(
-				services.NewDevices,
+				device.NewService,
 				fx.As(new(handlers.DevicesService)),
 			),
 			services.NewSessions,
@@ -122,5 +123,6 @@ func AsHandlers(f any) any {
 	return fx.Annotate(
 		f,
 		fx.As(new(pkg.Handler)),
-		fx.ResultTags(`group:"handlers"`))
+		fx.ResultTags(`group:"handlers"`),
+	)
 }

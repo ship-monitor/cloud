@@ -57,6 +57,14 @@ linters:
           deny:
             - pkg: github.com/ship-monitor/cloud/internal/services
               desc: Should inverse this dependency
+        prevent_plain_viper:
+          list-mode: lax
+          files:
+            - $all
+            - "!$test"
+          deny:
+            - pkg: github.com/spf13/viper
+              desc: "Should be moved to typed configurations"
         prevent_unmaintained_packages:
           list-mode: lax
           files:

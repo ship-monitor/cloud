@@ -77,11 +77,12 @@ func (q *TopicPublisher) PublishJSON(
 		topic,
 		false,
 		false,
-		amqp.Publishing{
+		amqp.Publishing{ //nolint:exhaustruct_v5
 			ContentType:     amqputils.ContentJSON,
 			ContentEncoding: amqputils.ContentEncodingUTF8,
 			Body:            jsonData,
-		})
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed publish JSON: %w", err)
 	}

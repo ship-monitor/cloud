@@ -51,7 +51,10 @@ func NewRabbitMQClient(
 	return client, nil
 }
 
-func NewDatabaseClient(lc fx.Lifecycle, config *config.Config) (*sql.DB, error) {
+func NewDatabaseClient(
+	lc fx.Lifecycle,
+	config *config.Config,
+) (*sql.DB, error) {
 	db, err := ConnectDB(config.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/ship-monitor/cloud/workers/server"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
@@ -29,8 +30,10 @@ type Config struct {
 
 type ConfigurationOutput struct {
 	fx.Out
-	Viper  *viper.Viper
-	Config *Config
+
+	Viper        *viper.Viper
+	Config       *Config
+	ServerConfig *server.Config
 }
 
 func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
@@ -46,7 +49,10 @@ func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return ConfigurationOutput{}, fmt.Errorf("failed to read config: %w", err)
+		return ConfigurationOutput{}, fmt.Errorf(
+			"failed to read config: %w",
+			err,
+		)
 	}
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
@@ -60,15 +66,29 @@ func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
 		return ConfigurationOutput{}, fmt.Errorf("failed bind flags: %w", err)
 	}
 
-	conf := Config{}
+	conf := Config{} //nolint:exhaustruct_v5
 
 	err = viper.Unmarshal(&conf)
 	if err != nil {
-		return ConfigurationOutput{}, fmt.Errorf("failed to unmarshal config: %w", err)
+		return ConfigurationOutput{}, fmt.Errorf(
+			"failed to unmarshal config: %w",
+			err,
+		)
 	}
 
 	return ConfigurationOutput{
+		Out: fx.Out{},
+
 		Viper:  viper.GetViper(),
 		Config: &conf,
+		ServerConfig: &server.Config{
+			CORS: struct{ AllowedOrigins []string }{
+				AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
+			},
+			Port: viper.GetViper().GetInt("http.server.port"),
+			ReadHeaderTimeout: viper.GetDuration(
+				"http.server.read-header-timeout",
+			),
+		},
 	}, nil
 }
