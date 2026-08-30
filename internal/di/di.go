@@ -7,15 +7,15 @@ import (
 
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
+	"github.com/ship-monitor/cloud/internal/config"
 	"go.uber.org/fx"
 )
 
-func NewRedisClient(lc fx.Lifecycle, config *viper.Viper) *redis.Client {
+func NewRedisClient(lc fx.Lifecycle, config *config.Config) *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.GetString("redis.url"),
-		Password: config.GetString("redis.password"),
-		DB:       config.GetInt("redis.db"),
+		Addr:     config.Redis.URL,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
 	})
 
 	lc.Append(
@@ -33,9 +33,9 @@ func NewRedisClient(lc fx.Lifecycle, config *viper.Viper) *redis.Client {
 
 func NewRabbitMQClient(
 	lc fx.Lifecycle,
-	config *viper.Viper,
+	config *config.Config,
 ) (*amqp091.Connection, error) {
-	client, err := amqp091.Dial(config.GetString("rabbitmq-url"))
+	client, err := amqp091.Dial(config.RabbitMQURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed dial rebbitmq: %w", err)
 	}
@@ -51,8 +51,8 @@ func NewRabbitMQClient(
 	return client, nil
 }
 
-func NewDatabaseClient(lc fx.Lifecycle, config *viper.Viper) (*sql.DB, error) {
-	db, err := ConnectDB()
+func NewDatabaseClient(lc fx.Lifecycle, config *config.Config) (*sql.DB, error) {
+	db, err := ConnectDB(config.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

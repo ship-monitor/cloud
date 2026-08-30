@@ -6,7 +6,7 @@ import (
 
 	"github.com/authzed/authzed-go/v1"
 	"github.com/authzed/grpcutil"
-	"github.com/spf13/viper"
+	"github.com/ship-monitor/cloud/internal/config"
 	"go.uber.org/fx"
 )
 
@@ -15,13 +15,13 @@ var (
 	ErrPresharedTokenMissing = errors.New("preshared-token is not set")
 )
 
-func NewSpiceDB(lc fx.Lifecycle, config *viper.Viper) (*authzed.Client, error) {
-	spicedbURL := config.GetString("spicedb-url")
+func NewSpiceDB(lc fx.Lifecycle, config *config.Config) (*authzed.Client, error) {
+	spicedbURL := config.SpiceDB.URL
 	if spicedbURL == "" {
 		return nil, ErrSpiceDBURLMissing
 	}
 
-	presharedToken := config.GetString("SPICEDB_GRPC_PRESHARED_KEY")
+	presharedToken := config.SpiceDB.GRPCPresharedKey
 	if presharedToken == "" {
 		return nil, ErrPresharedTokenMissing
 	}

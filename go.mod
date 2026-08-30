@@ -1,6 +1,6 @@
 module github.com/ship-monitor/cloud
 
-go 1.26.1
+go 1.27.0
 
 require (
 	charm.land/log/v2 v2.0.0
