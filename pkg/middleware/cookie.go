@@ -7,33 +7,27 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/ship-monitor/cloud/internal/handlers"
-	"github.com/spf13/viper"
 )
+
+// HTTPOnly is always true.
+const HTTPOnly = true
 
 type CookieConfig struct {
 	Name     string
 	Path     string
 	Domain   string
 	Secure   bool
-	HTTPOnly bool
 	SameSite http.SameSite
 }
 
 type AuthCookieManager struct {
-	config CookieConfig
+	config *CookieConfig
 }
 
 var _ handlers.CookieManager = (*AuthCookieManager)(nil)
 
-func NewAuthCookieManager(conf *viper.Viper) *AuthCookieManager {
-	return &AuthCookieManager{config: CookieConfig{
-		Name:     conf.GetString("auth.session.cookie.name"),
-		Path:     conf.GetString("auth.session.cookie.path"),
-		Domain:   conf.GetString("auth.session.cookie.domain"),
-		Secure:   conf.GetBool("auth.session.cookie.secure"),
-		HTTPOnly: true,
-		SameSite: http.SameSiteNoneMode,
-	}}
+func NewAuthCookieManager(conf *CookieConfig) *AuthCookieManager {
+	return &AuthCookieManager{config: conf}
 }
 
 func (m *AuthCookieManager) Read(c *echo.Context) (string, error) {
@@ -60,7 +54,7 @@ func (m *AuthCookieManager) Set(
 			Domain:   m.config.Domain,
 			Value:    token,
 			Secure:   m.config.Secure,
-			HttpOnly: m.config.HTTPOnly,
+			HttpOnly: HTTPOnly,
 			SameSite: m.config.SameSite,
 		},
 	)
@@ -74,7 +68,7 @@ func (m *AuthCookieManager) Clear(c *echo.Context) {
 		Domain:   m.config.Domain,
 		Value:    "",
 		Secure:   m.config.Secure,
-		HttpOnly: m.config.HTTPOnly,
+		HttpOnly: HTTPOnly,
 		SameSite: m.config.SameSite,
 	})
 }

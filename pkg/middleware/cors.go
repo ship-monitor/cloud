@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
 const maxAge = 12 * time.Hour
@@ -25,19 +24,23 @@ func AllMethods() []string {
 	}
 }
 
-type CORS struct {
+type CORSConfig struct {
 	AllowedOrigins []string
 }
 
-func NewCORS() *CORS {
+type CORS struct {
+	conf *CORSConfig
+}
+
+func NewCORS(conf *CORSConfig) *CORS {
 	return &CORS{
-		AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
+		conf: conf,
 	}
 }
 
 func (c *CORS) Middleware() gin.HandlerFunc {
-	return cors.New(cors.Config{
-		AllowOrigins: c.AllowedOrigins,
+	return cors.New(cors.Config{ //nolint:exhaustruct_v5
+		AllowOrigins: c.conf.AllowedOrigins,
 		AllowMethods: AllMethods(),
 		AllowHeaders: []string{
 			"Origin",

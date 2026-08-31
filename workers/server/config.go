@@ -4,12 +4,12 @@ import (
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/ship-monitor/cloud/pkg/middleware"
 )
 
 type Config struct {
-	CORS struct {
-		AllowedOrigins []string
-	}
+	CORS              middleware.CORSConfig
 	ReadHeaderTimeout time.Duration
 	Port              int
 }

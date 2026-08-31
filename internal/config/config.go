@@ -2,10 +2,12 @@ package config
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/ship-monitor/cloud/pkg/middleware"
 	"github.com/ship-monitor/cloud/workers/server"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -34,6 +36,8 @@ type ConfigurationOutput struct {
 	Viper        *viper.Viper
 	Config       *Config
 	ServerConfig *server.Config
+	Cookie       *middleware.CookieConfig
+	CORS         *middleware.CORSConfig
 }
 
 func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
@@ -76,19 +80,29 @@ func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
 		)
 	}
 
+	cors := middleware.CORS{
+		AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
+	}
+
 	return ConfigurationOutput{
 		Out: fx.Out{},
 
 		Viper:  viper.GetViper(),
 		Config: &conf,
 		ServerConfig: &server.Config{
-			CORS: struct{ AllowedOrigins []string }{
-				AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
-			},
+			CORS: cors,
 			Port: viper.GetViper().GetInt("http.server.port"),
 			ReadHeaderTimeout: viper.GetDuration(
 				"http.server.read-header-timeout",
 			),
 		},
+		Cookie: &middleware.CookieConfig{
+			Name:     viper.GetString("auth.session.cookie.name"),
+			Path:     viper.GetString("auth.session.cookie.path"),
+			Domain:   viper.GetString("auth.session.cookie.domain"),
+			Secure:   viper.GetBool("auth.session.cookie.secure"),
+			SameSite: http.SameSiteNoneMode,
+		},
+		CORS: &cors,
 	}, nil
 }
