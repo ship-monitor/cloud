@@ -8,6 +8,7 @@ import (
 	"charm.land/log/v2"
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/repository/common"
 	"github.com/uptrace/bun"
 )
 
@@ -16,7 +17,7 @@ type UsersRepo struct {
 }
 
 func NewUsers(db *sql.DB) *UsersRepo {
-	return &UsersRepo{db: newBunDB(db)}
+	return &UsersRepo{db: common.NewBunDB(db)}
 }
 
 func (u *UsersRepo) Migrate(ctx context.Context) error {

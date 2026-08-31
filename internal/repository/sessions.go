@@ -100,7 +100,7 @@ func (r *RedisSessionStore) GetSession(
 		return nil, fmt.Errorf("get session: %w", err)
 	}
 
-	s := domain.Session{}
+	s := domain.Session{} //nolint:exhaustruct_v5
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("unmarshal session: %w", err)
 	}

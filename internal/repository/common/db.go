@@ -1,4 +1,4 @@
-package devices
+package common
 
 import (
 	"database/sql"
@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 )
 
-func newBunDB(db *sql.DB) *bun.DB {
+func NewBunDB(db *sql.DB) *bun.DB {
 	driverType := strings.ToLower(fmt.Sprintf("%T", db.Driver()))
 	if strings.Contains(driverType, "sqlite") {
 		return bun.NewDB(db, sqlitedialect.New())

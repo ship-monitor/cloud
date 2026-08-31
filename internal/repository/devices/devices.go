@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/ship-monitor/cloud/internal/domain"
+	"github.com/ship-monitor/cloud/internal/repository/common"
 	"github.com/ship-monitor/cloud/pkg"
 	"github.com/ship-monitor/cloud/pkg/names"
 	"github.com/ship-monitor/cloud/pkg/paging"
@@ -33,7 +34,7 @@ func New(
 	ch clickhouse.Conn,
 ) *Repository {
 	return &Repository{
-		db:     newBunDB(db),
+		db:     common.NewBunDB(db),
 		logger: logger,
 		redis:  redis,
 		ch:     ch,
