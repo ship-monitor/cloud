@@ -80,7 +80,7 @@ func NewConfig(lc fx.Lifecycle) (ConfigurationOutput, error) {
 		)
 	}
 
-	cors := middleware.CORS{
+	cors := middleware.CORSConfig{
 		AllowedOrigins: viper.GetStringSlice("cors.allow-origins"),
 	}
 
