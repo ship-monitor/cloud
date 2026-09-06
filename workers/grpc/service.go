@@ -24,13 +24,3 @@ type HubAuthService interface {
 	) (*AuthData, error)
 	Refresh(ctx context.Context, refreshToken string) (*AuthData, error)
 }
-
-// ConnectDevice implements [Service].
-func (h *HubAuthService) ConnectDevice(ctx context.Context, req domain.ConnectDeviceRequest) error {
-	panic("unimplemented")
-}
-
-// ConnectDevice implements [Service].
-func (h *HubAuthService) ConnectDevice(ctx context.Context, req domain.ConnectDeviceRequest) error {
-	panic("unimplemented")
-}

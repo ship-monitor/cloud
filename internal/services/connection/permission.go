@@ -10,5 +10,5 @@ type HubID uuid.UUID
 type DeviceID uuid.UUID
 
 type PermissionService interface {
-	HubCanSendDeviceData(ctx context.Context, hubID HubID, deviceID DeviceID) bool
+	CanSendData(ctx context.Context, hubID HubID, deviceID DeviceID) bool
 }

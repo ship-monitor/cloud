@@ -1,14 +1,27 @@
 definition user {}
 
-definition device {
+definition hub {
     relation owner: user
     relation administrator: user
     relation viewer: user
 
     permission view = owner + administrator + viewer
-    permission view_state = owner + administrator + viewer
-    permission send_command = owner + administrator
+    permission manage = owner + administrator + viewer
     permission disconnect = owner
-    permission rename = owner + administrator
     permission share = owner + administrator
+}
+
+definition device {
+    relation hub: hub
+
+    relation owner: user
+    relation administrator: user
+    relation viewer: user
+
+    permission view = owner + administrator + viewer + hub->view
+    permission view_state = owner + administrator + viewer + hub->view
+    permission send_command = owner + administrator + hub->manage
+    permission disconnect = owner + hub->manage
+    permission rename = owner + administrator + hub->manage
+    permission share = owner + administrator + hub->manage
 }
