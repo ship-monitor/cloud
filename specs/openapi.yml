@@ -1,0 +1,200 @@
+openapi: 3.2.0
+info:
+  title: Ship Monitor Cloud Auth API
+  version: 1.0.0
+  description: |
+    OpenAPI specification generated from the Gin route registrations and handlers in this service.
+    Most endpoints use a cookie-based session named `ship_session`.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.ship-monitor.ru
+    description: Production server
+
+tags:
+  - name: user
+    description: User management
+  - name: auth
+    description: Authentication endpoints
+  - name: devices
+    description: Devices management
+
+security:
+  - bearerToken: []
+  - {}
+
+paths:
+  "/api/v2/auth/register":
+    post:
+      tags: [auth]
+      operationId: RegisterUser
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+      responses:
+        "201":
+          description: "New user successfully registered"
+        default:
+          $ref: "#/components/responses/BadResponse"
+  "/api/v2/auth/login":
+    post:
+      tags: [auth]
+      operationId: LoginUser
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Successfull login
+          content:
+            "application/json":
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+        "401":
+          $ref: "#/components/responses/BadResponse"
+  "/api/v2/devices":
+    get:
+      tags: [devices]
+      operationId: GetDevices
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+        default:
+          $ref: "#/components/responses/BadResponse"
+    post:
+      tags: [devices]
+      operationId: AddDevice
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [deviceId, securityKey]
+              properties:
+                deviceId:
+                  type: string
+                securityKey:
+                  type: string
+      responses:
+        "201":
+          description: "Successfully added new device"
+        "409":
+          description: "Someone already added this device"
+          $ref: "#/components/responses/BadResponse"
+        default:
+          $ref: "#/components/responses/BadResponse"
+  "/api/v2/devices/{deviceId}":
+    get:
+      tags: [devices]
+      operationId: GetDevice
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Device response"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Device"
+        default:
+          $ref: "#/components/responses/BadResponse"
+    patch:
+      tags: [devices]
+      operationId: EditDevice
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      responses:
+        default:
+          $ref: "#/components/responses/BadResponse"
+  "/api/v2/devices/{deviceId}/metrics":
+    get:
+      tags: [devices]
+      operationId: GetDeviceMetrics
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+      responses:
+        default:
+          $ref: "#/components/responses/BadResponse"
+
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Device:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: number
+          format: int
+        details:
+          type: string
+  responses:
+    BadResponse:
+      description: Returns on error, provide basic informtion about problem
+      content:
+        "application/json":
+          schema:
+            $ref: "#/components/schemas/Problem"
