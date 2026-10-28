@@ -119,12 +119,7 @@ func (h *Handler) AddDevice(
 		return nil, errUnauthenticated
 	}
 
-	deviceID, err := uuid.Parse(req.DeviceId)
-	if err != nil {
-		return nil, fmt.Errorf("bad request: %w", err)
-	}
-
-	err = h.devices.Add(ctx, ownerID, deviceID, req.SecurityKey)
+	err = h.devices.Add(ctx, ownerID, req.DeviceID, req.SecurityKey)
 	if errors.Is(err, deviceservice.ErrAlreadyExists) {
 		return &api.AddDeviceConflict{}, nil
 	}
@@ -146,12 +141,7 @@ func (h *Handler) GetDevice(
 		return nil, errUnauthenticated
 	}
 
-	deviceID, err := uuid.Parse(params.DeviceId)
-	if err != nil {
-		return nil, fmt.Errorf("bad reqest: %w", err)
-	}
-
-	d, err := h.devices.Get(ctx, ownerID, deviceID)
+	d, err := h.devices.Get(ctx, ownerID, params.DeviceID)
 	if errors.Is(err, deviceservice.ErrNotFound) {
 		return nil, fmt.Errorf("not found: %w", err)
 	}
@@ -174,12 +164,7 @@ func (h *Handler) EditDevice(
 		return errUnauthenticated
 	}
 
-	deviceID, err := uuid.Parse(params.DeviceId)
-	if err != nil {
-		return fmt.Errorf("bad request: %w", err)
-	}
-
-	err = h.devices.Rename(ctx, ownerID, deviceID, req.Name)
+	err = h.devices.Rename(ctx, ownerID, params.DeviceID, req.Name)
 	if errors.Is(err, deviceservice.ErrNotFound) {
 		return fmt.Errorf("not found: %w", err)
 	}
@@ -201,7 +186,7 @@ func (h *Handler) GetDeviceMetrics(
 
 func toAPIDevice(d devicedomain.Device) *api.Device {
 	return &api.Device{
-		ID:      d.ID.String(),
+		ID:      d.ID,
 		Name:    d.Name,
 		OwnerID: api.NewOptString(d.OwnerID.String()),
 	}

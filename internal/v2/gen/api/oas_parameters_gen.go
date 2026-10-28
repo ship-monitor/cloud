@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/go-faster/errors"
+	"github.com/google/uuid"
 	"github.com/ogen-go/ogen/conv"
 	"github.com/ogen-go/ogen/middleware"
 	"github.com/ogen-go/ogen/ogenerrors"
@@ -16,7 +17,7 @@ import (
 
 // EditDeviceParams is parameters of EditDevice operation.
 type EditDeviceParams struct {
-	DeviceId string
+	DeviceID uuid.UUID
 }
 
 func unpackEditDeviceParams(packed middleware.Parameters) (params EditDeviceParams) {
@@ -25,7 +26,7 @@ func unpackEditDeviceParams(packed middleware.Parameters) (params EditDevicePara
 			Name: "deviceId",
 			In:   "path",
 		}
-		params.DeviceId = packed[key].(string)
+		params.DeviceID = packed[key].(uuid.UUID)
 	}
 	return params
 }
@@ -55,12 +56,12 @@ func decodeEditDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}
 
-				params.DeviceId = c
+				params.DeviceID = c
 				return nil
 			}(); err != nil {
 				return err
@@ -81,7 +82,7 @@ func decodeEditDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (
 
 // GetDeviceParams is parameters of GetDevice operation.
 type GetDeviceParams struct {
-	DeviceId string
+	DeviceID uuid.UUID
 }
 
 func unpackGetDeviceParams(packed middleware.Parameters) (params GetDeviceParams) {
@@ -90,7 +91,7 @@ func unpackGetDeviceParams(packed middleware.Parameters) (params GetDeviceParams
 			Name: "deviceId",
 			In:   "path",
 		}
-		params.DeviceId = packed[key].(string)
+		params.DeviceID = packed[key].(uuid.UUID)
 	}
 	return params
 }
@@ -120,12 +121,12 @@ func decodeGetDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (p
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}
 
-				params.DeviceId = c
+				params.DeviceID = c
 				return nil
 			}(); err != nil {
 				return err
@@ -146,7 +147,7 @@ func decodeGetDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (p
 
 // GetDeviceMetricsParams is parameters of GetDeviceMetrics operation.
 type GetDeviceMetricsParams struct {
-	DeviceId string
+	DeviceID uuid.UUID
 }
 
 func unpackGetDeviceMetricsParams(packed middleware.Parameters) (params GetDeviceMetricsParams) {
@@ -155,7 +156,7 @@ func unpackGetDeviceMetricsParams(packed middleware.Parameters) (params GetDevic
 			Name: "deviceId",
 			In:   "path",
 		}
-		params.DeviceId = packed[key].(string)
+		params.DeviceID = packed[key].(uuid.UUID)
 	}
 	return params
 }
@@ -185,12 +186,12 @@ func decodeGetDeviceMetricsParams(args [1]string, argsEscaped bool, r *http.Requ
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}
 
-				params.DeviceId = c
+				params.DeviceID = c
 				return nil
 			}(); err != nil {
 				return err

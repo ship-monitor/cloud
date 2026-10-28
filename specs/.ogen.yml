@@ -1,7 +1,18 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ogen-go/ogen/main/schemas/ogen.jsonschema.json
 generator:
   features:
-    disable:
-      - ogen/otel
-      - ogen/unimplemented
-      # - paths/client
+    disable_all: true
+    enable:
+      - paths/client
+      - paths/server
+      - naming/camel_initialisms
+      # - debug/example_tests
+      - server/spec
+      # - server/spec
+      - server/swagger_ui
+  ignore_not_implemented: ["all"]
+  convenient_errors: on
+  spec_source: expanded
+parser:
+  infer_types: true
+  allow_remote: true

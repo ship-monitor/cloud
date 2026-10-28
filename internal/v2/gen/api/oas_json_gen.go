@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
+	"github.com/ogen-go/ogen/json"
 	"github.com/ogen-go/ogen/validate"
 )
 
@@ -22,7 +23,7 @@ func (s *AddDeviceReq) Encode(e *jx.Encoder) {
 func (s *AddDeviceReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("deviceId")
-		e.Str(s.DeviceId)
+		json.EncodeUUID(e, s.DeviceID)
 	}
 	{
 		e.FieldStart("securityKey")
@@ -47,8 +48,8 @@ func (s *AddDeviceReq) Decode(d *jx.Decoder) error {
 		case "deviceId":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.DeviceId = string(v)
+				v, err := json.DecodeUUID(d)
+				s.DeviceID = v
 				if err != nil {
 					return err
 				}
@@ -135,7 +136,7 @@ func (s *Device) Encode(e *jx.Encoder) {
 func (s *Device) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("id")
-		e.Str(s.ID)
+		json.EncodeUUID(e, s.ID)
 	}
 	{
 		e.FieldStart("name")
@@ -167,8 +168,8 @@ func (s *Device) Decode(d *jx.Decoder) error {
 		case "id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.ID = string(v)
+				v, err := json.DecodeUUID(d)
+				s.ID = v
 				if err != nil {
 					return err
 				}

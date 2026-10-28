@@ -192,7 +192,7 @@ func (c *Client) sendEditDevice(ctx context.Context, request *EditDeviceReq, par
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.DeviceId))
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -288,7 +288,7 @@ func (c *Client) sendGetDevice(ctx context.Context, params GetDeviceParams) (res
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.DeviceId))
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -381,7 +381,7 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.DeviceId))
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}

@@ -271,7 +271,7 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 				{
 					Name: "deviceId",
 					In:   "path",
-				}: params.DeviceId,
+				}: params.DeviceID,
 			},
 			Raw: r,
 		}
@@ -411,7 +411,7 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 				{
 					Name: "deviceId",
 					In:   "path",
-				}: params.DeviceId,
+				}: params.DeviceID,
 			},
 			Raw: r,
 		}
@@ -551,7 +551,7 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 				{
 					Name: "deviceId",
 					In:   "path",
-				}: params.DeviceId,
+				}: params.DeviceID,
 			},
 			Raw: r,
 		}

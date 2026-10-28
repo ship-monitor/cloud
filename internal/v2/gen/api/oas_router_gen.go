@@ -60,6 +60,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	if d := s.cfg.Docs; d != nil && d.serve(w, r, elem) {
+		return
+	}
 	args := [1]string{}
 
 	// Static code generated router with unwrapped path search.

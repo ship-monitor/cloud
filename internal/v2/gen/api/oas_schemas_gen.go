@@ -4,6 +4,8 @@ package api
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 func (s *BadResponseStatusCode) Error() string {
@@ -21,13 +23,13 @@ type AddDeviceCreated struct{}
 func (*AddDeviceCreated) addDeviceRes() {}
 
 type AddDeviceReq struct {
-	DeviceId    string `json:"deviceId"`
-	SecurityKey string `json:"securityKey"`
+	DeviceID    uuid.UUID `json:"deviceId"`
+	SecurityKey string    `json:"securityKey"`
 }
 
-// GetDeviceId returns the value of DeviceId.
-func (s *AddDeviceReq) GetDeviceId() string {
-	return s.DeviceId
+// GetDeviceID returns the value of DeviceID.
+func (s *AddDeviceReq) GetDeviceID() uuid.UUID {
+	return s.DeviceID
 }
 
 // GetSecurityKey returns the value of SecurityKey.
@@ -35,9 +37,9 @@ func (s *AddDeviceReq) GetSecurityKey() string {
 	return s.SecurityKey
 }
 
-// SetDeviceId sets the value of DeviceId.
-func (s *AddDeviceReq) SetDeviceId(val string) {
-	s.DeviceId = val
+// SetDeviceID sets the value of DeviceID.
+func (s *AddDeviceReq) SetDeviceID(val uuid.UUID) {
+	s.DeviceID = val
 }
 
 // SetSecurityKey sets the value of SecurityKey.
@@ -100,13 +102,13 @@ func (s *BearerToken) SetRoles(val []string) {
 
 // Ref: #/components/schemas/Device
 type Device struct {
-	ID      string    `json:"id"`
+	ID      uuid.UUID `json:"id"`
 	Name    string    `json:"name"`
 	OwnerID OptString `json:"owner_id"`
 }
 
 // GetID returns the value of ID.
-func (s *Device) GetID() string {
+func (s *Device) GetID() uuid.UUID {
 	return s.ID
 }
 
@@ -121,7 +123,7 @@ func (s *Device) GetOwnerID() OptString {
 }
 
 // SetID sets the value of ID.
-func (s *Device) SetID(val string) {
+func (s *Device) SetID(val uuid.UUID) {
 	s.ID = val
 }
 

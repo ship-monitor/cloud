@@ -23,6 +23,7 @@ func New(
 		security,
 		api.WithErrorHandler(ErrorHandler(logger)),
 		api.WithMiddleware(Logging(logger)),
+		api.WithDocs("/docs"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new api server: %w", err)
