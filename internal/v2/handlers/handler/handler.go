@@ -1,11 +1,12 @@
 // Package handler implements the generated [api.Handler].
+//
+//nolint:varnamelen
 package handler
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
@@ -35,23 +36,16 @@ func New(
 	}
 }
 
+var errNoPrincipalInCtx = errors.New("no authenticated principal in context")
+
 // currentUserID returns the id of the authenticated user from ctx.
 func currentUserID(ctx context.Context) (uuid.UUID, error) {
 	principal := auth.GetPrincipal(ctx)
 	if principal == nil {
-		return uuid.UUID{}, errors.New("no authenticated principal in context")
+		return uuid.UUID{}, errNoPrincipalInCtx
 	}
 
 	return principal.UserID(), nil
-}
-
-func problem(status float64, title string) *api.Problem {
-	return &api.Problem{
-		Type:    "about:blank",
-		Title:   title,
-		Status:  status,
-		Details: api.OptString{Set: false, Value: ""},
-	}
 }
 
 // RegisterUser implements [api.Handler].
@@ -61,11 +55,11 @@ func (h *Handler) RegisterUser(
 ) error {
 	_, err := h.users.Register(ctx, req.Email, req.Password, req.Name)
 	if errors.Is(err, userservice.ErrEmailTaken) {
-		return fmt.Errorf("conflict: %w", err)
+		return errEmailTaken
 	}
 
 	if err != nil {
-		return fmt.Errorf("register user: %w", err)
+		return errRegisterUser.WithDetail(err.Error())
 	}
 
 	return nil
@@ -78,16 +72,18 @@ func (h *Handler) LoginUser(
 ) (api.LoginUserRes, error) {
 	u, err := h.users.Login(ctx, req.Email, req.Password)
 	if errors.Is(err, userservice.ErrInvalidCredentials) {
-		return nil, fmt.Errorf("credentials: %w", err)
+		return nil, errInvalidCredentials
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("login user: %w", err)
+		return nil, errLogin.WithDetail(err.Error())
 	}
 
 	token, _, err := h.tokenService.CreateTokens(ctx, &u)
 	if err != nil {
-		return nil, fmt.Errorf("create tokens: %w", err)
+		return nil, errLogin.WithDetail(
+			fmt.Errorf("create tokens: %w", err).Error(),
+		)
 	}
 
 	return &api.LoginUserOK{
@@ -100,7 +96,7 @@ func (h *Handler) LoginUser(
 func (h *Handler) GetDevices(ctx context.Context) (*api.GetDevicesOK, error) {
 	ownerID, err := currentUserID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("not authenticated: %w", err)
+		return nil, errUnauthenticated
 	}
 
 	devices, err := h.devices.ListByOwner(ctx, ownerID)
@@ -120,7 +116,7 @@ func (h *Handler) AddDevice(
 ) (api.AddDeviceRes, error) {
 	ownerID, err := currentUserID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("not authenticated: %w", err)
+		return nil, errUnauthenticated
 	}
 
 	deviceID, err := uuid.Parse(req.DeviceId)
@@ -147,7 +143,7 @@ func (h *Handler) GetDevice(
 ) (*api.Device, error) {
 	ownerID, err := currentUserID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("not authenticated: %w", err)
+		return nil, errUnauthenticated
 	}
 
 	deviceID, err := uuid.Parse(params.DeviceId)
@@ -175,7 +171,7 @@ func (h *Handler) EditDevice(
 ) error {
 	ownerID, err := currentUserID(ctx)
 	if err != nil {
-		return fmt.Errorf("not authenticated: %w", err)
+		return errUnauthenticated
 	}
 
 	deviceID, err := uuid.Parse(params.DeviceId)
@@ -201,21 +197,6 @@ func (h *Handler) GetDeviceMetrics(
 	params api.GetDeviceMetricsParams,
 ) (api.GetDeviceMetricsRes, error) {
 	return nil, errors.New("not implemented")
-}
-
-func (h *Handler) NewError(
-	ctx context.Context,
-	err error,
-) *api.BadResponseStatusCode {
-	return &api.BadResponseStatusCode{
-		StatusCode: http.StatusInternalServerError,
-		Response: api.Problem{
-			Type:    "error",
-			Title:   err.Error(),
-			Status:  http.StatusInternalServerError,
-			Details: api.NewOptString("no additional details"),
-		},
-	}
 }
 
 func toAPIDevice(d devicedomain.Device) *api.Device {
