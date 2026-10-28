@@ -2,9 +2,9 @@
 
 CREATE TABLE users (
     id varchar primary key,
-    name varchar ,
-    email varchar unique,
-    password_hash varchar
+    name varchar not null,
+    email varchar unique not null,
+    password_hash varchar not null
 );
 
 -- +goose Down

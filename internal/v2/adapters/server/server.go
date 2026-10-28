@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ogen-go/ogen/middleware"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"go.uber.org/zap"
 )
@@ -15,10 +16,13 @@ func New(
 	handler api.Handler,
 	security api.SecurityHandler,
 ) (*api.Server, error) {
+	logger = logger.Named("HTTP")
+
 	server, err := api.NewServer(
 		handler,
 		security,
 		api.WithErrorHandler(ErrorHandler(logger)),
+		api.WithMiddleware(Logging(logger)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new api server: %w", err)
@@ -64,5 +68,20 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 
 			return
 		}
+	}
+}
+
+func Logging(logger *zap.Logger) api.Middleware {
+	return func(req middleware.Request, next middleware.Next) (middleware.Response, error) {
+		logger.Info(
+			fmt.Sprintf(
+				"%s %s - %s",
+				req.Raw.Method,
+				req.Raw.URL,
+				req.OperationID,
+			),
+		)
+
+		return next(req)
 	}
 }

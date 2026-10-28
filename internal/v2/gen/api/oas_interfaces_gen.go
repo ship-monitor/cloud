@@ -5,18 +5,10 @@ type AddDeviceRes interface {
 	addDeviceRes()
 }
 
-type GetDeviceRes interface {
-	getDeviceRes()
-}
-
-type GetDevicesRes interface {
-	getDevicesRes()
+type GetDeviceMetricsRes interface {
+	getDeviceMetricsRes()
 }
 
 type LoginUserRes interface {
 	loginUserRes()
-}
-
-type RegisterUserRes interface {
-	registerUserRes()
 }

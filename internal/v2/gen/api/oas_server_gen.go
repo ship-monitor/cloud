@@ -15,19 +15,19 @@ type Handler interface {
 	// EditDevice implements EditDevice operation.
 	//
 	// PATCH /api/v2/devices/{deviceId}
-	EditDevice(ctx context.Context, params EditDeviceParams) (*Problem, error)
+	EditDevice(ctx context.Context, req *EditDeviceReq, params EditDeviceParams) error
 	// GetDevice implements GetDevice operation.
 	//
 	// GET /api/v2/devices/{deviceId}
-	GetDevice(ctx context.Context, params GetDeviceParams) (GetDeviceRes, error)
+	GetDevice(ctx context.Context, params GetDeviceParams) (*Device, error)
 	// GetDeviceMetrics implements GetDeviceMetrics operation.
 	//
 	// GET /api/v2/devices/{deviceId}/metrics
-	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (*Problem, error)
+	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (GetDeviceMetricsRes, error)
 	// GetDevices implements GetDevices operation.
 	//
 	// GET /api/v2/devices
-	GetDevices(ctx context.Context) (GetDevicesRes, error)
+	GetDevices(ctx context.Context) (*GetDevicesOK, error)
 	// LoginUser implements LoginUser operation.
 	//
 	// POST /api/v2/auth/login
@@ -35,7 +35,11 @@ type Handler interface {
 	// RegisterUser implements RegisterUser operation.
 	//
 	// POST /api/v2/auth/register
-	RegisterUser(ctx context.Context, req *RegisterUserReq) (RegisterUserRes, error)
+	RegisterUser(ctx context.Context, req *RegisterUserReq) error
+	// NewError creates *BadResponseStatusCode from error returned by handler.
+	//
+	// Used for common default response.
+	NewError(ctx context.Context, err error) *BadResponseStatusCode
 }
 
 // Server implements http server based on OpenAPI v3 specification and

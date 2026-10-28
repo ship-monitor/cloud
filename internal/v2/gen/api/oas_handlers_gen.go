@@ -54,8 +54,9 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -83,8 +84,9 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -141,8 +143,19 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 		response, err = s.h.AddDevice(ctx, request)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -181,8 +194,9 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -210,8 +224,9 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -227,15 +242,30 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 	}
 
 	var rawBody []byte
+	request, rawBody, close, err := s.decodeEditDeviceRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
 
-	var response *Problem
+	var response *EditDeviceOK
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
 			OperationName:    EditDeviceOperation,
 			OperationSummary: "",
 			OperationID:      "EditDevice",
-			Body:             nil,
+			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
@@ -247,9 +277,9 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 		}
 
 		type (
-			Request  = struct{}
+			Request  = *EditDeviceReq
 			Params   = EditDeviceParams
-			Response = *Problem
+			Response = *EditDeviceOK
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -260,16 +290,27 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 			mreq,
 			unpackEditDeviceParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.EditDevice(ctx, params)
+				err = s.h.EditDevice(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.EditDevice(ctx, params)
+		err = s.h.EditDevice(ctx, request, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -308,8 +349,9 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -337,8 +379,9 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -355,7 +398,7 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 
 	var rawBody []byte
 
-	var response GetDeviceRes
+	var response *Device
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -376,7 +419,7 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 		type (
 			Request  = struct{}
 			Params   = GetDeviceParams
-			Response = GetDeviceRes
+			Response = *Device
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -395,8 +438,19 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 		response, err = s.h.GetDevice(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -435,8 +489,9 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -464,8 +519,9 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -482,7 +538,7 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 
 	var rawBody []byte
 
-	var response *Problem
+	var response GetDeviceMetricsRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -503,7 +559,7 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 		type (
 			Request  = struct{}
 			Params   = GetDeviceMetricsParams
-			Response = *Problem
+			Response = GetDeviceMetricsRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -522,8 +578,19 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 		response, err = s.h.GetDeviceMetrics(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -562,8 +629,9 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -591,15 +659,16 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
 
 	var rawBody []byte
 
-	var response GetDevicesRes
+	var response *GetDevicesOK
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -615,7 +684,7 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 		type (
 			Request  = struct{}
 			Params   = struct{}
-			Response = GetDevicesRes
+			Response = *GetDevicesOK
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -634,8 +703,19 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 		response, err = s.h.GetDevices(ctx)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -674,8 +754,9 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -703,8 +784,9 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -761,8 +843,19 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 		response, err = s.h.LoginUser(ctx, request)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -801,8 +894,9 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 					Security:         "BearerToken",
 					Err:              err,
 				}
-				defer recordError("Security:BearerToken", err)
-				s.cfg.ErrorHandler(ctx, w, r, err)
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
 				return
 			}
 			if ok {
@@ -830,8 +924,9 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 				OperationContext: opErrContext,
 				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
 			}
-			defer recordError("Security", err)
-			s.cfg.ErrorHandler(ctx, w, r, err)
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
 			return
 		}
 	}
@@ -853,7 +948,7 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 		}
 	}()
 
-	var response RegisterUserRes
+	var response *RegisterUserCreated
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -869,7 +964,7 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 		type (
 			Request  = *RegisterUserReq
 			Params   = struct{}
-			Response = RegisterUserRes
+			Response = *RegisterUserCreated
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -880,16 +975,27 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.RegisterUser(ctx, request)
+				err = s.h.RegisterUser(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.RegisterUser(ctx, request)
+		err = s.h.RegisterUser(ctx, request)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 

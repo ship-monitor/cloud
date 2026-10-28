@@ -4,7 +4,6 @@ info:
   version: 1.0.0
   description: |
     OpenAPI specification generated from the Gin route registrations and handlers in this service.
-    Most endpoints use a cookie-based session named `ship_session`.
 servers:
   - url: http://localhost:8080
     description: Local development server
@@ -38,6 +37,7 @@ paths:
               properties:
                 email:
                   type: string
+                  format: email
                 password:
                   type: string
                 name:
@@ -61,6 +61,7 @@ paths:
               properties:
                 email:
                   type: string
+                  format: email
                 password:
                   type: string
       responses:
@@ -78,12 +79,15 @@ paths:
                     type: string
         "401":
           $ref: "#/components/responses/BadResponse"
+        default:
+          $ref: "#/components/responses/BadResponse"
   "/api/v2/devices":
     get:
       tags: [devices]
       operationId: GetDevices
       responses:
         "200":
+          description: Returns list of all devices
           content:
             "application/json":
               schema:
@@ -116,7 +120,6 @@ paths:
           description: "Successfully added new device"
         "409":
           description: "Someone already added this device"
-          $ref: "#/components/responses/BadResponse"
         default:
           $ref: "#/components/responses/BadResponse"
   "/api/v2/devices/{deviceId}":
@@ -147,7 +150,19 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
       responses:
+        "200":
+          description: "Updated successfull"
         default:
           $ref: "#/components/responses/BadResponse"
   "/api/v2/devices/{deviceId}/metrics":
@@ -178,6 +193,8 @@ components:
           type: string
         name:
           type: string
+        owner_id:
+          type: string
     Problem:
       type: object
       required: [type, title, status]
@@ -188,13 +205,13 @@ components:
           type: string
         status:
           type: number
-          format: int
+          format: integer
         details:
           type: string
   responses:
     BadResponse:
       description: Returns on error, provide basic informtion about problem
       content:
-        "application/json":
+        "application/problem+json":
           schema:
             $ref: "#/components/schemas/Problem"

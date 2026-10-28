@@ -15,7 +15,11 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/security"
+	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
+	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
+	"github.com/ship-monitor/cloud/internal/v2/services/user"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -30,8 +34,12 @@ func NewApp(config *config.Config) *fx.App {
 
 		fx.Provide(newDB),
 
+		fx.Provide(userrepo.New),
+		fx.Provide(devicerepo.New),
+
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
+		fx.Provide(newDeviceService),
 
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),
@@ -88,8 +96,12 @@ func newDB(lc fx.Lifecycle, conf *config.Config) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func newHandler(t *token.Service) *handler.Handler {
-	return handler.New(t)
+func newHandler(
+	t *token.Service,
+	u *user.Service,
+	d *device.Service,
+) *handler.Handler {
+	return handler.New(t, u, d)
 }
 
 func newSecurityHandler(t *token.Service) *security.Handler {

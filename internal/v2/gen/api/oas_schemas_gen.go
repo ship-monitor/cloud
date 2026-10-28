@@ -2,6 +2,19 @@
 
 package api
 
+import (
+	"fmt"
+)
+
+func (s *BadResponseStatusCode) Error() string {
+	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
+}
+
+// AddDeviceConflict is response for AddDevice operation.
+type AddDeviceConflict struct{}
+
+func (*AddDeviceConflict) addDeviceRes() {}
+
 // AddDeviceCreated is response for AddDevice operation.
 type AddDeviceCreated struct{}
 
@@ -32,6 +45,34 @@ func (s *AddDeviceReq) SetSecurityKey(val string) {
 	s.SecurityKey = val
 }
 
+// BadResponseStatusCode wraps Problem with StatusCode.
+type BadResponseStatusCode struct {
+	StatusCode int
+	Response   Problem
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *BadResponseStatusCode) GetStatusCode() int {
+	return s.StatusCode
+}
+
+// GetResponse returns the value of Response.
+func (s *BadResponseStatusCode) GetResponse() Problem {
+	return s.Response
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *BadResponseStatusCode) SetStatusCode(val int) {
+	s.StatusCode = val
+}
+
+// SetResponse sets the value of Response.
+func (s *BadResponseStatusCode) SetResponse(val Problem) {
+	s.Response = val
+}
+
+func (*BadResponseStatusCode) loginUserRes() {}
+
 type BearerToken struct {
 	Token string
 	Roles []string
@@ -59,8 +100,9 @@ func (s *BearerToken) SetRoles(val []string) {
 
 // Ref: #/components/schemas/Device
 type Device struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID      string    `json:"id"`
+	Name    string    `json:"name"`
+	OwnerID OptString `json:"owner_id"`
 }
 
 // GetID returns the value of ID.
@@ -73,6 +115,11 @@ func (s *Device) GetName() string {
 	return s.Name
 }
 
+// GetOwnerID returns the value of OwnerID.
+func (s *Device) GetOwnerID() OptString {
+	return s.OwnerID
+}
+
 // SetID sets the value of ID.
 func (s *Device) SetID(val string) {
 	s.ID = val
@@ -83,7 +130,27 @@ func (s *Device) SetName(val string) {
 	s.Name = val
 }
 
-func (*Device) getDeviceRes() {}
+// SetOwnerID sets the value of OwnerID.
+func (s *Device) SetOwnerID(val OptString) {
+	s.OwnerID = val
+}
+
+// EditDeviceOK is response for EditDevice operation.
+type EditDeviceOK struct{}
+
+type EditDeviceReq struct {
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *EditDeviceReq) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *EditDeviceReq) SetName(val string) {
+	s.Name = val
+}
 
 type GetDevicesOK struct {
 	Devices []Device `json:"devices"`
@@ -98,8 +165,6 @@ func (s *GetDevicesOK) GetDevices() []Device {
 func (s *GetDevicesOK) SetDevices(val []Device) {
 	s.Devices = val
 }
-
-func (*GetDevicesOK) getDevicesRes() {}
 
 type LoginUserOK struct {
 	Success bool      `json:"success"`
@@ -247,16 +312,8 @@ func (s *Problem) SetDetails(val OptString) {
 	s.Details = val
 }
 
-func (*Problem) addDeviceRes()    {}
-func (*Problem) getDeviceRes()    {}
-func (*Problem) getDevicesRes()   {}
-func (*Problem) loginUserRes()    {}
-func (*Problem) registerUserRes() {}
-
 // RegisterUserCreated is response for RegisterUser operation.
 type RegisterUserCreated struct{}
-
-func (*RegisterUserCreated) registerUserRes() {}
 
 type RegisterUserReq struct {
 	Email    string `json:"email"`

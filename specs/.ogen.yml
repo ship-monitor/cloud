@@ -4,4 +4,4 @@ generator:
     disable:
       - ogen/otel
       - ogen/unimplemented
-      - paths/client
+      # - paths/client

@@ -23,7 +23,7 @@ var (
 	}
 	rn3AllowedHeaders = map[string]string{
 		"GET":   "Authorization",
-		"PATCH": "Authorization",
+		"PATCH": "Authorization,Content-Type",
 	}
 	rn4AllowedHeaders = map[string]string{
 		"GET": "Authorization",
@@ -203,7 +203,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								allowedMethods: "GET,PATCH",
 								allowedHeaders: rn3AllowedHeaders,
 								acceptPost:     "",
-								acceptPatch:    "",
+								acceptPatch:    "application/json",
 							})
 						}
 
