@@ -25,11 +25,21 @@ func New(t string, status int, title string) *Error {
 	}
 }
 
+// WithDetail returns new error that identical to existing, but contains
+// additional detail.
+//
+//nolint:varnamelen
 func (p *Error) WithDetail(d string) *Error {
-	return &Error{
+	newErr := &Error{
 		Type:   p.Type,
 		Status: p.Status,
 		Title:  p.Title,
-		Detail: strings.Join([]string{p.Detail, d}, "; "),
+		Detail: d,
 	}
+
+	if p.Detail != "" {
+		newErr.Detail = strings.Join([]string{p.Detail, d}, "; ")
+	}
+
+	return newErr
 }

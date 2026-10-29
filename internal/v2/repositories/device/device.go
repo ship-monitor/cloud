@@ -93,16 +93,19 @@ func (r *Repository) Get(
 	return rw.toDomain(), nil
 }
 
-// ListByOwner returns all devices owned by the given user, ordered by id.
+// ListByOwner returns a page of devices owned by the given user,
+// ordered by id.
 func (r *Repository) ListByOwner(
 	ctx context.Context,
 	ownerID uuid.UUID,
+	paging domain.Paging,
 ) ([]domain.Device, error) {
 	var rows []row
 
 	err := sqlx.SelectContext(ctx, r.db, &rows,
-		`SELECT `+columns+` FROM devices WHERE owner_id = ? ORDER BY id`,
-		ownerID,
+		`SELECT `+columns+
+			` FROM devices WHERE owner_id = ? ORDER BY id LIMIT ? OFFSET ?`,
+		ownerID, paging.Size, paging.Offset(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("select devices by owner: %w", err)

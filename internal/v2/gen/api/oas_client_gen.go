@@ -41,7 +41,7 @@ type Invoker interface {
 	// GetDevices invokes GetDevices operation.
 	//
 	// GET /api/v2/devices
-	GetDevices(ctx context.Context) (*GetDevicesOK, error)
+	GetDevices(ctx context.Context, params GetDevicesParams) (*GetDevicesOK, error)
 	// LoginUser invokes LoginUser operation.
 	//
 	// POST /api/v2/auth/login
@@ -457,17 +457,54 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 // GetDevices invokes GetDevices operation.
 //
 // GET /api/v2/devices
-func (c *Client) GetDevices(ctx context.Context) (*GetDevicesOK, error) {
-	res, err := c.sendGetDevices(ctx)
+func (c *Client) GetDevices(ctx context.Context, params GetDevicesParams) (*GetDevicesOK, error) {
+	res, err := c.sendGetDevices(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetDevices(ctx context.Context) (res *GetDevicesOK, err error) {
+func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (res *GetDevicesOK, err error) {
 
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
 	pathParts[0] = "/api/v2/devices"
 	uri.AddPathParts(u, pathParts[:]...)
+
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "page" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "page",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Page.Get(); ok {
+				return e.EncodeValue(conv.Float64ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "pageSize" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageSize.Get(); ok {
+				return e.EncodeValue(conv.Float64ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {

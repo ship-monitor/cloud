@@ -31,6 +31,7 @@ type DeviceService interface {
 	ListByOwner(
 		ctx context.Context,
 		ownerID uuid.UUID,
+		paging devicedomain.Paging,
 	) ([]devicedomain.Device, error)
 	Add(ctx context.Context, ownerID, id uuid.UUID, securityKey string) error
 	Rename(ctx context.Context, ownerID, id uuid.UUID, name string) error

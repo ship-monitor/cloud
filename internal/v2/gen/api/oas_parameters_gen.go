@@ -209,3 +209,170 @@ func decodeGetDeviceMetricsParams(args [1]string, argsEscaped bool, r *http.Requ
 	}
 	return params, nil
 }
+
+// GetDevicesParams is parameters of GetDevices operation.
+type GetDevicesParams struct {
+	// Page index (starting from 0).
+	Page OptFloat64 `json:",omitempty,omitzero"`
+	// Page size.
+	PageSize OptFloat64 `json:",omitempty,omitzero"`
+}
+
+func unpackGetDevicesParams(packed middleware.Parameters) (params GetDevicesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "page",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Page = v.(OptFloat64)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageSize",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageSize = v.(OptFloat64)
+		}
+	}
+	return params
+}
+
+func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (params GetDevicesParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: page.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "page",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageVal float64
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToFloat64(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Page.SetTo(paramsDotPageVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Page.Get(); ok {
+					if err := func() error {
+						if err := (validate.Float{
+							MinSet:        true,
+							Min:           0,
+							MaxSet:        false,
+							Max:           0,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    nil,
+							Pattern:       nil,
+						}).Validate(float64(value)); err != nil {
+							return errors.Wrap(err, "float")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "page",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: pageSize.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageSizeVal float64
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToFloat64(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageSizeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageSize.SetTo(paramsDotPageSizeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.PageSize.Get(); ok {
+					if err := func() error {
+						if err := (validate.Float{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           50,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    nil,
+							Pattern:       nil,
+						}).Validate(float64(value)); err != nil {
+							return errors.Wrap(err, "float")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageSize",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}

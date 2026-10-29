@@ -3,11 +3,14 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/ogen-go/ogen/middleware"
+	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
+	"github.com/ship-monitor/cloud/pkg/problem"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +35,12 @@ func New(
 	return server, nil
 }
 
+var errBadRequest = problem.New(
+	"bad-request",
+	http.StatusBadRequest,
+	"Bad request",
+)
+
 //nolint:varnamelen
 func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 	logger = logger.Named("Error Handler")
@@ -50,17 +59,43 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 		logger.Error("Error occurred while handling request",
 			zap.Error(err),
 		)
-		problem := api.Problem{
-			Type:    "unknown",
-			Title:   "unknown error",
-			Details: api.NewOptString(err.Error()),
-			Status:  http.StatusInternalServerError,
+
+		problem := errBadRequest
+
+		if p, ok := errors.AsType[*ogenerrors.DecodeParamsError](err); ok {
+			problem = problem.WithDetail(
+				fmt.Sprintf(
+					"Decode params: %v", p.Err,
+				),
+			)
+		}
+
+		if p, ok := errors.AsType[*ogenerrors.DecodeParamError](err); ok {
+			problem = problem.WithDetail(
+				fmt.Sprintf("Decode param in %s: %v", p.In, p.Err),
+			)
+			problem.Title = "Bad request param"
+		}
+
+		if p, ok := errors.AsType[*ogenerrors.DecodeBodyError](err); ok {
+			problem = problem.WithDetail(
+				fmt.Sprintf("Decode body: %v", p.Err),
+			)
+			problem.Title = "Bad request body"
+		}
+
+		if p, ok := errors.AsType[*ogenerrors.DecodeRequestError](err); ok {
+			problem = problem.WithDetail(
+				fmt.Sprintf(
+					"Decode request: %v", p.Err,
+				),
+			)
 		}
 
 		w.Header().Add("Content-Type", "application/problem+json")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(problem.Status)
 
-		err = json.NewEncoder(w).Encode(&problem)
+		err = json.NewEncoder(w).Encode(&toBadResponse(problem).Response)
 		if err != nil {
 			logger.Error(
 				"Failed encode problem to response body",
@@ -85,4 +120,23 @@ func Logging(logger *zap.Logger) api.Middleware {
 
 		return next(req)
 	}
+}
+
+//nolint:varnamelen
+func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
+	resp := &api.BadResponseStatusCode{
+		StatusCode: p.Status,
+		Response: api.Problem{
+			Type:   p.Type,
+			Title:  p.Title,
+			Status: float64(p.Status),
+			Detail: api.OptString{Set: false, Value: ""},
+		},
+	}
+
+	if p.Detail != "" {
+		resp.Response.Detail = api.NewOptString(p.Detail)
+	}
+
+	return resp
 }

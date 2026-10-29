@@ -38,6 +38,14 @@ var (
 		http.StatusInternalServerError,
 		"Login failed",
 	)
+
+	errInvalidPagination = problem.New(
+		"invalid-pagination",
+		http.StatusBadRequest,
+		"Invalid pagination parameters",
+	).WithDetail("Page must be a non-negative integer, " +
+		"pageSize must be an integer between 1 and 50")
+
 	errUnknownError = problem.New(
 		"unknown-error",
 		http.StatusInternalServerError,
@@ -63,15 +71,15 @@ func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
 	resp := &api.BadResponseStatusCode{
 		StatusCode: p.Status,
 		Response: api.Problem{
-			Type:    p.Type,
-			Title:   p.Title,
-			Status:  float64(p.Status),
-			Details: api.OptString{Set: false, Value: ""},
+			Type:   p.Type,
+			Title:  p.Title,
+			Status: float64(p.Status),
+			Detail: api.OptString{Set: false, Value: ""},
 		},
 	}
 
 	if p.Detail != "" {
-		resp.Response.Details = api.NewOptString(p.Detail)
+		resp.Response.Detail = api.NewOptString(p.Detail)
 	}
 
 	return resp

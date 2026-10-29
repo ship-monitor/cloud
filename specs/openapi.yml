@@ -85,6 +85,22 @@ paths:
     get:
       tags: [devices]
       operationId: GetDevices
+      parameters:
+        - name: page
+          in: query
+          description: Page index (starting from 0)
+          schema:
+            type: number
+            format: integer
+            minimum: 0
+        - name: pageSize
+          in: query
+          description: Page size
+          schema:
+            type: number
+            format: integer
+            minimum: 1
+            maximum: 50
       responses:
         "200":
           description: Returns list of all devices
@@ -214,7 +230,7 @@ components:
           type: number
           format: integer
           example: 400
-        details:
+        detail:
           type: string
           example: Additional details about problem
 

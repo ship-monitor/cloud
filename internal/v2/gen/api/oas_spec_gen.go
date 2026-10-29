@@ -160,6 +160,33 @@ const (
           "devices"
         ],
         "operationId": "GetDevices",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page index (starting from 0)",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "number",
+              "format": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "number",
+              "format": "integer",
+              "maximum": 50,
+              "minimum": 1
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Returns list of all devices",
@@ -420,7 +447,7 @@ const (
             "type": "number",
             "format": "integer"
           },
-          "details": {
+          "detail": {
             "type": "string"
           }
         },
@@ -557,6 +584,26 @@ paths:
             tags:
                 - devices
             operationId: GetDevices
+            parameters:
+                -   name: page
+                    in: query
+                    description: Page index (starting from 0)
+                    style: form
+                    explode: true
+                    schema:
+                        type: number
+                        format: integer
+                        minimum: 0
+                -   name: pageSize
+                    in: query
+                    description: Page size
+                    style: form
+                    explode: true
+                    schema:
+                        type: number
+                        format: integer
+                        maximum: 50
+                        minimum: 1
             responses:
                 "200":
                     description: Returns list of all devices
@@ -708,7 +755,7 @@ components:
                 status:
                     type: number
                     format: integer
-                details:
+                detail:
                     type: string
             required:
                 - type
@@ -735,8 +782,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"e42600db821e279962010c8d82ccb233\""
-	specYAMLETag = "\"6318f55facca25db8d4299c57c2b8ce1\""
+	specJSONETag = "\"c963cc8b3168d18bc8a4f3e41b9e6d28\""
+	specYAMLETag = "\"6e58baa5d7c23475f548fb7ca31d8f30\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

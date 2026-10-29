@@ -220,6 +220,52 @@ func (s *LoginUserReq) SetPassword(val string) {
 	s.Password = val
 }
 
+// NewOptFloat64 returns new OptFloat64 with value set to v.
+func NewOptFloat64(v float64) OptFloat64 {
+	return OptFloat64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptFloat64 is optional float64.
+type OptFloat64 struct {
+	Value float64
+	Set   bool
+}
+
+// IsSet returns true if OptFloat64 was set.
+func (o OptFloat64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptFloat64) Reset() {
+	var v float64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptFloat64) SetTo(v float64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptFloat64) Get() (v float64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -268,10 +314,10 @@ func (o OptString) Or(d string) string {
 
 // Ref: #/components/schemas/Problem
 type Problem struct {
-	Type    string    `json:"type"`
-	Title   string    `json:"title"`
-	Status  float64   `json:"status"`
-	Details OptString `json:"details"`
+	Type   string    `json:"type"`
+	Title  string    `json:"title"`
+	Status float64   `json:"status"`
+	Detail OptString `json:"detail"`
 }
 
 // GetType returns the value of Type.
@@ -289,9 +335,9 @@ func (s *Problem) GetStatus() float64 {
 	return s.Status
 }
 
-// GetDetails returns the value of Details.
-func (s *Problem) GetDetails() OptString {
-	return s.Details
+// GetDetail returns the value of Detail.
+func (s *Problem) GetDetail() OptString {
+	return s.Detail
 }
 
 // SetType sets the value of Type.
@@ -309,9 +355,9 @@ func (s *Problem) SetStatus(val float64) {
 	s.Status = val
 }
 
-// SetDetails sets the value of Details.
-func (s *Problem) SetDetails(val OptString) {
-	s.Details = val
+// SetDetail sets the value of Detail.
+func (s *Problem) SetDetail(val OptString) {
+	s.Detail = val
 }
 
 // RegisterUserCreated is response for RegisterUser operation.

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
@@ -93,13 +94,21 @@ func (h *Handler) LoginUser(
 }
 
 // GetDevices implements [api.Handler].
-func (h *Handler) GetDevices(ctx context.Context) (*api.GetDevicesOK, error) {
+func (h *Handler) GetDevices(
+	ctx context.Context,
+	params api.GetDevicesParams,
+) (*api.GetDevicesOK, error) {
 	ownerID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, errUnauthenticated
 	}
 
-	devices, err := h.devices.ListByOwner(ctx, ownerID)
+	paging, err := pagingFromParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	devices, err := h.devices.ListByOwner(ctx, ownerID, paging)
 	if err != nil {
 		return nil, fmt.Errorf("list devices: %w", err)
 	}
@@ -182,6 +191,37 @@ func (h *Handler) GetDeviceMetrics(
 	params api.GetDeviceMetricsParams,
 ) (api.GetDeviceMetricsRes, error) {
 	return nil, errors.New("not implemented")
+}
+
+// pagingFromParams converts API pagination parameters to domain paging.
+//
+// The generated code enforces page >= 0 and pageSize >= 1,
+// but not the maximum page size or integer values, so both are checked here.
+func pagingFromParams(
+	params api.GetDevicesParams,
+) (devicedomain.Paging, error) {
+	paging := devicedomain.Paging{
+		Page: 0,
+		Size: devicedomain.DefaultPageSize,
+	}
+
+	if v, ok := params.Page.Get(); ok {
+		if v != math.Trunc(v) {
+			return paging, errInvalidPagination
+		}
+
+		paging.Page = uint64(v)
+	}
+
+	if v, ok := params.PageSize.Get(); ok {
+		if v != math.Trunc(v) || v > devicedomain.MaxPageSize {
+			return paging, errInvalidPagination
+		}
+
+		paging.Size = uint64(v)
+	}
+
+	return paging, nil
 }
 
 func toAPIDevice(d devicedomain.Device) *api.Device {

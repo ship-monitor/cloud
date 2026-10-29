@@ -25,7 +25,11 @@ var (
 type Repository interface {
 	Create(ctx context.Context, d domain.Device) error
 	Get(ctx context.Context, id uuid.UUID) (domain.Device, error)
-	ListByOwner(ctx context.Context, ownerID uuid.UUID) ([]domain.Device, error)
+	ListByOwner(
+		ctx context.Context,
+		ownerID uuid.UUID,
+		paging domain.Paging,
+	) ([]domain.Device, error)
 	Rename(ctx context.Context, id uuid.UUID, name string) error
 }
 
@@ -61,12 +65,17 @@ func (s *Service) Get(
 	return d, nil
 }
 
-// ListByOwner returns all devices owned by the given user.
+// ListByOwner returns a page of devices owned by the given user.
 func (s *Service) ListByOwner(
 	ctx context.Context,
 	ownerID uuid.UUID,
+	paging domain.Paging,
 ) ([]domain.Device, error) {
-	devices, err := s.repo.ListByOwner(ctx, ownerID)
+	if paging.Size == 0 {
+		paging.Size = domain.DefaultPageSize
+	}
+
+	devices, err := s.repo.ListByOwner(ctx, ownerID, paging)
 	if err != nil {
 		return nil, fmt.Errorf("select devices by owner: %w", err)
 	}

@@ -740,9 +740,9 @@ func (s *Problem) encodeFields(e *jx.Encoder) {
 		e.Float64(s.Status)
 	}
 	{
-		if s.Details.Set {
-			e.FieldStart("details")
-			s.Details.Encode(e)
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
 		}
 	}
 }
@@ -751,7 +751,7 @@ var jsonFieldsNameOfProblem = [4]string{
 	0: "type",
 	1: "title",
 	2: "status",
-	3: "details",
+	3: "detail",
 }
 
 // Decode decodes Problem from json.
@@ -799,15 +799,15 @@ func (s *Problem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
-		case "details":
+		case "detail":
 			if err := func() error {
-				s.Details.Reset()
-				if err := s.Details.Decode(d); err != nil {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"details\"")
+				return errors.Wrap(err, "decode field \"detail\"")
 			}
 		default:
 			return d.Skip()

@@ -665,6 +665,16 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 			return
 		}
 	}
+	params, err := decodeGetDevicesParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 
@@ -677,13 +687,22 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 			OperationID:      "GetDevices",
 			Body:             nil,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "page",
+					In:   "query",
+				}: params.Page,
+				{
+					Name: "pageSize",
+					In:   "query",
+				}: params.PageSize,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = struct{}
+			Params   = GetDevicesParams
 			Response = *GetDevicesOK
 		)
 		response, err = middleware.HookMiddleware[
@@ -693,14 +712,14 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 		](
 			m,
 			mreq,
-			nil,
+			unpackGetDevicesParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.GetDevices(ctx)
+				response, err = s.h.GetDevices(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.GetDevices(ctx)
+		response, err = s.h.GetDevices(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
