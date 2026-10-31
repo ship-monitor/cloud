@@ -22,8 +22,9 @@ var (
 		"POST": "Authorization,Content-Type",
 	}
 	rn3AllowedHeaders = map[string]string{
-		"GET":   "Authorization",
-		"PATCH": "Authorization,Content-Type",
+		"DELETE": "Authorization",
+		"GET":    "Authorization",
+		"PATCH":  "Authorization,Content-Type",
 	}
 	rn4AllowedHeaders = map[string]string{
 		"GET": "Authorization",
@@ -193,6 +194,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 					if len(elem) == 0 {
 						switch r.Method {
+						case "DELETE":
+							s.handleRemoveDeviceRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
 						case "GET":
 							s.handleGetDeviceRequest([1]string{
 								args[0],
@@ -203,7 +208,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "GET,PATCH",
+								allowedMethods: "DELETE,GET,PATCH",
 								allowedHeaders: rn3AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "application/json",
@@ -460,6 +465,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 					if len(elem) == 0 {
 						switch method {
+						case "DELETE":
+							r.name = RemoveDeviceOperation
+							r.summary = ""
+							r.operationID = "RemoveDevice"
+							r.operationGroup = ""
+							r.pathPattern = "/api/v2/devices/{deviceId}"
+							r.args = args
+							r.count = 1
+							return r, true
 						case "GET":
 							r.name = GetDeviceOperation
 							r.summary = ""

@@ -320,6 +320,43 @@ const (
           }
         ]
       },
+      "delete": {
+        "tags": [
+          "devices"
+        ],
+        "operationId": "RemoveDevice",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted successfull"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          },
+          {
+            
+          }
+        ]
+      },
       "patch": {
         "tags": [
           "devices"
@@ -678,6 +715,27 @@ paths:
             security:
                 -   bearerToken: []
                 - {}
+        delete:
+            tags:
+                - devices
+            operationId: RemoveDevice
+            parameters:
+                -   name: deviceId
+                    in: path
+                    required: true
+                    style: simple
+                    explode: false
+                    schema:
+                        type: string
+                        format: uuid
+            responses:
+                "200":
+                    description: Deleted successfull
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+                - {}
         patch:
             tags:
                 - devices
@@ -782,8 +840,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"c963cc8b3168d18bc8a4f3e41b9e6d28\""
-	specYAMLETag = "\"6e58baa5d7c23475f548fb7ca31d8f30\""
+	specJSONETag = "\"5edb37dd6da5d8094b0c938c3947eb75\""
+	specYAMLETag = "\"35341f4f9a20cb4ee6ec7fbc59976c26\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

@@ -49,6 +49,24 @@ func currentUserID(ctx context.Context) (uuid.UUID, error) {
 	return principal.UserID(), nil
 }
 
+// RemoveDevice implements [api.Handler].
+func (h *Handler) RemoveDevice(
+	ctx context.Context,
+	params api.RemoveDeviceParams,
+) error {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return fmt.Errorf("get current user: %w", err)
+	}
+
+	err = h.devices.Remove(ctx, params.DeviceID, userID)
+	if err != nil {
+		return fmt.Errorf("remove device: %w", err)
+	}
+
+	return nil
+}
+
 // RegisterUser implements [api.Handler].
 func (h *Handler) RegisterUser(
 	ctx context.Context,
@@ -105,7 +123,7 @@ func (h *Handler) GetDevices(
 
 	paging, err := pagingFromParams(params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("paging: %w", err)
 	}
 
 	devices, err := h.devices.ListByOwner(ctx, ownerID, paging)
@@ -190,7 +208,7 @@ func (h *Handler) GetDeviceMetrics(
 	ctx context.Context,
 	params api.GetDeviceMetricsParams,
 ) (api.GetDeviceMetricsRes, error) {
-	return nil, errors.New("not implemented")
+	return nil, errUnknownError.WithDetail("Currently not implemented")
 }
 
 // pagingFromParams converts API pagination parameters to domain paging.

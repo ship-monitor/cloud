@@ -184,6 +184,22 @@ paths:
           description: "Updated successfull"
         default:
           $ref: "#/components/responses/BadResponse"
+    delete:
+      tags: [devices]
+      operationId: RemoveDevice
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "Deleted successfull"
+        default:
+          $ref: "#/components/responses/BadResponse"
+
   "/api/v2/devices/{deviceId}/metrics":
     get:
       tags: [devices]

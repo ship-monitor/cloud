@@ -34,5 +34,6 @@ type DeviceService interface {
 		paging devicedomain.Paging,
 	) ([]devicedomain.Device, error)
 	Add(ctx context.Context, ownerID, id uuid.UUID, securityKey string) error
+	Remove(ctx context.Context, id, userID uuid.UUID) error
 	Rename(ctx context.Context, ownerID, id uuid.UUID, name string) error
 }

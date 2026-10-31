@@ -398,3 +398,6 @@ func (s *RegisterUserReq) SetPassword(val string) {
 func (s *RegisterUserReq) SetName(val string) {
 	s.Name = val
 }
+
+// RemoveDeviceOK is response for RemoveDevice operation.
+type RemoveDeviceOK struct{}

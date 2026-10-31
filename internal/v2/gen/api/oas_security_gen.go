@@ -41,6 +41,7 @@ var operationRolesBearerToken = map[string][]string{
 	GetDevicesOperation:       []string{},
 	LoginUserOperation:        []string{},
 	RegisterUserOperation:     []string{},
+	RemoveDeviceOperation:     []string{},
 }
 
 // GetRolesForBearerToken returns the required roles for the given operation.

@@ -31,6 +31,7 @@ type Repository interface {
 		paging domain.Paging,
 	) ([]domain.Device, error)
 	Rename(ctx context.Context, id uuid.UUID, name string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Service implements device use cases.
@@ -44,6 +45,8 @@ func New(repo Repository) *Service {
 }
 
 // Get returns the device with the given id, if it is owned by ownerID.
+//
+//nolint:varnamelen
 func (s *Service) Get(
 	ctx context.Context,
 	ownerID, id uuid.UUID,
@@ -85,8 +88,7 @@ func (s *Service) ListByOwner(
 
 // Add connects a new device to the given user.
 //
-// TODO: the devices table has no security_key column yet,
-// so the security key cannot be verified for now.
+//nolint:varnamelen
 func (s *Service) Add(
 	ctx context.Context,
 	ownerID, id uuid.UUID,
@@ -102,9 +104,10 @@ func (s *Service) Add(
 	}
 
 	d := domain.Device{
-		ID:      id,
-		OwnerID: ownerID,
-		Name:    "",
+		ID:          id,
+		OwnerID:     ownerID,
+		Name:        "",
+		SecurityKey: securityKey,
 	}
 
 	if err := s.repo.Create(ctx, d); err != nil {
@@ -122,11 +125,28 @@ func (s *Service) Rename(
 	name string,
 ) error {
 	if _, err := s.Get(ctx, ownerID, id); err != nil {
-		return err
+		return fmt.Errorf("get device: %w", err)
 	}
 
 	if err := s.repo.Rename(ctx, id, name); err != nil {
 		return fmt.Errorf("rename device: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) Remove(
+	ctx context.Context,
+	deviceID uuid.UUID,
+	userID uuid.UUID,
+) error {
+	if _, err := s.Get(ctx, userID, deviceID); err != nil {
+		return fmt.Errorf("get device: %w", err)
+	}
+
+	err := s.repo.Delete(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf("delete device: %w", err)
 	}
 
 	return nil

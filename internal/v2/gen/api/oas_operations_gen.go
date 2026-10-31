@@ -13,4 +13,5 @@ const (
 	GetDevicesOperation       OperationName = "GetDevices"
 	LoginUserOperation        OperationName = "LoginUser"
 	RegisterUserOperation     OperationName = "RegisterUser"
+	RemoveDeviceOperation     OperationName = "RemoveDevice"
 )

@@ -111,6 +111,12 @@ func encodeRegisterUserResponse(response *RegisterUserCreated, w http.ResponseWr
 	return nil
 }
 
+func encodeRemoveDeviceResponse(response *RemoveDeviceOK, w http.ResponseWriter) error {
+	w.WriteHeader(200)
+
+	return nil
+}
+
 func encodeErrorResponse(response *BadResponseStatusCode, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	code := response.StatusCode

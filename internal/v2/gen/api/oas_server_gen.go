@@ -36,6 +36,10 @@ type Handler interface {
 	//
 	// POST /api/v2/auth/register
 	RegisterUser(ctx context.Context, req *RegisterUserReq) error
+	// RemoveDevice implements RemoveDevice operation.
+	//
+	// DELETE /api/v2/devices/{deviceId}
+	RemoveDevice(ctx context.Context, params RemoveDeviceParams) error
 	// NewError creates *BadResponseStatusCode from error returned by handler.
 	//
 	// Used for common default response.
