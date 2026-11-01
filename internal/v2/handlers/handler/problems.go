@@ -7,6 +7,7 @@ import (
 
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/pkg/problem"
+	"go.uber.org/zap"
 )
 
 var (
@@ -39,6 +40,12 @@ var (
 		"Login failed",
 	)
 
+	errDeviceNotFound = problem.New(
+		"device-not-found",
+		http.StatusNotFound,
+		"Device not found",
+	)
+
 	errInvalidPagination = problem.New(
 		"invalid-pagination",
 		http.StatusBadRequest,
@@ -57,6 +64,8 @@ func (h *Handler) NewError(
 	ctx context.Context,
 	err error,
 ) *api.BadResponseStatusCode {
+	h.logger.Error("Error occurred", zap.Error(err))
+
 	if p, ok := errors.AsType[*problem.Error](err); ok {
 		return toBadResponse(p)
 	}

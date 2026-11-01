@@ -448,6 +448,65 @@ const (
           }
         ]
       }
+    },
+    "/api/v2/devices/{deviceId}/online": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "operationId": "GetDeviceOnlineStatus",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns online status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "online": {
+                      "type": "boolean"
+                    },
+                    "lastSeen": {
+                      "type": "number",
+                      "format": "int64"
+                    }
+                  },
+                  "required": [
+                    "online",
+                    "lastSeen"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          },
+          {
+            
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -788,6 +847,41 @@ paths:
             security:
                 -   bearerToken: []
                 - {}
+    /api/v2/devices/{deviceId}/online:
+        get:
+            tags:
+                - devices
+            operationId: GetDeviceOnlineStatus
+            parameters:
+                -   name: deviceId
+                    in: path
+                    required: true
+                    style: simple
+                    explode: false
+                    schema:
+                        type: string
+                        format: uuid
+            responses:
+                "200":
+                    description: Returns online status
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    online:
+                                        type: boolean
+                                    lastSeen:
+                                        type: number
+                                        format: int64
+                                required:
+                                    - online
+                                    - lastSeen
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+                - {}
 components:
     schemas:
         Device:
@@ -840,8 +934,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"5edb37dd6da5d8094b0c938c3947eb75\""
-	specYAMLETag = "\"35341f4f9a20cb4ee6ec7fbc59976c26\""
+	specJSONETag = "\"b10c8bbd68c5c24a473937d0aed2d7e2\""
+	specYAMLETag = "\"201b5a3d053603cde6bdc51fd572a004\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

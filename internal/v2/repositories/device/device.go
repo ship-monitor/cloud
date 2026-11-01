@@ -68,18 +68,20 @@ func (r *Repository) Create(ctx context.Context, d domain.Device) error {
 	return nil
 }
 
-// Get returns the device with the given id, or ErrNotFound.
+// Get returns the device with the given id if it is owned by ownerID,
+// or ErrNotFound. Foreign devices are reported as not found,
+// so they cannot be probed.
 func (r *Repository) Get(
 	ctx context.Context,
-	id uuid.UUID,
+	ownerID, id uuid.UUID,
 ) (domain.Device, error) {
 	var rw row
 
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT `+columns+` FROM devices WHERE id = ?`,
-			id,
+			`SELECT `+columns+` FROM devices WHERE id = ? AND owner_id = ?`,
+			id, ownerID,
 		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -114,6 +116,25 @@ func (r *Repository) ListByOwner(
 	return toDomainAll(rows), nil
 }
 
+// Exists reports whether a device with the given id exists,
+// regardless of the owner.
+func (r *Repository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	var exists bool
+
+	err := r.db.
+		QueryRowxContext(
+			ctx,
+			`SELECT EXISTS (SELECT 1 FROM devices WHERE id = ?)`,
+			id,
+		).
+		Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check device exists: %w", err)
+	}
+
+	return exists, nil
+}
+
 // List returns all devices ordered by id.
 func (r *Repository) List(ctx context.Context) ([]domain.Device, error) {
 	var rows []row
@@ -128,15 +149,16 @@ func (r *Repository) List(ctx context.Context) ([]domain.Device, error) {
 	return toDomainAll(rows), nil
 }
 
-// Rename updates the name of the device with the given id, or ErrNotFound.
+// Rename updates the name of the device with the given id if it is
+// owned by ownerID, or ErrNotFound.
 func (r *Repository) Rename(
 	ctx context.Context,
-	id uuid.UUID,
+	ownerID, id uuid.UUID,
 	name string,
 ) error {
 	res, err := r.db.ExecContext(ctx,
-		`UPDATE devices SET name = ? WHERE id = ?`,
-		name, id,
+		`UPDATE devices SET name = ? WHERE id = ? AND owner_id = ?`,
+		name, id, ownerID,
 	)
 	if err != nil {
 		return fmt.Errorf("rename device: %w", err)
@@ -154,9 +176,13 @@ func (r *Repository) Rename(
 	return nil
 }
 
-// Delete removes the device with the given id, or ErrNotFound.
-func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM devices WHERE id = ?`, id)
+// Delete removes the device with the given id if it is owned by ownerID,
+// or ErrNotFound.
+func (r *Repository) Delete(ctx context.Context, ownerID, id uuid.UUID) error {
+	res, err := r.db.ExecContext(ctx,
+		`DELETE FROM devices WHERE id = ? AND owner_id = ?`,
+		id, ownerID,
+	)
 	if err != nil {
 		return fmt.Errorf("delete device: %w", err)
 	}

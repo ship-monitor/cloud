@@ -38,31 +38,28 @@ func NewRefreshClaims(userID uuid.UUID, ttl time.Duration) *Claims {
 	return &c
 }
 
-type principalKey struct{}
+// Actor is the authenticated user on whose behalf the request is performed.
+type Actor struct {
+	UserID uuid.UUID
 
-type ClaimsPrincipal struct {
-	claims Claims
+	// Roles comes from the token, and is empty unless the token carries them.
+	Roles []string
 }
 
-func NewClaimsPrincipal(claims *Claims) *ClaimsPrincipal {
-	return &ClaimsPrincipal{claims: *claims}
+type actorKey struct{}
+
+// WithActor stores the actor in ctx. Called by the security handler
+// after successful authentication.
+func WithActor(ctx context.Context, a Actor) context.Context {
+	return context.WithValue(ctx, actorKey{}, a)
 }
 
-func (p *ClaimsPrincipal) UserID() uuid.UUID {
-	return p.claims.UserID
-}
+// ActorFromContext returns the actor from ctx, or ok=false
+// when the request was not authenticated.
+//
+//nolint:nonamedreturns
+func ActorFromContext(ctx context.Context) (a Actor, ok bool) {
+	a, ok = ctx.Value(actorKey{}).(Actor)
 
-func WithPrincipal(ctx context.Context, p *ClaimsPrincipal) context.Context {
-	return context.WithValue(ctx, principalKey{}, p)
-}
-
-func GetPrincipal(ctx context.Context) *ClaimsPrincipal {
-	val := ctx.Value(principalKey{})
-
-	p, ok := val.(*ClaimsPrincipal)
-	if !ok {
-		return nil
-	}
-
-	return p
+	return a, ok
 }

@@ -39,15 +39,15 @@ func New(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
+var errRequireRegisterData = errors.New("email, password and name are required")
+
 // Register creates a new user with a bcrypt-hashed password.
 func (s *Service) Register(
 	ctx context.Context,
 	email, password, name string,
 ) (domain.User, error) {
 	if email == "" || password == "" || name == "" {
-		return domain.User{}, errors.New(
-			"email, password and name are required",
-		)
+		return domain.User{}, errRequireRegisterData
 	}
 
 	taken, err := s.repo.EmailTaken(ctx, email)
@@ -67,18 +67,18 @@ func (s *Service) Register(
 		return domain.User{}, fmt.Errorf("hash password: %w", err)
 	}
 
-	u := domain.User{
+	user := domain.User{
 		ID:           uuid.New(),
 		Name:         name,
 		Email:        email,
 		PasswordHash: string(hash),
 	}
 
-	if err := s.repo.Create(ctx, u); err != nil {
+	if err := s.repo.Create(ctx, user); err != nil {
 		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
 
-	return u, nil
+	return user, nil
 }
 
 // Login returns the user with the given email if the password matches.
@@ -86,7 +86,7 @@ func (s *Service) Login(
 	ctx context.Context,
 	email, password string,
 ) (domain.User, error) {
-	u, err := s.repo.GetByEmail(ctx, email)
+	user, err := s.repo.GetByEmail(ctx, email)
 	if errors.Is(err, userrepo.ErrNotFound) {
 		return domain.User{}, ErrInvalidCredentials
 	}
@@ -96,11 +96,11 @@ func (s *Service) Login(
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
-		[]byte(u.PasswordHash),
+		[]byte(user.PasswordHash),
 		[]byte(password),
 	); err != nil {
 		return domain.User{}, ErrInvalidCredentials
 	}
 
-	return u, nil
+	return user, nil
 }

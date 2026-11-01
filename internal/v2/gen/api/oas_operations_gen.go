@@ -6,12 +6,13 @@ package api
 type OperationName = string
 
 const (
-	AddDeviceOperation        OperationName = "AddDevice"
-	EditDeviceOperation       OperationName = "EditDevice"
-	GetDeviceOperation        OperationName = "GetDevice"
-	GetDeviceMetricsOperation OperationName = "GetDeviceMetrics"
-	GetDevicesOperation       OperationName = "GetDevices"
-	LoginUserOperation        OperationName = "LoginUser"
-	RegisterUserOperation     OperationName = "RegisterUser"
-	RemoveDeviceOperation     OperationName = "RemoveDevice"
+	AddDeviceOperation             OperationName = "AddDevice"
+	EditDeviceOperation            OperationName = "EditDevice"
+	GetDeviceOperation             OperationName = "GetDevice"
+	GetDeviceMetricsOperation      OperationName = "GetDeviceMetrics"
+	GetDeviceOnlineStatusOperation OperationName = "GetDeviceOnlineStatus"
+	GetDevicesOperation            OperationName = "GetDevices"
+	LoginUserOperation             OperationName = "LoginUser"
+	RegisterUserOperation          OperationName = "RegisterUser"
+	RemoveDeviceOperation          OperationName = "RemoveDevice"
 )

@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	rn6AllowedHeaders = map[string]string{
+	rn8AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
-	rn8AllowedHeaders = map[string]string{
+	rn10AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
 	rn1AllowedHeaders = map[string]string{
@@ -27,6 +27,9 @@ var (
 		"PATCH":  "Authorization,Content-Type",
 	}
 	rn4AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn6AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 )
@@ -113,7 +116,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn6AllowedHeaders,
+								allowedHeaders: rn8AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -138,7 +141,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn8AllowedHeaders,
+								allowedHeaders: rn10AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -218,31 +221,72 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 					switch elem[0] {
-					case '/': // Prefix: "/metrics"
+					case '/': // Prefix: "/"
 
-						if l := len("/metrics"); len(elem) >= l && elem[0:l] == "/metrics" {
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 							elem = elem[l:]
 						} else {
 							break
 						}
 
 						if len(elem) == 0 {
-							// Leaf node.
-							switch r.Method {
-							case "GET":
-								s.handleGetDeviceMetricsRequest([1]string{
-									args[0],
-								}, elemIsEscaped, w, r)
-							default:
-								s.notAllowed(w, r, notAllowedParams{
-									allowedMethods: "GET",
-									allowedHeaders: rn4AllowedHeaders,
-									acceptPost:     "",
-									acceptPatch:    "",
-								})
+							break
+						}
+						switch elem[0] {
+						case 'm': // Prefix: "metrics"
+
+							if l := len("metrics"); len(elem) >= l && elem[0:l] == "metrics" {
+								elem = elem[l:]
+							} else {
+								break
 							}
 
-							return
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetDeviceMetricsRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn4AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 'o': // Prefix: "online"
+
+							if l := len("online"); len(elem) >= l && elem[0:l] == "online" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetDeviceOnlineStatusRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn6AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
 						}
 
 					}
@@ -497,29 +541,68 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 					switch elem[0] {
-					case '/': // Prefix: "/metrics"
+					case '/': // Prefix: "/"
 
-						if l := len("/metrics"); len(elem) >= l && elem[0:l] == "/metrics" {
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 							elem = elem[l:]
 						} else {
 							break
 						}
 
 						if len(elem) == 0 {
-							// Leaf node.
-							switch method {
-							case "GET":
-								r.name = GetDeviceMetricsOperation
-								r.summary = ""
-								r.operationID = "GetDeviceMetrics"
-								r.operationGroup = ""
-								r.pathPattern = "/api/v2/devices/{deviceId}/metrics"
-								r.args = args
-								r.count = 1
-								return r, true
-							default:
-								return
+							break
+						}
+						switch elem[0] {
+						case 'm': // Prefix: "metrics"
+
+							if l := len("metrics"); len(elem) >= l && elem[0:l] == "metrics" {
+								elem = elem[l:]
+							} else {
+								break
 							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetDeviceMetricsOperation
+									r.summary = ""
+									r.operationID = "GetDeviceMetrics"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v2/devices/{deviceId}/metrics"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'o': // Prefix: "online"
+
+							if l := len("online"); len(elem) >= l && elem[0:l] == "online" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetDeviceOnlineStatusOperation
+									r.summary = ""
+									r.operationID = "GetDeviceOnlineStatus"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v2/devices/{deviceId}/online"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
 						}
 
 					}

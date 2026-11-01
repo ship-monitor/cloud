@@ -30,16 +30,15 @@ func New(
 func (h *Handler) HandleBearerToken(
 	ctx context.Context,
 	operationName api.OperationName,
-	t api.BearerToken,
+	token api.BearerToken,
 ) (context.Context, error) {
-	claims, err := h.tokenService.ParseToken(ctx, t.Token)
+	claims, err := h.tokenService.ParseToken(ctx, token.Token)
 	if err != nil {
 		return ctx, fmt.Errorf("parse token: %w", err)
 	}
 
-	p := auth.NewClaimsPrincipal(claims)
-
-	ctx = auth.WithPrincipal(ctx, p)
-
-	return ctx, nil
+	return auth.WithActor(ctx, auth.Actor{
+		UserID: claims.UserID,
+		Roles:  token.Roles,
+	}), nil
 }

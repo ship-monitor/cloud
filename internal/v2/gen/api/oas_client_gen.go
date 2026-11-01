@@ -38,6 +38,10 @@ type Invoker interface {
 	//
 	// GET /api/v2/devices/{deviceId}/metrics
 	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (GetDeviceMetricsRes, error)
+	// GetDeviceOnlineStatus invokes GetDeviceOnlineStatus operation.
+	//
+	// GET /api/v2/devices/{deviceId}/online
+	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error)
 	// GetDevices invokes GetDevices operation.
 	//
 	// GET /api/v2/devices
@@ -451,6 +455,100 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 	}()
 
 	result, err := decodeGetDeviceMetricsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetDeviceOnlineStatus invokes GetDeviceOnlineStatus operation.
+//
+// GET /api/v2/devices/{deviceId}/online
+func (c *Client) GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error) {
+	res, err := c.sendGetDeviceOnlineStatus(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (res *GetDeviceOnlineStatusOK, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/api/v2/devices/"
+	{
+		// Encode "deviceId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "deviceId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/online"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityBearerToken(ctx, GetDeviceOnlineStatusOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	result, err := decodeGetDeviceOnlineStatusResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

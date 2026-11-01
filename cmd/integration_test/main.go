@@ -6,16 +6,20 @@ import (
 	"os"
 	"os/signal"
 
-	"charm.land/log/v2"
 	"github.com/joho/godotenv"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
+	"go.uber.org/zap"
 )
 
+//nolint:gochecknoglobals
+var logger *zap.Logger
+
 func main() {
+	logger = zap.NewExample()
+
 	err := exec()
 	if err != nil {
-		fmt.Println("[ERROR]", err.Error())
-
+		logger.Error("While execution", zap.Error(err))
 		os.Exit(1)
 	}
 }
@@ -30,7 +34,7 @@ func exec() error {
 
 	_ = godotenv.Load()
 	port := os.Getenv("PORT")
-	log.Info("", "port", port)
+	logger.Info("Config", zap.String("port", port))
 
 	secSource := NewSecuritySource()
 

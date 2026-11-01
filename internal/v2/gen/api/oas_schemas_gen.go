@@ -154,6 +154,31 @@ func (s *EditDeviceReq) SetName(val string) {
 	s.Name = val
 }
 
+type GetDeviceOnlineStatusOK struct {
+	Online   bool  `json:"online"`
+	LastSeen int64 `json:"lastSeen"`
+}
+
+// GetOnline returns the value of Online.
+func (s *GetDeviceOnlineStatusOK) GetOnline() bool {
+	return s.Online
+}
+
+// GetLastSeen returns the value of LastSeen.
+func (s *GetDeviceOnlineStatusOK) GetLastSeen() int64 {
+	return s.LastSeen
+}
+
+// SetOnline sets the value of Online.
+func (s *GetDeviceOnlineStatusOK) SetOnline(val bool) {
+	s.Online = val
+}
+
+// SetLastSeen sets the value of LastSeen.
+func (s *GetDeviceOnlineStatusOK) SetLastSeen(val int64) {
+	s.LastSeen = val
+}
+
 type GetDevicesOK struct {
 	Devices []Device `json:"devices"`
 }

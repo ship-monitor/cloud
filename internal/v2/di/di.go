@@ -85,8 +85,9 @@ func newHandler(
 	t *token.Service,
 	u *user.Service,
 	d *device.Service,
+	logger *zap.Logger,
 ) *handler.Handler {
-	return handler.New(t, u, d)
+	return handler.New(t, u, d, logger)
 }
 
 func newSecurityHandler(t *token.Service) *security.Handler {

@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 	userservice "github.com/ship-monitor/cloud/internal/v2/services/user"
+	"go.uber.org/zap"
 )
 
 var _ api.Handler = (*Handler)(nil)
@@ -23,30 +23,32 @@ type Handler struct {
 	tokenService TokenService
 	users        UserService
 	devices      DeviceService
+	logger       *zap.Logger
 }
 
 func New(
 	tokenService TokenService,
 	users UserService,
 	devices DeviceService,
+	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
 		tokenService: tokenService,
 		users:        users,
 		devices:      devices,
+		logger:       logger,
 	}
 }
 
-var errNoPrincipalInCtx = errors.New("no authenticated principal in context")
-
-// currentUserID returns the id of the authenticated user from ctx.
-func currentUserID(ctx context.Context) (uuid.UUID, error) {
-	principal := auth.GetPrincipal(ctx)
-	if principal == nil {
-		return uuid.UUID{}, errNoPrincipalInCtx
+// currentActor returns the authenticated user from ctx,
+// or the unauthenticated problem when the request is anonymous.
+func currentActor(ctx context.Context) (auth.Actor, error) {
+	actor, ok := auth.ActorFromContext(ctx)
+	if !ok {
+		return auth.Actor{}, errUnauthenticated
 	}
 
-	return principal.UserID(), nil
+	return actor, nil
 }
 
 // RemoveDevice implements [api.Handler].
@@ -54,12 +56,16 @@ func (h *Handler) RemoveDevice(
 	ctx context.Context,
 	params api.RemoveDeviceParams,
 ) error {
-	userID, err := currentUserID(ctx)
+	actor, err := currentActor(ctx)
 	if err != nil {
-		return fmt.Errorf("get current user: %w", err)
+		return fmt.Errorf("get actor: %w", err)
 	}
 
-	err = h.devices.Remove(ctx, params.DeviceID, userID)
+	err = h.devices.Remove(ctx, actor, params.DeviceID)
+	if errors.Is(err, deviceservice.ErrNotFound) {
+		return errDeviceNotFound
+	}
+
 	if err != nil {
 		return fmt.Errorf("remove device: %w", err)
 	}
@@ -116,9 +122,9 @@ func (h *Handler) GetDevices(
 	ctx context.Context,
 	params api.GetDevicesParams,
 ) (*api.GetDevicesOK, error) {
-	ownerID, err := currentUserID(ctx)
+	actor, err := currentActor(ctx)
 	if err != nil {
-		return nil, errUnauthenticated
+		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
 	paging, err := pagingFromParams(params)
@@ -126,7 +132,7 @@ func (h *Handler) GetDevices(
 		return nil, fmt.Errorf("paging: %w", err)
 	}
 
-	devices, err := h.devices.ListByOwner(ctx, ownerID, paging)
+	devices, err := h.devices.ListByOwner(ctx, actor, paging)
 	if err != nil {
 		return nil, fmt.Errorf("list devices: %w", err)
 	}
@@ -141,12 +147,12 @@ func (h *Handler) AddDevice(
 	ctx context.Context,
 	req *api.AddDeviceReq,
 ) (api.AddDeviceRes, error) {
-	ownerID, err := currentUserID(ctx)
+	actor, err := currentActor(ctx)
 	if err != nil {
-		return nil, errUnauthenticated
+		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
-	err = h.devices.Add(ctx, ownerID, req.DeviceID, req.SecurityKey)
+	err = h.devices.Add(ctx, actor, req.DeviceID, req.SecurityKey)
 	if errors.Is(err, deviceservice.ErrAlreadyExists) {
 		return &api.AddDeviceConflict{}, nil
 	}
@@ -163,14 +169,14 @@ func (h *Handler) GetDevice(
 	ctx context.Context,
 	params api.GetDeviceParams,
 ) (*api.Device, error) {
-	ownerID, err := currentUserID(ctx)
+	actor, err := currentActor(ctx)
 	if err != nil {
-		return nil, errUnauthenticated
+		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
-	d, err := h.devices.Get(ctx, ownerID, params.DeviceID)
+	d, err := h.devices.Get(ctx, actor, params.DeviceID)
 	if errors.Is(err, deviceservice.ErrNotFound) {
-		return nil, fmt.Errorf("not found: %w", err)
+		return nil, errDeviceNotFound
 	}
 
 	if err != nil {
@@ -186,14 +192,14 @@ func (h *Handler) EditDevice(
 	req *api.EditDeviceReq,
 	params api.EditDeviceParams,
 ) error {
-	ownerID, err := currentUserID(ctx)
+	actor, err := currentActor(ctx)
 	if err != nil {
-		return errUnauthenticated
+		return fmt.Errorf("get actor: %w", err)
 	}
 
-	err = h.devices.Rename(ctx, ownerID, params.DeviceID, req.Name)
+	err = h.devices.Rename(ctx, actor, params.DeviceID, req.Name)
 	if errors.Is(err, deviceservice.ErrNotFound) {
-		return fmt.Errorf("not found: %w", err)
+		return errDeviceNotFound
 	}
 
 	if err != nil {
@@ -201,6 +207,35 @@ func (h *Handler) EditDevice(
 	}
 
 	return nil
+}
+
+// GetDeviceOnlineStatus implements [api.Handler].
+func (h *Handler) GetDeviceOnlineStatus(
+	ctx context.Context,
+	params api.GetDeviceOnlineStatusParams,
+) (*api.GetDeviceOnlineStatusOK, error) {
+	actor, err := currentActor(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get actor: %w", err)
+	}
+
+	online, lastSeen, err := h.devices.IsDeviceOnline(
+		ctx,
+		actor,
+		params.DeviceID,
+	)
+	if errors.Is(err, deviceservice.ErrNotFound) {
+		return nil, errDeviceNotFound
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("get device online status: %w", err)
+	}
+
+	return &api.GetDeviceOnlineStatusOK{
+		Online:   online,
+		LastSeen: lastSeen.Unix(),
+	}, nil
 }
 
 // GetDeviceMetrics implements [api.Handler].

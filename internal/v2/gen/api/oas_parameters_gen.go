@@ -210,6 +210,71 @@ func decodeGetDeviceMetricsParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// GetDeviceOnlineStatusParams is parameters of GetDeviceOnlineStatus operation.
+type GetDeviceOnlineStatusParams struct {
+	DeviceID uuid.UUID
+}
+
+func unpackGetDeviceOnlineStatusParams(packed middleware.Parameters) (params GetDeviceOnlineStatusParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "deviceId",
+			In:   "path",
+		}
+		params.DeviceID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDeviceOnlineStatusParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDeviceOnlineStatusParams, _ error) {
+	// Decode path: deviceId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "deviceId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DeviceID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "deviceId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetDevicesParams is parameters of GetDevices operation.
 type GetDevicesParams struct {
 	// Page index (starting from 0).

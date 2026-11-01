@@ -603,6 +603,146 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 	}
 }
 
+// handleGetDeviceOnlineStatusRequest handles GetDeviceOnlineStatus operation.
+//
+// GET /api/v2/devices/{deviceId}/online
+func (s *Server) handleGetDeviceOnlineStatusRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	ctx := r.Context()
+
+	var (
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: GetDeviceOnlineStatusOperation,
+			ID:   "GetDeviceOnlineStatus",
+		}
+	)
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			sctx, ok, err := s.securityBearerToken(ctx, GetDeviceOnlineStatusOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "BearerToken",
+					Err:              err,
+				}
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 0
+				ctx = sctx
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			err = &ogenerrors.SecurityError{
+				OperationContext: opErrContext,
+				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
+			}
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
+			return
+		}
+	}
+	params, err := decodeGetDeviceOnlineStatusParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response *GetDeviceOnlineStatusOK
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetDeviceOnlineStatusOperation,
+			OperationSummary: "",
+			OperationID:      "GetDeviceOnlineStatus",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "deviceId",
+					In:   "path",
+				}: params.DeviceID,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = GetDeviceOnlineStatusParams
+			Response = *GetDeviceOnlineStatusOK
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackGetDeviceOnlineStatusParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetDeviceOnlineStatus(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetDeviceOnlineStatus(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetDeviceOnlineStatusResponse(response, w); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
 // handleGetDevicesRequest handles GetDevices operation.
 //
 // GET /api/v2/devices

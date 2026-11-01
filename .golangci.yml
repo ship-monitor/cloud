@@ -86,7 +86,8 @@ formatters:
     gofmt:
       simplify: true
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
     golines:
       max-len: 80
       tab-len: 4

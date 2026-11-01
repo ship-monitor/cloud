@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
@@ -26,14 +27,35 @@ type UserService interface {
 	Login(ctx context.Context, email, password string) (user.User, error)
 }
 
+// DeviceService methods are executed on behalf of the given actor;
+// devices of other users are reported as not found.
 type DeviceService interface {
-	Get(ctx context.Context, ownerID, id uuid.UUID) (devicedomain.Device, error)
+	Get(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+	) (devicedomain.Device, error)
 	ListByOwner(
 		ctx context.Context,
-		ownerID uuid.UUID,
+		actor auth.Actor,
 		paging devicedomain.Paging,
 	) ([]devicedomain.Device, error)
-	Add(ctx context.Context, ownerID, id uuid.UUID, securityKey string) error
-	Remove(ctx context.Context, id, userID uuid.UUID) error
-	Rename(ctx context.Context, ownerID, id uuid.UUID, name string) error
+	Add(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+		securityKey string,
+	) error
+	Remove(ctx context.Context, actor auth.Actor, id uuid.UUID) error
+	Rename(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+		name string,
+	) error
+	IsDeviceOnline(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+	) (online bool, lastSeen time.Time, err error)
 }

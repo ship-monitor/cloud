@@ -24,6 +24,10 @@ type Handler interface {
 	//
 	// GET /api/v2/devices/{deviceId}/metrics
 	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (GetDeviceMetricsRes, error)
+	// GetDeviceOnlineStatus implements GetDeviceOnlineStatus operation.
+	//
+	// GET /api/v2/devices/{deviceId}/online
+	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error)
 	// GetDevices implements GetDevices operation.
 	//
 	// GET /api/v2/devices

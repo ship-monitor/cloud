@@ -1,5 +1,6 @@
 // Package hub provides models for interconection with hub.
-// TODO: Rename package
+//
+// MAYBE: Rename package
 package hub
 
 import "time"
