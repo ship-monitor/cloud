@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/joho/godotenv v1.5.1
+	github.com/nats-io/nats.go v1.55.0
 	github.com/ogen-go/ogen v1.24.1-0.20261016070424-d84283b7ff30
 	github.com/pressly/goose/v3 v3.29.0
 	go.uber.org/fx v1.24.0
@@ -73,6 +74,8 @@ require (
 	github.com/mfridman/xflag v0.1.0 // indirect
 	github.com/microsoft/go-mssqldb v1.11.2 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/nats-io/nkeys v0.4.16 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/paulmach/orb v0.13.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
@@ -86,6 +89,7 @@ require (
 	github.com/shopspring/decimal v1.5.0 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60 // indirect
+	github.com/valkey-io/valkey-go v1.0.79 // indirect
 	github.com/vertica/vertica-sql-go v1.3.8 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yandex-cloud/go-genproto v0.126.0 // indirect

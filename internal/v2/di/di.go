@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/ship-monitor/cloud/internal/v2/adapters/db"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/server"
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/security"
+	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
@@ -33,9 +33,12 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Supply(config),
 
 		fx.Provide(newDB),
+		fx.Provide(newNATS),
+		fx.Provide(newValkey),
 
 		fx.Provide(userrepo.New),
 		fx.Provide(devicerepo.New),
+		fx.Provide(aliverepo.New),
 
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
@@ -76,24 +79,6 @@ func logger(config *config.Config) fx.Option {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
 	)
-}
-
-func newDB(lc fx.Lifecycle, conf *config.Config) (*sqlx.DB, error) {
-	db, err := db.New(&conf.DB)
-	if err != nil {
-		return nil, fmt.Errorf("new db: %w", err)
-	}
-
-	lc.Append(fx.StopHook(func() error {
-		err := db.Close()
-		if err != nil {
-			return fmt.Errorf("close db: %w", err)
-		}
-
-		return nil
-	}))
-
-	return db, nil
 }
 
 func newHandler(

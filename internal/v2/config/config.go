@@ -12,6 +12,8 @@ type Config struct {
 	devel       string
 	SecurityKey string
 	DB          db.Config
+	NatsURL     string
+	ValkeyURL   string
 }
 
 func (c *Config) IsDevelopment() bool {
@@ -29,5 +31,7 @@ func New() *Config {
 			Driver: os.Getenv("DB_DRIVER"),
 			DSN:    os.Getenv("DB_DSN"),
 		},
+		NatsURL:   os.Getenv("NATS_URL"),
+		ValkeyURL: os.Getenv("VALKEY_URL"),
 	}
 }
