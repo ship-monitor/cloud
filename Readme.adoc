@@ -4,6 +4,10 @@
 
 === Development
 
+Service dependencies (like NATS) for development provided in `docker-compose.yml`
+
+Run application:
+
 [source,bash]
 ----
 go run cmd/server/main.go
