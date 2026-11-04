@@ -27,7 +27,7 @@ type Handler interface {
 	// GetDeviceOnlineStatus implements GetDeviceOnlineStatus operation.
 	//
 	// GET /api/v2/devices/{deviceId}/online
-	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error)
+	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetOnlineResponseOK, error)
 	// GetDevices implements GetDevices operation.
 	//
 	// GET /api/v2/devices
@@ -35,11 +35,11 @@ type Handler interface {
 	// LoginUser implements LoginUser operation.
 	//
 	// POST /api/v2/auth/login
-	LoginUser(ctx context.Context, req *LoginUserReq) (LoginUserRes, error)
+	LoginUser(ctx context.Context, req *LoginUserReq) (*LoginResponseOK, error)
 	// RegisterUser implements RegisterUser operation.
 	//
 	// POST /api/v2/auth/register
-	RegisterUser(ctx context.Context, req *RegisterUserReq) error
+	RegisterUser(ctx context.Context, req *RegisterForm) error
 	// RemoveDevice implements RemoveDevice operation.
 	//
 	// DELETE /api/v2/devices/{deviceId}

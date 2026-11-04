@@ -53,7 +53,7 @@ func encodeGetDeviceMetricsResponse(response GetDeviceMetricsRes, w http.Respons
 	}
 }
 
-func encodeGetDeviceOnlineStatusResponse(response *GetDeviceOnlineStatusOK, w http.ResponseWriter) error {
+func encodeGetDeviceOnlineStatusResponse(response *GetOnlineResponseOK, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -79,43 +79,17 @@ func encodeGetDevicesResponse(response *GetDevicesOK, w http.ResponseWriter) err
 	return nil
 }
 
-func encodeLoginUserResponse(response LoginUserRes, w http.ResponseWriter) error {
-	switch response := response.(type) {
-	case *LoginUserOK:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(200)
+func encodeLoginUserResponse(response *LoginResponseOK, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
 
-		e := new(jx.Encoder)
-		response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
-			return errors.Wrap(err, "write")
-		}
-
-		return nil
-
-	case *BadResponseStatusCode:
-		w.Header().Set("Content-Type", "application/problem+json")
-		code := response.StatusCode
-		if code == 0 {
-			// Set default status code.
-			code = http.StatusOK
-		}
-		w.WriteHeader(code)
-
-		e := new(jx.Encoder)
-		response.Response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
-			return errors.Wrap(err, "write")
-		}
-
-		if code >= http.StatusInternalServerError {
-			return errors.Wrapf(ht.ErrInternalServerErrorResponse, "code: %d, message: %s", code, http.StatusText(code))
-		}
-		return nil
-
-	default:
-		return errors.Errorf("unexpected response type: %T", response)
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
 	}
+
+	return nil
 }
 
 func encodeRegisterUserResponse(response *RegisterUserCreated, w http.ResponseWriter) error {

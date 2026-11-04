@@ -62,28 +62,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Successfull login",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/BadResponse"
+            "$ref": "#/components/responses/LoginResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -111,24 +90,7 @@ const (
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email",
-                  "password",
-                  "name"
-                ]
+                "$ref": "#/components/schemas/RegisterForm"
               }
             }
           },
@@ -168,8 +130,8 @@ const (
             "style": "form",
             "explode": true,
             "schema": {
-              "type": "number",
-              "format": "integer",
+              "type": "integer",
+              "format": "int64",
               "minimum": 0
             }
           },
@@ -180,8 +142,8 @@ const (
             "style": "form",
             "explode": true,
             "schema": {
-              "type": "number",
-              "format": "integer",
+              "type": "integer",
+              "format": "int64",
               "maximum": 50,
               "minimum": 1
             }
@@ -189,7 +151,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Returns list of all devices",
+            "description": "Returns list of all user's devices",
             "content": {
               "application/json": {
                 "schema": {
@@ -218,9 +180,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -268,9 +227,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -296,14 +252,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Device response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Device"
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetDeviceResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -314,9 +263,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -340,7 +286,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Deleted successfull"
+            "description": "Deleted successful"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -351,9 +297,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -395,7 +338,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Updated successfull"
+            "description": "Updated successful"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -406,9 +349,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -442,9 +382,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -470,27 +407,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Returns online status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "online": {
-                      "type": "boolean"
-                    },
-                    "lastSeen": {
-                      "type": "number",
-                      "format": "int64"
-                    }
-                  },
-                  "required": [
-                    "online",
-                    "lastSeen"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetOnlineResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -501,9 +418,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -521,13 +435,15 @@ const (
           "name": {
             "type": "string"
           },
-          "owner_id": {
-            "type": "string"
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "ownerId"
         ]
       },
       "Problem": {
@@ -540,8 +456,7 @@ const (
             "type": "string"
           },
           "status": {
-            "type": "number",
-            "format": "integer"
+            "type": "integer"
           },
           "detail": {
             "type": "string"
@@ -552,15 +467,94 @@ const (
           "title",
           "status"
         ]
+      },
+      "RegisterForm": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "name"
+        ]
       }
     },
     "responses": {
       "BadResponse": {
-        "description": "Returns on error, provide basic information about problem",
+        "description": "Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.",
         "content": {
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "GetDeviceResponseOK": {
+        "description": "Returns device",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Device"
+            }
+          }
+        }
+      },
+      "GetOnlineResponseOK": {
+        "description": "Returns online status",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "online": {
+                  "type": "boolean"
+                },
+                "lastSeen": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "required": [
+                "online",
+                "lastSeen"
+              ]
+            }
+          }
+        }
+      },
+      "LoginResponseOK": {
+        "description": "Successful login",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "token": {
+                  "type": "string"
+                },
+                "refreshToken": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "success",
+                "token",
+                "refreshToken"
+              ]
             }
           }
         }
@@ -625,20 +619,7 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Successfull login
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    success:
-                                        type: boolean
-                                    token:
-                                        type: string
-                                required:
-                                    - success
-                "401":
-                    $ref: '#/components/responses/BadResponse'
+                    $ref: '#/components/responses/LoginResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -653,19 +634,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                email:
-                                    type: string
-                                    format: email
-                                password:
-                                    type: string
-                                name:
-                                    type: string
-                            required:
-                                - email
-                                - password
-                                - name
+                            $ref: '#/components/schemas/RegisterForm'
                 required: true
             responses:
                 "201":
@@ -687,8 +656,8 @@ paths:
                     style: form
                     explode: true
                     schema:
-                        type: number
-                        format: integer
+                        type: integer
+                        format: int64
                         minimum: 0
                 -   name: pageSize
                     in: query
@@ -696,13 +665,13 @@ paths:
                     style: form
                     explode: true
                     schema:
-                        type: number
-                        format: integer
+                        type: integer
+                        format: int64
                         maximum: 50
                         minimum: 1
             responses:
                 "200":
-                    description: Returns list of all devices
+                    description: Returns list of all user's devices
                     content:
                         application/json:
                             schema:
@@ -718,7 +687,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         post:
             tags:
                 - devices
@@ -747,7 +715,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}:
         get:
             tags:
@@ -764,16 +731,11 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Device response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Device'
+                    $ref: '#/components/responses/GetDeviceResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         delete:
             tags:
                 - devices
@@ -789,12 +751,11 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Deleted successfull
+                    description: Deleted successful
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         patch:
             tags:
                 - devices
@@ -821,12 +782,11 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Updated successfull
+                    description: Updated successful
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}/metrics:
         get:
             tags:
@@ -846,7 +806,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}/online:
         get:
             tags:
@@ -863,25 +822,11 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Returns online status
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    online:
-                                        type: boolean
-                                    lastSeen:
-                                        type: number
-                                        format: int64
-                                required:
-                                    - online
-                                    - lastSeen
+                    $ref: '#/components/responses/GetOnlineResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
 components:
     schemas:
         Device:
@@ -892,11 +837,13 @@ components:
                     format: uuid
                 name:
                     type: string
-                owner_id:
+                ownerId:
                     type: string
+                    format: uuid
             required:
                 - id
                 - name
+                - ownerId
         Problem:
             type: object
             properties:
@@ -905,21 +852,72 @@ components:
                 title:
                     type: string
                 status:
-                    type: number
-                    format: integer
+                    type: integer
                 detail:
                     type: string
             required:
                 - type
                 - title
                 - status
+        RegisterForm:
+            type: object
+            properties:
+                email:
+                    type: string
+                    format: email
+                password:
+                    type: string
+                name:
+                    type: string
+            required:
+                - email
+                - password
+                - name
     responses:
         BadResponse:
-            description: Returns on error, provide basic information about problem
+            description: Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.
             content:
                 application/problem+json:
                     schema:
                         $ref: '#/components/schemas/Problem'
+        GetDeviceResponseOK:
+            description: Returns device
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Device'
+        GetOnlineResponseOK:
+            description: Returns online status
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            online:
+                                type: boolean
+                            lastSeen:
+                                type: integer
+                                format: int64
+                        required:
+                            - online
+                            - lastSeen
+        LoginResponseOK:
+            description: Successful login
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            success:
+                                type: boolean
+                            token:
+                                type: string
+                            refreshToken:
+                                type: string
+                        required:
+                            - success
+                            - token
+                            - refreshToken
     securitySchemes:
         bearerToken:
             type: http
@@ -934,8 +932,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"b10c8bbd68c5c24a473937d0aed2d7e2\""
-	specYAMLETag = "\"201b5a3d053603cde6bdc51fd572a004\""
+	specJSONETag = "\"e8fc1f82a01cba3610b3d015872d62b4\""
+	specYAMLETag = "\"e14222dbd0fab0632dcaa505fbe838c8\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

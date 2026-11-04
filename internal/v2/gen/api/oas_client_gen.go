@@ -41,7 +41,7 @@ type Invoker interface {
 	// GetDeviceOnlineStatus invokes GetDeviceOnlineStatus operation.
 	//
 	// GET /api/v2/devices/{deviceId}/online
-	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error)
+	GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetOnlineResponseOK, error)
 	// GetDevices invokes GetDevices operation.
 	//
 	// GET /api/v2/devices
@@ -49,11 +49,11 @@ type Invoker interface {
 	// LoginUser invokes LoginUser operation.
 	//
 	// POST /api/v2/auth/login
-	LoginUser(ctx context.Context, request *LoginUserReq) (LoginUserRes, error)
+	LoginUser(ctx context.Context, request *LoginUserReq) (*LoginResponseOK, error)
 	// RegisterUser invokes RegisterUser operation.
 	//
 	// POST /api/v2/auth/register
-	RegisterUser(ctx context.Context, request *RegisterUserReq) error
+	RegisterUser(ctx context.Context, request *RegisterForm) error
 	// RemoveDevice invokes RemoveDevice operation.
 	//
 	// DELETE /api/v2/devices/{deviceId}
@@ -143,7 +143,6 @@ func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res 
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -239,7 +238,6 @@ func (c *Client) sendEditDevice(ctx context.Context, request *EditDeviceReq, par
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -332,7 +330,6 @@ func (c *Client) sendGetDevice(ctx context.Context, params GetDeviceParams) (res
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -426,7 +423,6 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -465,12 +461,12 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 // GetDeviceOnlineStatus invokes GetDeviceOnlineStatus operation.
 //
 // GET /api/v2/devices/{deviceId}/online
-func (c *Client) GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetDeviceOnlineStatusOK, error) {
+func (c *Client) GetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (*GetOnlineResponseOK, error) {
 	res, err := c.sendGetDeviceOnlineStatus(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (res *GetDeviceOnlineStatusOK, err error) {
+func (c *Client) sendGetDeviceOnlineStatus(ctx context.Context, params GetDeviceOnlineStatusParams) (res *GetOnlineResponseOK, err error) {
 
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [3]string
@@ -520,7 +516,6 @@ func (c *Client) sendGetDeviceOnlineStatus(ctx context.Context, params GetDevice
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -582,7 +577,7 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.Page.Get(); ok {
-				return e.EncodeValue(conv.Float64ToString(val))
+				return e.EncodeValue(conv.Int64ToString(val))
 			}
 			return nil
 		}); err != nil {
@@ -599,7 +594,7 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.PageSize.Get(); ok {
-				return e.EncodeValue(conv.Float64ToString(val))
+				return e.EncodeValue(conv.Int64ToString(val))
 			}
 			return nil
 		}); err != nil {
@@ -632,7 +627,6 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -671,12 +665,12 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 // LoginUser invokes LoginUser operation.
 //
 // POST /api/v2/auth/login
-func (c *Client) LoginUser(ctx context.Context, request *LoginUserReq) (LoginUserRes, error) {
+func (c *Client) LoginUser(ctx context.Context, request *LoginUserReq) (*LoginResponseOK, error) {
 	res, err := c.sendLoginUser(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendLoginUser(ctx context.Context, request *LoginUserReq) (res LoginUserRes, err error) {
+func (c *Client) sendLoginUser(ctx context.Context, request *LoginUserReq) (res *LoginResponseOK, err error) {
 
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
@@ -749,12 +743,12 @@ func (c *Client) sendLoginUser(ctx context.Context, request *LoginUserReq) (res 
 // RegisterUser invokes RegisterUser operation.
 //
 // POST /api/v2/auth/register
-func (c *Client) RegisterUser(ctx context.Context, request *RegisterUserReq) error {
+func (c *Client) RegisterUser(ctx context.Context, request *RegisterForm) error {
 	_, err := c.sendRegisterUser(ctx, request)
 	return err
 }
 
-func (c *Client) sendRegisterUser(ctx context.Context, request *RegisterUserReq) (res *RegisterUserCreated, err error) {
+func (c *Client) sendRegisterUser(ctx context.Context, request *RegisterForm) (res *RegisterUserCreated, err error) {
 
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
@@ -881,7 +875,6 @@ func (c *Client) sendRemoveDevice(ctx context.Context, params RemoveDeviceParams
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

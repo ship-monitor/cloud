@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
@@ -76,7 +75,7 @@ func (h *Handler) RemoveDevice(
 // RegisterUser implements [api.Handler].
 func (h *Handler) RegisterUser(
 	ctx context.Context,
-	req *api.RegisterUserReq,
+	req *api.RegisterForm,
 ) error {
 	_, err := h.users.Register(ctx, req.Email, req.Password, req.Name)
 	if errors.Is(err, userservice.ErrEmailTaken) {
@@ -94,7 +93,7 @@ func (h *Handler) RegisterUser(
 func (h *Handler) LoginUser(
 	ctx context.Context,
 	req *api.LoginUserReq,
-) (api.LoginUserRes, error) {
+) (*api.LoginResponseOK, error) {
 	u, err := h.users.Login(ctx, req.Email, req.Password)
 	if errors.Is(err, userservice.ErrInvalidCredentials) {
 		return nil, errInvalidCredentials
@@ -104,16 +103,17 @@ func (h *Handler) LoginUser(
 		return nil, errLogin.WithDetail(err.Error())
 	}
 
-	token, _, err := h.tokenService.CreateTokens(ctx, &u)
+	token, refresh, err := h.tokenService.CreateTokens(ctx, &u)
 	if err != nil {
 		return nil, errLogin.WithDetail(
 			fmt.Errorf("create tokens: %w", err).Error(),
 		)
 	}
 
-	return &api.LoginUserOK{
-		Success: true,
-		Token:   api.NewOptString(token),
+	return &api.LoginResponseOK{
+		Success:      true,
+		Token:        token,
+		RefreshToken: refresh,
 	}, nil
 }
 
@@ -213,7 +213,7 @@ func (h *Handler) EditDevice(
 func (h *Handler) GetDeviceOnlineStatus(
 	ctx context.Context,
 	params api.GetDeviceOnlineStatusParams,
-) (*api.GetDeviceOnlineStatusOK, error) {
+) (*api.GetOnlineResponseOK, error) {
 	actor, err := currentActor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get actor: %w", err)
@@ -232,7 +232,7 @@ func (h *Handler) GetDeviceOnlineStatus(
 		return nil, fmt.Errorf("get device online status: %w", err)
 	}
 
-	return &api.GetDeviceOnlineStatusOK{
+	return &api.GetOnlineResponseOK{
 		Online:   online,
 		LastSeen: lastSeen.Unix(),
 	}, nil
@@ -259,19 +259,15 @@ func pagingFromParams(
 	}
 
 	if v, ok := params.Page.Get(); ok {
-		if v != math.Trunc(v) {
-			return paging, errInvalidPagination
-		}
-
-		paging.Page = uint64(v)
+		paging.Page = v
 	}
 
 	if v, ok := params.PageSize.Get(); ok {
-		if v != math.Trunc(v) || v > devicedomain.MaxPageSize {
+		if v > devicedomain.MaxPageSize {
 			return paging, errInvalidPagination
 		}
 
-		paging.Size = uint64(v)
+		paging.Size = v
 	}
 
 	return paging, nil
@@ -281,7 +277,7 @@ func toAPIDevice(d devicedomain.Device) *api.Device {
 	return &api.Device{
 		ID:      d.ID,
 		Name:    d.Name,
-		OwnerID: api.NewOptString(d.OwnerID.String()),
+		OwnerID: d.OwnerID,
 	}
 }
 

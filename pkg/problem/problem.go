@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// Error is implementation of RFC 9457.
+//
+// Link: https://www.rfc-editor.org/info/rfc9457/.
 type Error struct {
 	Type   string
 	Title  string

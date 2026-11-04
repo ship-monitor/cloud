@@ -1,7 +1,11 @@
 // Package device contains the domain model for devices.
 package device
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 const (
 	// DefaultPageSize is the page size used when the client does not request
@@ -15,14 +19,14 @@ const (
 // Paging describes a page of a list result.
 type Paging struct {
 	// Page is a zero-based page index.
-	Page uint64
+	Page int64
 
 	// Size is the number of items per page.
-	Size uint64
+	Size int64
 }
 
 // Offset converts the paging to a SQL offset.
-func (p Paging) Offset() uint64 {
+func (p Paging) Offset() int64 {
 	return p.Page * p.Size
 }
 
@@ -32,4 +36,16 @@ type Device struct {
 	OwnerID     uuid.UUID
 	Name        string
 	SecurityKey string
+}
+
+type deviceIDkey struct{}
+
+func WithDeviceID(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, deviceIDkey{}, id)
+}
+
+func DeviceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	id, ok := ctx.Value(deviceIDkey{}).(uuid.UUID)
+
+	return id, ok
 }

@@ -8,7 +8,3 @@ type AddDeviceRes interface {
 type GetDeviceMetricsRes interface {
 	getDeviceMetricsRes()
 }
-
-type LoginUserRes interface {
-	loginUserRes()
-}

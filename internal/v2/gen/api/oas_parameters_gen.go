@@ -278,9 +278,9 @@ func decodeGetDeviceOnlineStatusParams(args [1]string, argsEscaped bool, r *http
 // GetDevicesParams is parameters of GetDevices operation.
 type GetDevicesParams struct {
 	// Page index (starting from 0).
-	Page OptFloat64 `json:",omitempty,omitzero"`
+	Page OptInt64 `json:",omitempty,omitzero"`
 	// Page size.
-	PageSize OptFloat64 `json:",omitempty,omitzero"`
+	PageSize OptInt64 `json:",omitempty,omitzero"`
 }
 
 func unpackGetDevicesParams(packed middleware.Parameters) (params GetDevicesParams) {
@@ -290,7 +290,7 @@ func unpackGetDevicesParams(packed middleware.Parameters) (params GetDevicesPara
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Page = v.(OptFloat64)
+			params.Page = v.(OptInt64)
 		}
 	}
 	{
@@ -299,7 +299,7 @@ func unpackGetDevicesParams(packed middleware.Parameters) (params GetDevicesPara
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.PageSize = v.(OptFloat64)
+			params.PageSize = v.(OptInt64)
 		}
 	}
 	return params
@@ -317,14 +317,14 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotPageVal float64
+				var paramsDotPageVal int64
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
 						return err
 					}
 
-					c, err := conv.ToFloat64(val)
+					c, err := conv.ToInt64(val)
 					if err != nil {
 						return err
 					}
@@ -342,7 +342,7 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 			if err := func() error {
 				if value, ok := params.Page.Get(); ok {
 					if err := func() error {
-						if err := (validate.Float{
+						if err := (validate.Int{
 							MinSet:        true,
 							Min:           0,
 							MaxSet:        false,
@@ -350,10 +350,10 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 							MinExclusive:  false,
 							MaxExclusive:  false,
 							MultipleOfSet: false,
-							MultipleOf:    nil,
+							MultipleOf:    0,
 							Pattern:       nil,
-						}).Validate(float64(value)); err != nil {
-							return errors.Wrap(err, "float")
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
 						}
 						return nil
 					}(); err != nil {
@@ -383,14 +383,14 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotPageSizeVal float64
+				var paramsDotPageSizeVal int64
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
 						return err
 					}
 
-					c, err := conv.ToFloat64(val)
+					c, err := conv.ToInt64(val)
 					if err != nil {
 						return err
 					}
@@ -408,7 +408,7 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 			if err := func() error {
 				if value, ok := params.PageSize.Get(); ok {
 					if err := func() error {
-						if err := (validate.Float{
+						if err := (validate.Int{
 							MinSet:        true,
 							Min:           1,
 							MaxSet:        true,
@@ -416,10 +416,10 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 							MinExclusive:  false,
 							MaxExclusive:  false,
 							MultipleOfSet: false,
-							MultipleOf:    nil,
+							MultipleOf:    0,
 							Pattern:       nil,
-						}).Validate(float64(value)); err != nil {
-							return errors.Wrap(err, "float")
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
 						}
 						return nil
 					}(); err != nil {
