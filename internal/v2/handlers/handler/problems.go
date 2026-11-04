@@ -82,7 +82,7 @@ func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
 		Response: api.Problem{
 			Type:   p.Type,
 			Title:  p.Title,
-			Status: float64(p.Status),
+			Status: p.Status,
 			Detail: api.OptString{Set: false, Value: ""},
 		},
 	}

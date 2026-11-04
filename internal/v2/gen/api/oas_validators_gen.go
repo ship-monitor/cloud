@@ -7,29 +7,6 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-func (s *BadResponseStatusCode) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Response.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "Response",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
 func (s *GetDevicesOK) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -88,30 +65,7 @@ func (s *LoginUserReq) Validate() error {
 	return nil
 }
 
-func (s *Problem) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.Float{}).Validate(float64(s.Status)); err != nil {
-			return errors.Wrap(err, "float")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "status",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *RegisterUserReq) Validate() error {
+func (s *RegisterForm) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}

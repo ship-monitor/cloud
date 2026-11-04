@@ -53,7 +53,7 @@ func encodeLoginUserRequest(
 }
 
 func encodeRegisterUserRequest(
-	req *RegisterUserReq,
+	req *RegisterForm,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

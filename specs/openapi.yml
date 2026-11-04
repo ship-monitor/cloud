@@ -32,16 +32,7 @@ paths:
         content:
           "application/json":
             schema:
-              type: object
-              required: [email, password, name]
-              properties:
-                email:
-                  type: string
-                  format: email
-                password:
-                  type: string
-                name:
-                  type: string
+              $ref: "#/components/schemas/RegisterForm"
       responses:
         "201":
           description: "New user successfully registered"
@@ -66,19 +57,7 @@ paths:
                   type: string
       responses:
         "200":
-          description: Successful login
-          content:
-            "application/json":
-              schema:
-                type: object
-                required: [success]
-                properties:
-                  success:
-                    type: boolean
-                  token:
-                    type: string
-        "401":
-          $ref: "#/components/responses/BadResponse"
+          $ref: "#/components/responses/LoginResponseOK"
         default:
           $ref: "#/components/responses/BadResponse"
   "/api/v2/devices":
@@ -92,15 +71,14 @@ paths:
           in: query
           description: Page index (starting from 0)
           schema:
-            type: number
-            format: integer
+            type: integer
             minimum: 0
         - name: pageSize
           in: query
           description: Page size
           schema:
-            type: number
-            format: integer
+            type: integer
+            format: int64
             minimum: 1
             maximum: 50
       responses:
@@ -158,11 +136,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: "Device response"
-          content:
-            "application/json":
-              schema:
-                $ref: "#/components/schemas/Device"
+          $ref: "#/components/responses/GetDeviceResponseOK"
         default:
           $ref: "#/components/responses/BadResponse"
     patch:
@@ -225,19 +199,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: Returns online status
-          content:
-            "application/json":
-              schema:
-                type: object
-                required: [online, lastSeen]
-                properties:
-                  online:
-                    type: boolean
-                  lastSeen:
-                    type: number
-                    format: int64
-
+          $ref: "#/components/responses/GetOnlineResponseOK"
         default:
           $ref: "#/components/responses/BadResponse"
 
@@ -264,9 +226,21 @@ components:
       type: http
       scheme: bearer
   schemas:
+    RegisterForm:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+
     Device:
       type: object
-      required: [id, name]
+      required: [id, name, ownerId]
       properties:
         id:
           type: string
@@ -275,6 +249,7 @@ components:
           type: string
         ownerId:
           type: string
+          format: uuid
     Problem:
       type: object
       required: [type, title, status]
@@ -286,8 +261,7 @@ components:
           type: string
           example: Error title
         status:
-          type: number
-          format: integer
+          type: integer
           example: 400
         detail:
           type: string
@@ -306,6 +280,20 @@ components:
         "application/problem+json":
           schema:
             $ref: "#/components/schemas/Problem"
+    LoginResponseOK:
+      description: Successful login
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [success, token, refreshToken]
+            properties:
+              success:
+                type: boolean
+              token:
+                type: string
+              refreshToken:
+                type: string
 
     HealthResponse:
       description: Describes healthness of application.
@@ -316,3 +304,22 @@ components:
             properties:
               status:
                 $ref: "#/components/schemas/ServiceStatus"
+    GetOnlineResponseOK:
+      description: Returns online status
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [online, lastSeen]
+            properties:
+              online:
+                type: boolean
+              lastSeen:
+                type: integer
+                format: int64
+    GetDeviceResponseOK:
+      description: Returns device
+      content:
+        "application/json":
+          schema:
+            $ref: "#/components/schemas/Device"

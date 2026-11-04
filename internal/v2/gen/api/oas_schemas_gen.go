@@ -73,8 +73,6 @@ func (s *BadResponseStatusCode) SetResponse(val Problem) {
 	s.Response = val
 }
 
-func (*BadResponseStatusCode) loginUserRes() {}
-
 type BearerToken struct {
 	Token string
 	Roles []string
@@ -104,7 +102,7 @@ func (s *BearerToken) SetRoles(val []string) {
 type Device struct {
 	ID      uuid.UUID `json:"id"`
 	Name    string    `json:"name"`
-	OwnerID OptString `json:"ownerId"`
+	OwnerID uuid.UUID `json:"ownerId"`
 }
 
 // GetID returns the value of ID.
@@ -118,7 +116,7 @@ func (s *Device) GetName() string {
 }
 
 // GetOwnerID returns the value of OwnerID.
-func (s *Device) GetOwnerID() OptString {
+func (s *Device) GetOwnerID() uuid.UUID {
 	return s.OwnerID
 }
 
@@ -133,7 +131,7 @@ func (s *Device) SetName(val string) {
 }
 
 // SetOwnerID sets the value of OwnerID.
-func (s *Device) SetOwnerID(val OptString) {
+func (s *Device) SetOwnerID(val uuid.UUID) {
 	s.OwnerID = val
 }
 
@@ -154,31 +152,6 @@ func (s *EditDeviceReq) SetName(val string) {
 	s.Name = val
 }
 
-type GetDeviceOnlineStatusOK struct {
-	Online   bool  `json:"online"`
-	LastSeen int64 `json:"lastSeen"`
-}
-
-// GetOnline returns the value of Online.
-func (s *GetDeviceOnlineStatusOK) GetOnline() bool {
-	return s.Online
-}
-
-// GetLastSeen returns the value of LastSeen.
-func (s *GetDeviceOnlineStatusOK) GetLastSeen() int64 {
-	return s.LastSeen
-}
-
-// SetOnline sets the value of Online.
-func (s *GetDeviceOnlineStatusOK) SetOnline(val bool) {
-	s.Online = val
-}
-
-// SetLastSeen sets the value of LastSeen.
-func (s *GetDeviceOnlineStatusOK) SetLastSeen(val int64) {
-	s.LastSeen = val
-}
-
 type GetDevicesOK struct {
 	Devices []Device `json:"devices"`
 }
@@ -193,32 +166,66 @@ func (s *GetDevicesOK) SetDevices(val []Device) {
 	s.Devices = val
 }
 
-type LoginUserOK struct {
-	Success bool      `json:"success"`
-	Token   OptString `json:"token"`
+type GetOnlineResponseOK struct {
+	Online   bool  `json:"online"`
+	LastSeen int64 `json:"lastSeen"`
+}
+
+// GetOnline returns the value of Online.
+func (s *GetOnlineResponseOK) GetOnline() bool {
+	return s.Online
+}
+
+// GetLastSeen returns the value of LastSeen.
+func (s *GetOnlineResponseOK) GetLastSeen() int64 {
+	return s.LastSeen
+}
+
+// SetOnline sets the value of Online.
+func (s *GetOnlineResponseOK) SetOnline(val bool) {
+	s.Online = val
+}
+
+// SetLastSeen sets the value of LastSeen.
+func (s *GetOnlineResponseOK) SetLastSeen(val int64) {
+	s.LastSeen = val
+}
+
+type LoginResponseOK struct {
+	Success      bool   `json:"success"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // GetSuccess returns the value of Success.
-func (s *LoginUserOK) GetSuccess() bool {
+func (s *LoginResponseOK) GetSuccess() bool {
 	return s.Success
 }
 
 // GetToken returns the value of Token.
-func (s *LoginUserOK) GetToken() OptString {
+func (s *LoginResponseOK) GetToken() string {
 	return s.Token
 }
 
+// GetRefreshToken returns the value of RefreshToken.
+func (s *LoginResponseOK) GetRefreshToken() string {
+	return s.RefreshToken
+}
+
 // SetSuccess sets the value of Success.
-func (s *LoginUserOK) SetSuccess(val bool) {
+func (s *LoginResponseOK) SetSuccess(val bool) {
 	s.Success = val
 }
 
 // SetToken sets the value of Token.
-func (s *LoginUserOK) SetToken(val OptString) {
+func (s *LoginResponseOK) SetToken(val string) {
 	s.Token = val
 }
 
-func (*LoginUserOK) loginUserRes() {}
+// SetRefreshToken sets the value of RefreshToken.
+func (s *LoginResponseOK) SetRefreshToken(val string) {
+	s.RefreshToken = val
+}
 
 type LoginUserReq struct {
 	Email    string `json:"email"`
@@ -245,38 +252,38 @@ func (s *LoginUserReq) SetPassword(val string) {
 	s.Password = val
 }
 
-// NewOptFloat64 returns new OptFloat64 with value set to v.
-func NewOptFloat64(v float64) OptFloat64 {
-	return OptFloat64{
+// NewOptInt returns new OptInt with value set to v.
+func NewOptInt(v int) OptInt {
+	return OptInt{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptFloat64 is optional float64.
-type OptFloat64 struct {
-	Value float64
+// OptInt is optional int.
+type OptInt struct {
+	Value int
 	Set   bool
 }
 
-// IsSet returns true if OptFloat64 was set.
-func (o OptFloat64) IsSet() bool { return o.Set }
+// IsSet returns true if OptInt was set.
+func (o OptInt) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptFloat64) Reset() {
-	var v float64
+func (o *OptInt) Reset() {
+	var v int
 	o.Value = v
 	o.Set = false
 }
 
 // SetTo sets value to v.
-func (o *OptFloat64) SetTo(v float64) {
+func (o *OptInt) SetTo(v int) {
 	o.Set = true
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptFloat64) Get() (v float64, ok bool) {
+func (o OptInt) Get() (v int, ok bool) {
 	if !o.Set {
 		return v, false
 	}
@@ -284,7 +291,53 @@ func (o OptFloat64) Get() (v float64, ok bool) {
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptFloat64) Or(d float64) float64 {
+func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt64 returns new OptInt64 with value set to v.
+func NewOptInt64(v int64) OptInt64 {
+	return OptInt64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt64 is optional int64.
+type OptInt64 struct {
+	Value int64
+	Set   bool
+}
+
+// IsSet returns true if OptInt64 was set.
+func (o OptInt64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt64) Reset() {
+	var v int64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt64) SetTo(v int64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt64) Get() (v int64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt64) Or(d int64) int64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -341,7 +394,7 @@ func (o OptString) Or(d string) string {
 type Problem struct {
 	Type   string    `json:"type"`
 	Title  string    `json:"title"`
-	Status float64   `json:"status"`
+	Status int       `json:"status"`
 	Detail OptString `json:"detail"`
 }
 
@@ -356,7 +409,7 @@ func (s *Problem) GetTitle() string {
 }
 
 // GetStatus returns the value of Status.
-func (s *Problem) GetStatus() float64 {
+func (s *Problem) GetStatus() int {
 	return s.Status
 }
 
@@ -376,7 +429,7 @@ func (s *Problem) SetTitle(val string) {
 }
 
 // SetStatus sets the value of Status.
-func (s *Problem) SetStatus(val float64) {
+func (s *Problem) SetStatus(val int) {
 	s.Status = val
 }
 
@@ -385,44 +438,45 @@ func (s *Problem) SetDetail(val OptString) {
 	s.Detail = val
 }
 
-// RegisterUserCreated is response for RegisterUser operation.
-type RegisterUserCreated struct{}
-
-type RegisterUserReq struct {
+// Ref: #/components/schemas/RegisterForm
+type RegisterForm struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Name     string `json:"name"`
 }
 
 // GetEmail returns the value of Email.
-func (s *RegisterUserReq) GetEmail() string {
+func (s *RegisterForm) GetEmail() string {
 	return s.Email
 }
 
 // GetPassword returns the value of Password.
-func (s *RegisterUserReq) GetPassword() string {
+func (s *RegisterForm) GetPassword() string {
 	return s.Password
 }
 
 // GetName returns the value of Name.
-func (s *RegisterUserReq) GetName() string {
+func (s *RegisterForm) GetName() string {
 	return s.Name
 }
 
 // SetEmail sets the value of Email.
-func (s *RegisterUserReq) SetEmail(val string) {
+func (s *RegisterForm) SetEmail(val string) {
 	s.Email = val
 }
 
 // SetPassword sets the value of Password.
-func (s *RegisterUserReq) SetPassword(val string) {
+func (s *RegisterForm) SetPassword(val string) {
 	s.Password = val
 }
 
 // SetName sets the value of Name.
-func (s *RegisterUserReq) SetName(val string) {
+func (s *RegisterForm) SetName(val string) {
 	s.Name = val
 }
+
+// RegisterUserCreated is response for RegisterUser operation.
+type RegisterUserCreated struct{}
 
 // RemoveDeviceOK is response for RemoveDevice operation.
 type RemoveDeviceOK struct{}

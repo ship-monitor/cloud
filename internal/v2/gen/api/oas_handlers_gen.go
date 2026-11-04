@@ -673,7 +673,7 @@ func (s *Server) handleGetDeviceOnlineStatusRequest(args [1]string, argsEscaped 
 
 	var rawBody []byte
 
-	var response *GetDeviceOnlineStatusOK
+	var response *GetOnlineResponseOK
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -694,7 +694,7 @@ func (s *Server) handleGetDeviceOnlineStatusRequest(args [1]string, argsEscaped 
 		type (
 			Request  = struct{}
 			Params   = GetDeviceOnlineStatusParams
-			Response = *GetDeviceOnlineStatusOK
+			Response = *GetOnlineResponseOK
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -961,7 +961,7 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 		}
 	}()
 
-	var response LoginUserRes
+	var response *LoginResponseOK
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -977,7 +977,7 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 		type (
 			Request  = *LoginUserReq
 			Params   = struct{}
-			Response = LoginUserRes
+			Response = *LoginResponseOK
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -1115,7 +1115,7 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 		}
 
 		type (
-			Request  = *RegisterUserReq
+			Request  = *RegisterForm
 			Params   = struct{}
 			Response = *RegisterUserCreated
 		)

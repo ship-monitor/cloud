@@ -53,15 +53,6 @@ func decodeAddDeviceResponse(resp *http.Response) (res AddDeviceRes, _ error) {
 				}
 				return res, err
 			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
@@ -112,15 +103,6 @@ func decodeEditDeviceResponse(resp *http.Response) (res *EditDeviceOK, _ error) 
 					Err:         err,
 				}
 				return res, err
-			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
 			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
@@ -205,15 +187,6 @@ func decodeGetDeviceResponse(resp *http.Response) (res *Device, _ error) {
 				}
 				return res, err
 			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
@@ -260,15 +233,6 @@ func decodeGetDeviceMetricsResponse(resp *http.Response) (res GetDeviceMetricsRe
 				}
 				return res, err
 			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
@@ -283,7 +247,7 @@ func decodeGetDeviceMetricsResponse(resp *http.Response) (res GetDeviceMetricsRe
 	return res, errors.Wrap(defRes, "error")
 }
 
-func decodeGetDeviceOnlineStatusResponse(resp *http.Response) (res *GetDeviceOnlineStatusOK, _ error) {
+func decodeGetDeviceOnlineStatusResponse(resp *http.Response) (res *GetOnlineResponseOK, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -299,7 +263,7 @@ func decodeGetDeviceOnlineStatusResponse(resp *http.Response) (res *GetDeviceOnl
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response GetDeviceOnlineStatusOK
+			var response GetOnlineResponseOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -351,15 +315,6 @@ func decodeGetDeviceOnlineStatusResponse(resp *http.Response) (res *GetDeviceOnl
 					Err:         err,
 				}
 				return res, err
-			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
 			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
@@ -453,15 +408,6 @@ func decodeGetDevicesResponse(resp *http.Response) (res *GetDevicesOK, _ error) 
 				}
 				return res, err
 			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
@@ -476,7 +422,7 @@ func decodeGetDevicesResponse(resp *http.Response) (res *GetDevicesOK, _ error) 
 	return res, errors.Wrap(defRes, "error")
 }
 
-func decodeLoginUserResponse(resp *http.Response) (res LoginUserRes, _ error) {
+func decodeLoginUserResponse(resp *http.Response) (res *LoginResponseOK, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -492,7 +438,7 @@ func decodeLoginUserResponse(resp *http.Response) (res LoginUserRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response LoginUserOK
+			var response LoginResponseOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -510,53 +456,6 @@ func decodeLoginUserResponse(resp *http.Response) (res LoginUserRes, _ error) {
 				return res, err
 			}
 			return &response, nil
-		default:
-			return res, validate.InvalidContentType(ct)
-		}
-	case 401:
-		// Code 401.
-		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-		if err != nil {
-			return res, errors.Wrap(err, "parse media type")
-		}
-		switch {
-		case ct == "application/problem+json":
-			buf, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return res, err
-			}
-			d := jx.DecodeBytes(buf)
-
-			var response Problem
-			if err := func() error {
-				if err := response.Decode(d); err != nil {
-					return err
-				}
-				if err := d.Skip(); err != io.EOF {
-					return errors.New("unexpected trailing data")
-				}
-				return nil
-			}(); err != nil {
-				err = &ogenerrors.DecodeBodyError{
-					ContentType: ct,
-					Body:        buf,
-					Err:         err,
-				}
-				return res, err
-			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
-			return &BadResponseStatusCode{
-				StatusCode: resp.StatusCode,
-				Response:   response,
-			}, nil
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
@@ -591,15 +490,6 @@ func decodeLoginUserResponse(resp *http.Response) (res LoginUserRes, _ error) {
 					Err:         err,
 				}
 				return res, err
-			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
 			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
@@ -652,15 +542,6 @@ func decodeRegisterUserResponse(resp *http.Response) (res *RegisterUserCreated, 
 				}
 				return res, err
 			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
-			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
@@ -711,15 +592,6 @@ func decodeRemoveDeviceResponse(resp *http.Response) (res *RemoveDeviceOK, _ err
 					Err:         err,
 				}
 				return res, err
-			}
-			// Validate response.
-			if err := func() error {
-				if err := response.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return res, errors.Wrap(err, "validate")
 			}
 			return &BadResponseStatusCode{
 				StatusCode: resp.StatusCode,

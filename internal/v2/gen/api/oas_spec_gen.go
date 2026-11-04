@@ -62,28 +62,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Successful login",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/BadResponse"
+            "$ref": "#/components/responses/LoginResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -111,24 +90,7 @@ const (
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email",
-                  "password",
-                  "name"
-                ]
+                "$ref": "#/components/schemas/RegisterForm"
               }
             }
           },
@@ -168,8 +130,7 @@ const (
             "style": "form",
             "explode": true,
             "schema": {
-              "type": "number",
-              "format": "integer",
+              "type": "integer",
               "minimum": 0
             }
           },
@@ -180,8 +141,8 @@ const (
             "style": "form",
             "explode": true,
             "schema": {
-              "type": "number",
-              "format": "integer",
+              "type": "integer",
+              "format": "int64",
               "maximum": 50,
               "minimum": 1
             }
@@ -290,14 +251,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Device response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Device"
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetDeviceResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -452,27 +406,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Returns online status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "online": {
-                      "type": "boolean"
-                    },
-                    "lastSeen": {
-                      "type": "number",
-                      "format": "int64"
-                    }
-                  },
-                  "required": [
-                    "online",
-                    "lastSeen"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetOnlineResponseOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -501,12 +435,14 @@ const (
             "type": "string"
           },
           "ownerId": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "ownerId"
         ]
       },
       "Problem": {
@@ -519,8 +455,7 @@ const (
             "type": "string"
           },
           "status": {
-            "type": "number",
-            "format": "integer"
+            "type": "integer"
           },
           "detail": {
             "type": "string"
@@ -531,6 +466,26 @@ const (
           "title",
           "status"
         ]
+      },
+      "RegisterForm": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "name"
+        ]
       }
     },
     "responses": {
@@ -540,6 +495,65 @@ const (
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "GetDeviceResponseOK": {
+        "description": "Returns device",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Device"
+            }
+          }
+        }
+      },
+      "GetOnlineResponseOK": {
+        "description": "Returns online status",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "online": {
+                  "type": "boolean"
+                },
+                "lastSeen": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "required": [
+                "online",
+                "lastSeen"
+              ]
+            }
+          }
+        }
+      },
+      "LoginResponseOK": {
+        "description": "Successful login",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "token": {
+                  "type": "string"
+                },
+                "refreshToken": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "success",
+                "token",
+                "refreshToken"
+              ]
             }
           }
         }
@@ -604,20 +618,7 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Successful login
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    success:
-                                        type: boolean
-                                    token:
-                                        type: string
-                                required:
-                                    - success
-                "401":
-                    $ref: '#/components/responses/BadResponse'
+                    $ref: '#/components/responses/LoginResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -632,19 +633,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                email:
-                                    type: string
-                                    format: email
-                                password:
-                                    type: string
-                                name:
-                                    type: string
-                            required:
-                                - email
-                                - password
-                                - name
+                            $ref: '#/components/schemas/RegisterForm'
                 required: true
             responses:
                 "201":
@@ -666,8 +655,7 @@ paths:
                     style: form
                     explode: true
                     schema:
-                        type: number
-                        format: integer
+                        type: integer
                         minimum: 0
                 -   name: pageSize
                     in: query
@@ -675,8 +663,8 @@ paths:
                     style: form
                     explode: true
                     schema:
-                        type: number
-                        format: integer
+                        type: integer
+                        format: int64
                         maximum: 50
                         minimum: 1
             responses:
@@ -741,11 +729,7 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Device response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Device'
+                    $ref: '#/components/responses/GetDeviceResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -836,20 +820,7 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Returns online status
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    online:
-                                        type: boolean
-                                    lastSeen:
-                                        type: number
-                                        format: int64
-                                required:
-                                    - online
-                                    - lastSeen
+                    $ref: '#/components/responses/GetOnlineResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -866,9 +837,11 @@ components:
                     type: string
                 ownerId:
                     type: string
+                    format: uuid
             required:
                 - id
                 - name
+                - ownerId
         Problem:
             type: object
             properties:
@@ -877,14 +850,27 @@ components:
                 title:
                     type: string
                 status:
-                    type: number
-                    format: integer
+                    type: integer
                 detail:
                     type: string
             required:
                 - type
                 - title
                 - status
+        RegisterForm:
+            type: object
+            properties:
+                email:
+                    type: string
+                    format: email
+                password:
+                    type: string
+                name:
+                    type: string
+            required:
+                - email
+                - password
+                - name
     responses:
         BadResponse:
             description: Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.
@@ -892,6 +878,44 @@ components:
                 application/problem+json:
                     schema:
                         $ref: '#/components/schemas/Problem'
+        GetDeviceResponseOK:
+            description: Returns device
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Device'
+        GetOnlineResponseOK:
+            description: Returns online status
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            online:
+                                type: boolean
+                            lastSeen:
+                                type: integer
+                                format: int64
+                        required:
+                            - online
+                            - lastSeen
+        LoginResponseOK:
+            description: Successful login
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            success:
+                                type: boolean
+                            token:
+                                type: string
+                            refreshToken:
+                                type: string
+                        required:
+                            - success
+                            - token
+                            - refreshToken
     securitySchemes:
         bearerToken:
             type: http
@@ -906,8 +930,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"1cd8f542a766895108c9f0d28d0c226b\""
-	specYAMLETag = "\"b4c4cbb3ec53f1a2240a3fe7720b4c82\""
+	specJSONETag = "\"96019326d6d2f151dea4ab48a59de4e4\""
+	specYAMLETag = "\"4bc8d74d3bc30846f4f213296d5ec078\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.
