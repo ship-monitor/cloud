@@ -131,6 +131,7 @@ const (
             "explode": true,
             "schema": {
               "type": "integer",
+              "format": "int64",
               "minimum": 0
             }
           },
@@ -656,6 +657,7 @@ paths:
                     explode: true
                     schema:
                         type: integer
+                        format: int64
                         minimum: 0
                 -   name: pageSize
                     in: query
@@ -930,8 +932,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"96019326d6d2f151dea4ab48a59de4e4\""
-	specYAMLETag = "\"4bc8d74d3bc30846f4f213296d5ec078\""
+	specJSONETag = "\"e8fc1f82a01cba3610b3d015872d62b4\""
+	specYAMLETag = "\"e14222dbd0fab0632dcaa505fbe838c8\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

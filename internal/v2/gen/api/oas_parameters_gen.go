@@ -278,7 +278,7 @@ func decodeGetDeviceOnlineStatusParams(args [1]string, argsEscaped bool, r *http
 // GetDevicesParams is parameters of GetDevices operation.
 type GetDevicesParams struct {
 	// Page index (starting from 0).
-	Page OptInt `json:",omitempty,omitzero"`
+	Page OptInt64 `json:",omitempty,omitzero"`
 	// Page size.
 	PageSize OptInt64 `json:",omitempty,omitzero"`
 }
@@ -290,7 +290,7 @@ func unpackGetDevicesParams(packed middleware.Parameters) (params GetDevicesPara
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Page = v.(OptInt)
+			params.Page = v.(OptInt64)
 		}
 	}
 	{
@@ -317,14 +317,14 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotPageVal int
+				var paramsDotPageVal int64
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
 						return err
 					}
 
-					c, err := conv.ToInt(val)
+					c, err := conv.ToInt64(val)
 					if err != nil {
 						return err
 					}

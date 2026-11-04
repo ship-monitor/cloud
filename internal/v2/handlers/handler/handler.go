@@ -259,7 +259,7 @@ func pagingFromParams(
 	}
 
 	if v, ok := params.Page.Get(); ok {
-		paging.Page = uint64(v)
+		paging.Page = v
 	}
 
 	if v, ok := params.PageSize.Get(); ok {
@@ -267,7 +267,7 @@ func pagingFromParams(
 			return paging, errInvalidPagination
 		}
 
-		paging.Size = uint64(v)
+		paging.Size = v
 	}
 
 	return paging, nil

@@ -15,14 +15,14 @@ const (
 // Paging describes a page of a list result.
 type Paging struct {
 	// Page is a zero-based page index.
-	Page uint64
+	Page int64
 
 	// Size is the number of items per page.
-	Size uint64
+	Size int64
 }
 
 // Offset converts the paging to a SQL offset.
-func (p Paging) Offset() uint64 {
+func (p Paging) Offset() int64 {
 	return p.Page * p.Size
 }
 

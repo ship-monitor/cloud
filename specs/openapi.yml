@@ -72,6 +72,7 @@ paths:
           description: Page index (starting from 0)
           schema:
             type: integer
+            format: int64
             minimum: 0
         - name: pageSize
           in: query
