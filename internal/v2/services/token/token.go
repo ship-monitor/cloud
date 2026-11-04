@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
@@ -61,9 +62,35 @@ func (s *Service) CreateTokens(
 	ctx context.Context,
 	user *user.User,
 ) (string, string, error) {
+	token, refresh, err := s.newTokens(user.ID)
+	if err != nil {
+		return "", "", fmt.Errorf("new tokens: %w", err)
+	}
+
+	return token, refresh, nil
+}
+
+func (s *Service) RefreshTokens(
+	ctx context.Context,
+	refreshToken string,
+) (string, string, error) {
+	claims, err := s.ParseToken(ctx, refreshToken)
+	if err != nil {
+		return "", "", fmt.Errorf("parse token: %w", err)
+	}
+
+	token, refresh, err := s.newTokens(claims.UserID)
+	if err != nil {
+		return "", "", fmt.Errorf("new tokens: %w", err)
+	}
+
+	return token, refresh, nil
+}
+
+func (s *Service) newTokens(userID uuid.UUID) (string, string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		auth.NewClaims(user.ID, TokenTTL),
+		auth.NewClaims(userID, TokenTTL),
 	)
 
 	tokenStr, err := token.SignedString([]byte(s.conf.SecretKey))
@@ -73,20 +100,13 @@ func (s *Service) CreateTokens(
 
 	refreshToken := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		auth.NewRefreshClaims(user.ID, RefreshTokenTTL),
+		auth.NewRefreshClaims(userID, RefreshTokenTTL),
 	)
 
 	refreshTokenStr, err := refreshToken.SignedString([]byte(s.conf.SecretKey))
 	if err != nil {
-		return "", "", fmt.Errorf("get signed token: %w", err)
+		return "", "", fmt.Errorf("get signed refresh token: %w", err)
 	}
 
 	return tokenStr, refreshTokenStr, nil
-}
-
-func (s *Service) RefreshTokens(
-	ctx context.Context,
-	refreshToken string,
-) (string, string, error) {
-	return "", "", nil
 }
