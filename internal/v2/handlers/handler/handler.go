@@ -232,9 +232,14 @@ func (h *Handler) GetDeviceOnlineStatus(
 		return nil, fmt.Errorf("get device online status: %w", err)
 	}
 
+	lastSeenUnix := int64(0)
+	if !lastSeen.IsZero() {
+		lastSeenUnix = lastSeen.Unix()
+	}
+
 	return &api.GetOnlineResponseOK{
 		Online:   online,
-		LastSeen: lastSeen.Unix(),
+		LastSeen: lastSeenUnix,
 	}, nil
 }
 

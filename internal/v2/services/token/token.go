@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	TokenTTL        = time.Minute
+	// NOTE: refresh-эндпоинта в API пока нет, поэтому access-токен живёт
+	// как сессия. Уменьшить при появлении /auth/refresh.
+	TokenTTL        = time.Hour * 24
 	RefreshTokenTTL = time.Hour * 2
 )
 

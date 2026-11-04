@@ -3,6 +3,7 @@ package alive
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -61,6 +62,10 @@ func (r *Repo) GetLastHeartbeat(
 	err := r.valkey.Do(ctx,
 		r.valkey.B().Get().Key(key(deviceID)).Build(),
 	).DecodeJSON(&record)
+	if errors.Is(err, valkey.Nil) {
+		return nil, nil
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get value: %w", err)
 	}

@@ -189,6 +189,10 @@ func (s *Service) IsDeviceOnline(
 		return false, time.Time{}, fmt.Errorf("get last heartbeat: %w", err)
 	}
 
+	if heartbeat == nil {
+		return false, time.Time{}, nil
+	}
+
 	if heartbeat.Timestamp.Add(PingTimeout).After(time.Now()) {
 		return true, heartbeat.Timestamp, nil
 	}

@@ -2,10 +2,11 @@ package security
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
+	"github.com/ship-monitor/cloud/pkg/problem"
 )
 
 var _ api.SecurityHandler = (*Handler)(nil)
@@ -34,7 +35,11 @@ func (h *Handler) HandleBearerToken(
 ) (context.Context, error) {
 	claims, err := h.tokenService.ParseToken(ctx, token.Token)
 	if err != nil {
-		return ctx, fmt.Errorf("parse token: %w", err)
+		return ctx, problem.New(
+			"invalid-token",
+			http.StatusUnauthorized,
+			"Invalid or expired token",
+		).WithDetail(err.Error())
 	}
 
 	return auth.WithActor(ctx, auth.Actor{
