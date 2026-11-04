@@ -62,7 +62,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Successfull login",
+            "description": "Successful login",
             "content": {
               "application/json": {
                 "schema": {
@@ -189,7 +189,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Returns list of all devices",
+            "description": "Returns list of all user's devices",
             "content": {
               "application/json": {
                 "schema": {
@@ -218,9 +218,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -268,9 +265,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -314,9 +308,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -340,7 +331,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Deleted successfull"
+            "description": "Deleted successful"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -351,9 +342,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       },
@@ -395,7 +383,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Updated successfull"
+            "description": "Updated successful"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -406,9 +394,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -442,9 +427,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -501,9 +483,6 @@ const (
             "bearerToken": [
               
             ]
-          },
-          {
-            
           }
         ]
       }
@@ -521,7 +500,7 @@ const (
           "name": {
             "type": "string"
           },
-          "owner_id": {
+          "ownerId": {
             "type": "string"
           }
         },
@@ -556,7 +535,7 @@ const (
     },
     "responses": {
       "BadResponse": {
-        "description": "Returns on error, provide basic information about problem",
+        "description": "Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -625,7 +604,7 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Successfull login
+                    description: Successful login
                     content:
                         application/json:
                             schema:
@@ -702,7 +681,7 @@ paths:
                         minimum: 1
             responses:
                 "200":
-                    description: Returns list of all devices
+                    description: Returns list of all user's devices
                     content:
                         application/json:
                             schema:
@@ -718,7 +697,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         post:
             tags:
                 - devices
@@ -747,7 +725,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}:
         get:
             tags:
@@ -773,7 +750,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         delete:
             tags:
                 - devices
@@ -789,12 +765,11 @@ paths:
                         format: uuid
             responses:
                 "200":
-                    description: Deleted successfull
+                    description: Deleted successful
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
         patch:
             tags:
                 - devices
@@ -821,12 +796,11 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Updated successfull
+                    description: Updated successful
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}/metrics:
         get:
             tags:
@@ -846,7 +820,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
     /api/v2/devices/{deviceId}/online:
         get:
             tags:
@@ -881,7 +854,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
 components:
     schemas:
         Device:
@@ -892,7 +864,7 @@ components:
                     format: uuid
                 name:
                     type: string
-                owner_id:
+                ownerId:
                     type: string
             required:
                 - id
@@ -915,7 +887,7 @@ components:
                 - status
     responses:
         BadResponse:
-            description: Returns on error, provide basic information about problem
+            description: Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.
             content:
                 application/problem+json:
                     schema:
@@ -934,8 +906,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"b10c8bbd68c5c24a473937d0aed2d7e2\""
-	specYAMLETag = "\"201b5a3d053603cde6bdc51fd572a004\""
+	specJSONETag = "\"1cd8f542a766895108c9f0d28d0c226b\""
+	specYAMLETag = "\"b4c4cbb3ec53f1a2240a3fe7720b4c82\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

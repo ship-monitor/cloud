@@ -143,7 +143,6 @@ func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res 
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -239,7 +238,6 @@ func (c *Client) sendEditDevice(ctx context.Context, request *EditDeviceReq, par
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -332,7 +330,6 @@ func (c *Client) sendGetDevice(ctx context.Context, params GetDeviceParams) (res
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -426,7 +423,6 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -520,7 +516,6 @@ func (c *Client) sendGetDeviceOnlineStatus(ctx context.Context, params GetDevice
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -632,7 +627,6 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -881,7 +875,6 @@ func (c *Client) sendRemoveDevice(ctx context.Context, params RemoveDeviceParams
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

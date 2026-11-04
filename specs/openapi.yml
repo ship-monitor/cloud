@@ -66,7 +66,7 @@ paths:
                   type: string
       responses:
         "200":
-          description: Successfull login
+          description: Successful login
           content:
             "application/json":
               schema:
@@ -84,6 +84,8 @@ paths:
   "/api/v2/devices":
     get:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: GetDevices
       parameters:
         - name: page
@@ -103,7 +105,7 @@ paths:
             maximum: 50
       responses:
         "200":
-          description: Returns list of all devices
+          description: Returns list of all user's devices
           content:
             "application/json":
               schema:
@@ -118,6 +120,8 @@ paths:
           $ref: "#/components/responses/BadResponse"
     post:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: AddDevice
       requestBody:
         required: true
@@ -142,6 +146,8 @@ paths:
   "/api/v2/devices/{deviceId}":
     get:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: GetDevice
       parameters:
         - in: path
@@ -161,6 +167,8 @@ paths:
           $ref: "#/components/responses/BadResponse"
     patch:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: EditDevice
       parameters:
         - in: path
@@ -181,11 +189,13 @@ paths:
                   type: string
       responses:
         "200":
-          description: "Updated successfull"
+          description: Updated successful
         default:
           $ref: "#/components/responses/BadResponse"
     delete:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: RemoveDevice
       parameters:
         - in: path
@@ -196,13 +206,15 @@ paths:
             format: uuid
       responses:
         "200":
-          description: "Deleted successfull"
+          description: Deleted successful
         default:
           $ref: "#/components/responses/BadResponse"
 
   "/api/v2/devices/{deviceId}/online":
     get:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: GetDeviceOnlineStatus
       parameters:
         - in: path
@@ -232,6 +244,8 @@ paths:
   "/api/v2/devices/{deviceId}/metrics":
     get:
       tags: [devices]
+      security:
+        - bearerToken: []
       operationId: GetDeviceMetrics
       parameters:
         - in: path
@@ -259,7 +273,7 @@ components:
           format: uuid
         name:
           type: string
-        owner_id:
+        ownerId:
           type: string
     Problem:
       type: object
@@ -278,11 +292,27 @@ components:
         detail:
           type: string
           example: Additional details about problem
+    ServiceStatus:
+      type: string
+      enum:
+        - pass
+        - fail
+        - warn
 
   responses:
     BadResponse:
-      description: Returns on error, provide basic information about problem
+      description: Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.
       content:
         "application/problem+json":
           schema:
             $ref: "#/components/schemas/Problem"
+
+    HealthResponse:
+      description: Describes healthness of application.
+      content:
+        "application/health+json":
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/ServiceStatus"

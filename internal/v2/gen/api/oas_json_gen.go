@@ -144,7 +144,7 @@ func (s *Device) encodeFields(e *jx.Encoder) {
 	}
 	{
 		if s.OwnerID.Set {
-			e.FieldStart("owner_id")
+			e.FieldStart("ownerId")
 			s.OwnerID.Encode(e)
 		}
 	}
@@ -153,7 +153,7 @@ func (s *Device) encodeFields(e *jx.Encoder) {
 var jsonFieldsNameOfDevice = [3]string{
 	0: "id",
 	1: "name",
-	2: "owner_id",
+	2: "ownerId",
 }
 
 // Decode decodes Device from json.
@@ -189,7 +189,7 @@ func (s *Device) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
-		case "owner_id":
+		case "ownerId":
 			if err := func() error {
 				s.OwnerID.Reset()
 				if err := s.OwnerID.Decode(d); err != nil {
@@ -197,7 +197,7 @@ func (s *Device) Decode(d *jx.Decoder) error {
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"owner_id\"")
+				return errors.Wrap(err, "decode field \"ownerId\"")
 			}
 		default:
 			return d.Skip()

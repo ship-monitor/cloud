@@ -69,7 +69,6 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -209,7 +208,6 @@ func (s *Server) handleEditDeviceRequest(args [1]string, argsEscaped bool, w htt
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -364,7 +362,6 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -504,7 +501,6 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -644,7 +640,6 @@ func (s *Server) handleGetDeviceOnlineStatusRequest(args [1]string, argsEscaped 
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -784,7 +779,6 @@ func (s *Server) handleGetDevicesRequest(args [0]string, argsEscaped bool, w htt
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1208,7 +1202,6 @@ func (s *Server) handleRemoveDeviceRequest(args [1]string, argsEscaped bool, w h
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

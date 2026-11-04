@@ -104,7 +104,7 @@ func (s *BearerToken) SetRoles(val []string) {
 type Device struct {
 	ID      uuid.UUID `json:"id"`
 	Name    string    `json:"name"`
-	OwnerID OptString `json:"owner_id"`
+	OwnerID OptString `json:"ownerId"`
 }
 
 // GetID returns the value of ID.
