@@ -80,6 +80,54 @@ const (
         ]
       }
     },
+    "/api/v2/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "RefreshToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "refreshToken"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RefreshResponseOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          },
+          {
+            
+          }
+        ]
+      }
+    },
     "/api/v2/auth/register": {
       "post": {
         "tags": [
@@ -558,6 +606,32 @@ const (
             }
           }
         }
+      },
+      "RefreshResponseOK": {
+        "description": "Successful refresh token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "token": {
+                  "type": "string"
+                },
+                "refreshToken": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "success",
+                "token",
+                "refreshToken"
+              ]
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -620,6 +694,33 @@ paths:
             responses:
                 "200":
                     $ref: '#/components/responses/LoginResponseOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+                - {}
+    /api/v2/auth/refresh:
+        post:
+            tags:
+                - auth
+            operationId: RefreshToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                token:
+                                    type: string
+                                refreshToken:
+                                    type: string
+                            required:
+                                - token
+                                - refreshToken
+                required: true
+            responses:
+                "200":
+                    $ref: '#/components/responses/RefreshResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -918,6 +1019,23 @@ components:
                             - success
                             - token
                             - refreshToken
+        RefreshResponseOK:
+            description: Successful refresh token
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            success:
+                                type: boolean
+                            token:
+                                type: string
+                            refreshToken:
+                                type: string
+                        required:
+                            - success
+                            - token
+                            - refreshToken
     securitySchemes:
         bearerToken:
             type: http
@@ -932,8 +1050,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"e8fc1f82a01cba3610b3d015872d62b4\""
-	specYAMLETag = "\"e14222dbd0fab0632dcaa505fbe838c8\""
+	specJSONETag = "\"7af786178359ee3823efa008beddd6ff\""
+	specYAMLETag = "\"5833da9e776203756b50d291e5b6b70c\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

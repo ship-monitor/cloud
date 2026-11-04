@@ -25,6 +25,23 @@ type Handler struct {
 	logger       *zap.Logger
 }
 
+// RefreshToken implements [api.Handler].
+func (h *Handler) RefreshToken(
+	ctx context.Context,
+	req *api.RefreshTokenReq,
+) (*api.RefreshResponseOK, error) {
+	token, refresh, err := h.tokenService.RefreshTokens(ctx, req.RefreshToken)
+	if err != nil {
+		return nil, errRefreshToken.WithDetail(err.Error())
+	}
+
+	return &api.RefreshResponseOK{
+		Success:      true,
+		Token:        token,
+		RefreshToken: refresh,
+	}, nil
+}
+
 func New(
 	tokenService TokenService,
 	users UserService,

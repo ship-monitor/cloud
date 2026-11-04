@@ -36,6 +36,10 @@ type Handler interface {
 	//
 	// POST /api/v2/auth/login
 	LoginUser(ctx context.Context, req *LoginUserReq) (*LoginResponseOK, error)
+	// RefreshToken implements RefreshToken operation.
+	//
+	// POST /api/v2/auth/refresh
+	RefreshToken(ctx context.Context, req *RefreshTokenReq) (*RefreshResponseOK, error)
 	// RegisterUser implements RegisterUser operation.
 	//
 	// POST /api/v2/auth/register

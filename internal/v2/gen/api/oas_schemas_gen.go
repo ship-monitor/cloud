@@ -392,6 +392,67 @@ func (s *Problem) SetDetail(val OptString) {
 	s.Detail = val
 }
 
+type RefreshResponseOK struct {
+	Success      bool   `json:"success"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
+}
+
+// GetSuccess returns the value of Success.
+func (s *RefreshResponseOK) GetSuccess() bool {
+	return s.Success
+}
+
+// GetToken returns the value of Token.
+func (s *RefreshResponseOK) GetToken() string {
+	return s.Token
+}
+
+// GetRefreshToken returns the value of RefreshToken.
+func (s *RefreshResponseOK) GetRefreshToken() string {
+	return s.RefreshToken
+}
+
+// SetSuccess sets the value of Success.
+func (s *RefreshResponseOK) SetSuccess(val bool) {
+	s.Success = val
+}
+
+// SetToken sets the value of Token.
+func (s *RefreshResponseOK) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRefreshToken sets the value of RefreshToken.
+func (s *RefreshResponseOK) SetRefreshToken(val string) {
+	s.RefreshToken = val
+}
+
+type RefreshTokenReq struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
+}
+
+// GetToken returns the value of Token.
+func (s *RefreshTokenReq) GetToken() string {
+	return s.Token
+}
+
+// GetRefreshToken returns the value of RefreshToken.
+func (s *RefreshTokenReq) GetRefreshToken() string {
+	return s.RefreshToken
+}
+
+// SetToken sets the value of Token.
+func (s *RefreshTokenReq) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRefreshToken sets the value of RefreshToken.
+func (s *RefreshTokenReq) SetRefreshToken(val string) {
+	s.RefreshToken = val
+}
+
 // Ref: #/components/schemas/RegisterForm
 type RegisterForm struct {
 	Email    string `json:"email"`

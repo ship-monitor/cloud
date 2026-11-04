@@ -52,6 +52,20 @@ func encodeLoginUserRequest(
 	return nil
 }
 
+func encodeRefreshTokenRequest(
+	req *RefreshTokenReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeRegisterUserRequest(
 	req *RegisterForm,
 	r *http.Request,

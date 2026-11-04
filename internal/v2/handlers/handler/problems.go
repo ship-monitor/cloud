@@ -39,6 +39,11 @@ var (
 		http.StatusInternalServerError,
 		"Login failed",
 	)
+	errRefreshToken = problem.New(
+		"refresh-token",
+		http.StatusUnauthorized,
+		"Failed refresh token",
+	)
 
 	errDeviceNotFound = problem.New(
 		"device-not-found",

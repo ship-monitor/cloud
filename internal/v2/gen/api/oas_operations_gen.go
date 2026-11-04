@@ -13,6 +13,7 @@ const (
 	GetDeviceOnlineStatusOperation OperationName = "GetDeviceOnlineStatus"
 	GetDevicesOperation            OperationName = "GetDevices"
 	LoginUserOperation             OperationName = "LoginUser"
+	RefreshTokenOperation          OperationName = "RefreshToken"
 	RegisterUserOperation          OperationName = "RegisterUser"
 	RemoveDeviceOperation          OperationName = "RemoveDevice"
 )

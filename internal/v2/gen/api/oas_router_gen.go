@@ -17,6 +17,9 @@ var (
 	rn10AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
+	rn12AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
 	rn1AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
@@ -125,29 +128,68 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-				case 'r': // Prefix: "register"
+				case 'r': // Prefix: "re"
 
-					if l := len("register"); len(elem) >= l && elem[0:l] == "register" {
+					if l := len("re"); len(elem) >= l && elem[0:l] == "re" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
 					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "POST":
-							s.handleRegisterUserRequest([0]string{}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "POST",
-								allowedHeaders: rn10AllowedHeaders,
-								acceptPost:     "application/json",
-								acceptPatch:    "",
-							})
+						break
+					}
+					switch elem[0] {
+					case 'f': // Prefix: "fresh"
+
+						if l := len("fresh"); len(elem) >= l && elem[0:l] == "fresh" {
+							elem = elem[l:]
+						} else {
+							break
 						}
 
-						return
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleRefreshTokenRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "POST",
+									allowedHeaders: rn10AllowedHeaders,
+									acceptPost:     "application/json",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					case 'g': // Prefix: "gister"
+
+						if l := len("gister"); len(elem) >= l && elem[0:l] == "gister" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleRegisterUserRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "POST",
+									allowedHeaders: rn12AllowedHeaders,
+									acceptPost:     "application/json",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
 					}
 
 				}
@@ -430,29 +472,68 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 
-				case 'r': // Prefix: "register"
+				case 'r': // Prefix: "re"
 
-					if l := len("register"); len(elem) >= l && elem[0:l] == "register" {
+					if l := len("re"); len(elem) >= l && elem[0:l] == "re" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
 					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "POST":
-							r.name = RegisterUserOperation
-							r.summary = ""
-							r.operationID = "RegisterUser"
-							r.operationGroup = ""
-							r.pathPattern = "/api/v2/auth/register"
-							r.args = args
-							r.count = 0
-							return r, true
-						default:
-							return
+						break
+					}
+					switch elem[0] {
+					case 'f': // Prefix: "fresh"
+
+						if l := len("fresh"); len(elem) >= l && elem[0:l] == "fresh" {
+							elem = elem[l:]
+						} else {
+							break
 						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = RefreshTokenOperation
+								r.summary = ""
+								r.operationID = "RefreshToken"
+								r.operationGroup = ""
+								r.pathPattern = "/api/v2/auth/refresh"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'g': // Prefix: "gister"
+
+						if l := len("gister"); len(elem) >= l && elem[0:l] == "gister" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = RegisterUserOperation
+								r.summary = ""
+								r.operationID = "RegisterUser"
+								r.operationGroup = ""
+								r.pathPattern = "/api/v2/auth/register"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
 					}
 
 				}

@@ -60,6 +60,26 @@ paths:
           $ref: "#/components/responses/LoginResponseOK"
         default:
           $ref: "#/components/responses/BadResponse"
+
+  "/api/v2/auth/refresh":
+    post:
+      tags: [auth]
+      operationId: RefreshToken
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/RefreshResponseOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
   "/api/v2/devices":
     get:
       tags: [devices]
@@ -283,6 +303,20 @@ components:
             $ref: "#/components/schemas/Problem"
     LoginResponseOK:
       description: Successful login
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [success, token, refreshToken]
+            properties:
+              success:
+                type: boolean
+              token:
+                type: string
+              refreshToken:
+                type: string
+    RefreshResponseOK:
+      description: Successful refresh token
       content:
         "application/json":
           schema:

@@ -50,6 +50,10 @@ type Invoker interface {
 	//
 	// POST /api/v2/auth/login
 	LoginUser(ctx context.Context, request *LoginUserReq) (*LoginResponseOK, error)
+	// RefreshToken invokes RefreshToken operation.
+	//
+	// POST /api/v2/auth/refresh
+	RefreshToken(ctx context.Context, request *RefreshTokenReq) (*RefreshResponseOK, error)
 	// RegisterUser invokes RegisterUser operation.
 	//
 	// POST /api/v2/auth/register
@@ -733,6 +737,84 @@ func (c *Client) sendLoginUser(ctx context.Context, request *LoginUserReq) (res 
 	}()
 
 	result, err := decodeLoginUserResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// RefreshToken invokes RefreshToken operation.
+//
+// POST /api/v2/auth/refresh
+func (c *Client) RefreshToken(ctx context.Context, request *RefreshTokenReq) (*RefreshResponseOK, error) {
+	res, err := c.sendRefreshToken(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendRefreshToken(ctx context.Context, request *RefreshTokenReq) (res *RefreshResponseOK, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/api/v2/auth/refresh"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeRefreshTokenRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityBearerToken(ctx, RefreshTokenOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	result, err := decodeRefreshTokenResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
