@@ -1,7 +1,11 @@
 // Package device contains the domain model for devices.
 package device
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 const (
 	// DefaultPageSize is the page size used when the client does not request
@@ -32,4 +36,16 @@ type Device struct {
 	OwnerID     uuid.UUID
 	Name        string
 	SecurityKey string
+}
+
+type deviceIDkey struct{}
+
+func WithDeviceID(ctx context.Context, id uuid.UUID) context.Context {
+	return context.WithValue(ctx, deviceIDkey{}, id)
+}
+
+func DeviceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	id, ok := ctx.Value(deviceIDkey{}).(uuid.UUID)
+
+	return id, ok
 }

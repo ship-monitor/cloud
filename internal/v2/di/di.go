@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/server"
+	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler"
+	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
+	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/security"
 	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
@@ -47,11 +50,15 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),
 
+		fx.Provide(newQueueHandler),
+		fx.Provide(newQueueSecurityHandler),
+
 		fx.Provide(newServer),
 		fx.Provide(newHTTPServer),
+		fx.Provide(newSubscriber),
 
 		fx.Invoke(func(*http.Server) {}),
-		fx.Invoke(func(*sqlx.DB) {}),
+		fx.Invoke(func(*subscriber.S) {}),
 	)
 }
 
@@ -146,4 +153,33 @@ func newHTTPServer(
 	}))
 
 	return &server
+}
+
+func newQueueHandler(repo *aliverepo.Repo) *queue.Handler {
+	return queue.New(repo)
+}
+
+func newQueueSecurityHandler() *queuesecurity.Handler {
+	return queuesecurity.New()
+}
+
+func newSubscriber(
+	lc fx.Lifecycle,
+	conn *nats.Conn,
+	logger *zap.Logger,
+	handler *queue.Handler,
+	security *queuesecurity.Handler,
+) *subscriber.S {
+	subs := subscriber.New(conn, logger, handler, security)
+
+	lc.Append(fx.StartStopHook(subs.Start, func() error {
+		err := subs.Stop()
+		if err != nil {
+			return fmt.Errorf("stop subscriber: %w", err)
+		}
+
+		return nil
+	}))
+
+	return subs
 }
