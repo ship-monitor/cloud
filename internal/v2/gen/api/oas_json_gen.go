@@ -1135,18 +1135,13 @@ func (s *RefreshTokenReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RefreshTokenReq) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("token")
-		e.Str(s.Token)
-	}
-	{
 		e.FieldStart("refreshToken")
 		e.Str(s.RefreshToken)
 	}
 }
 
-var jsonFieldsNameOfRefreshTokenReq = [2]string{
-	0: "token",
-	1: "refreshToken",
+var jsonFieldsNameOfRefreshTokenReq = [1]string{
+	0: "refreshToken",
 }
 
 // Decode decodes RefreshTokenReq from json.
@@ -1158,20 +1153,8 @@ func (s *RefreshTokenReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "token":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.Token = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"token\"")
-			}
 		case "refreshToken":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.RefreshToken = string(v)
@@ -1192,7 +1175,7 @@ func (s *RefreshTokenReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

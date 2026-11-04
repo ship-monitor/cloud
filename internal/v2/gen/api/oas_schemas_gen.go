@@ -429,23 +429,12 @@ func (s *RefreshResponseOK) SetRefreshToken(val string) {
 }
 
 type RefreshTokenReq struct {
-	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
-}
-
-// GetToken returns the value of Token.
-func (s *RefreshTokenReq) GetToken() string {
-	return s.Token
 }
 
 // GetRefreshToken returns the value of RefreshToken.
 func (s *RefreshTokenReq) GetRefreshToken() string {
 	return s.RefreshToken
-}
-
-// SetToken sets the value of Token.
-func (s *RefreshTokenReq) SetToken(val string) {
-	s.Token = val
 }
 
 // SetRefreshToken sets the value of RefreshToken.

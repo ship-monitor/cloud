@@ -92,15 +92,11 @@ const (
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": {
-                    "type": "string"
-                  },
                   "refreshToken": {
                     "type": "string"
                   }
                 },
                 "required": [
-                  "token",
                   "refreshToken"
                 ]
               }
@@ -710,12 +706,9 @@ paths:
                         schema:
                             type: object
                             properties:
-                                token:
-                                    type: string
                                 refreshToken:
                                     type: string
                             required:
-                                - token
                                 - refreshToken
                 required: true
             responses:
@@ -1050,8 +1043,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"7af786178359ee3823efa008beddd6ff\""
-	specYAMLETag = "\"5833da9e776203756b50d291e5b6b70c\""
+	specJSONETag = "\"215b79632071c01faf0d44df32a6bd14\""
+	specYAMLETag = "\"10ea67b14f0d92e42100d4ea003d58b9\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.
