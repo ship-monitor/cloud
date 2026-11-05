@@ -34,8 +34,9 @@ func NewDecoder(header Header) *Decoder {
 }
 
 // Decode reads the first value of each tagged header into dst, which must be a
-// non-nil pointer to a struct. Untagged fields and fields tagged "-" are
-// ignored.
+// non-nil pointer to a struct. Untagged nested structs are traversed using the
+// same header names; other untagged fields and fields tagged "-" are ignored.
+// Nil pointers to nested structs are allocated only when a header is decoded.
 // Fields may be strings, booleans, numbers, pointers to supported types, or
 // types implementing encoding.TextUnmarshaler.
 func (d *Decoder) Decode(dst any) error {
@@ -46,20 +47,96 @@ func (d *Decoder) Decode(dst any) error {
 		return fmt.Errorf("kind %v: %w", reflValue.Kind(), ErrInvalidDest)
 	}
 
-	reflValue = reflValue.Elem()
+	_, err := d.decodeStruct(reflValue.Elem(), &decodePath{
+		values: make(map[reflect.Value]bool),
+		types:  make(map[reflect.Type]int),
+	})
 
-	t := reflValue.Type()
-	for fieldIndex := range reflValue.NumField() {
+	return err
+}
+
+type decodePath struct {
+	values map[reflect.Value]bool
+	types  map[reflect.Type]int
+}
+
+func (d *Decoder) decodeStruct(
+	value reflect.Value,
+	active *decodePath,
+) (bool, error) {
+	t := value.Type()
+
+	ptr := value.Addr()
+	if active.values[ptr] {
+		return false, nil
+	}
+
+	active.values[ptr] = true
+
+	active.types[t]++
+	defer func() {
+		delete(active.values, ptr)
+		active.types[t]--
+	}()
+
+	decoded := false
+
+	for fieldIndex := range value.NumField() {
 		fieldType := t.Field(fieldIndex)
 
 		name := fieldType.Tag.Get("header")
-		if name == "" || name == "-" {
+		if name == "-" {
 			continue
 		}
 
-		field := reflValue.Field(fieldIndex)
+		field := value.Field(fieldIndex)
+		if name == "" {
+			if !field.CanSet() {
+				continue
+			}
+
+			nested := field
+			if nested.Kind() == reflect.Pointer &&
+				nested.Type().Elem().Kind() == reflect.Struct {
+				if nested.IsNil() {
+					// Avoid infinitely expanding a recursive type through nil
+					// pointers.
+					if active.types[nested.Type().Elem()] > 0 {
+						continue
+					}
+
+					nested = reflect.New(nested.Type().Elem())
+				}
+
+				nested = nested.Elem()
+			}
+
+			if nested.Kind() != reflect.Struct {
+				continue
+			}
+
+			if _, ok := reflect.TypeAssert[encoding.TextUnmarshaler](
+				nested.Addr(),
+			); ok {
+				continue
+			}
+
+			found, err := d.decodeStruct(nested, active)
+			if err != nil {
+				return false, fmt.Errorf("field %s: %w", fieldType.Name, err)
+			}
+
+			if found && field.Kind() == reflect.Pointer && field.IsNil() {
+				field.Set(nested.Addr())
+			}
+
+			decoded = decoded || found
+
+			continue
+		}
+
 		if !field.CanSet() {
-			return fmt.Errorf(
+			return false, fmt.Errorf(
 				"header %q: field %s: %w",
 				name,
 				fieldType.Name,
@@ -73,11 +150,13 @@ func (d *Decoder) Decode(dst any) error {
 		}
 
 		if err := decodeHeaderValue(field, values[0]); err != nil {
-			return fmt.Errorf("header %q: %w", name, err)
+			return false, fmt.Errorf("header %q: %w", name, err)
 		}
+
+		decoded = true
 	}
 
-	return nil
+	return decoded, nil
 }
 
 func decodeHeaderValue(field reflect.Value, value string) error {

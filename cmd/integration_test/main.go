@@ -50,7 +50,7 @@ func exec() error {
 	password := "Pass123@@@ass"
 	name := "Katy"
 
-	err = client.RegisterUser(ctx, &api.RegisterUserReq{
+	err = client.RegisterUser(ctx, &api.RegisterForm{
 		Email:    email,
 		Password: password,
 		Name:     name,

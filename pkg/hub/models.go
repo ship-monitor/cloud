@@ -6,6 +6,5 @@ package hub
 import "time"
 
 type Heartbeat struct {
-	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`
 }

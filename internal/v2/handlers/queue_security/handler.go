@@ -2,33 +2,55 @@ package queuesecurity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	nats "github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
+	"github.com/ship-monitor/cloud/pkg/headers"
+	"go.uber.org/zap"
 )
 
 var _ subscriber.SecurityHandler = (*Handler)(nil)
 
-type Handler struct{}
-
-func New() *Handler {
-	return &Handler{}
+type Handler struct {
+	logger *zap.Logger
 }
 
-const header = "x-device-id"
+func New(
+	logger *zap.Logger,
+) *Handler {
+	return &Handler{
+		logger: logger,
+	}
+}
+
+var errNoID = errors.New("no device id provided in header")
 
 // HandleMessage implements [subscriber.SecurityHandler].
 func (h *Handler) HandleMessage(
 	ctx context.Context,
 	msg *nats.Msg,
 ) (context.Context, error) {
-	id, err := uuid.Parse(msg.Header.Get(header))
+	var id messages.IdentificationHeader
+
+	err := headers.NewDecoder(&msg.Header).Decode(&id)
 	if err != nil {
-		return ctx, fmt.Errorf("parse id from header %q: %w", header, err)
+		h.logger.Error(
+			"Decode headers",
+			zap.Error(err),
+			zap.Any("headers", msg.Header),
+		)
+
+		return ctx, fmt.Errorf("decode headers: %w", err)
 	}
 
-	return device.WithDeviceID(ctx, id), nil
+	if id.DeviceID == uuid.Nil {
+		return ctx, errNoID
+	}
+
+	return device.WithDeviceID(ctx, id.DeviceID), nil
 }

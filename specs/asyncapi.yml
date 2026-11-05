@@ -1,0 +1,93 @@
+asyncapi: 3.1.0
+info:
+  title: SHIP connection protocol
+  version: 1.0.0
+servers:
+  development:
+    host: localhost:4222
+    description: Development NATS server
+    protocol: nats
+channels:
+  devicesAlive:
+    address: devices.alive
+    messages:
+      heartbeat:
+        $ref: "#/components/messages/heartbeat"
+  deviceVerification:
+    address: devices.verifications
+    messages:
+      verifyRequest:
+        $ref: "#/components/messages/verifyRequest"
+      verifyResponse:
+        $ref: "#/components/messages/verifyResponse"
+
+operations:
+  # deviceVerification:
+  #   action: send
+  #   reply:
+  #     messages:
+  #       - $ref: "#/channels/deviceVerification/messages/verifyResponse"
+  #   title: Device verification by secret key
+  #   messages:
+  #     - $ref: "#/channels/deviceVerification/messages/verifyRequest"
+  #   channel:
+  #     $ref: "#/channels/deviceVerification"
+  onDeviceHeartbeat:
+    title: Device sends heartbeat message
+    channel:
+      $ref: "#/channels/devicesAlive"
+    action: receive
+    messages:
+      - $ref: "#/channels/devicesAlive/messages/heartbeat"
+
+components:
+  schemas:
+    heartbeat:
+      type: object
+      required: [timestamp]
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+    verifyRequest:
+      type: object
+      required: [secretKey]
+      properties:
+        secretKey:
+          type: string
+    verifyResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+  messages:
+    heartbeat:
+      contentType: application/json
+      headers:
+        type: object
+        required: [device-id]
+        properties:
+          device-id:
+            type: string
+            description: "Device identifier"
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/heartbeat"
+    verifyRequest:
+      contentType: application/json
+      headers:
+        type: object
+        required: [device-id]
+        properties:
+          device-id:
+            type: string
+            description: "Device identifier"
+            format: uuid
+      payload:
+        $ref: "#/components/schemas/verifyRequest"
+    verifyResponse:
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/verifyResponse"

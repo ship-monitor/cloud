@@ -1,4 +1,3 @@
-//nolint:tagliatelle
 package messages
 
 import (
@@ -6,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/pkg/headers"
 )
@@ -20,7 +18,7 @@ type (
 		Timestamp int64 `json:"timestamp" validate:"required,min=0"`
 	}
 	HeartbeatHeaders struct {
-		DeviceID uuid.UUID `header:"device-id" validate:"required"`
+		IdentificationHeader
 	}
 )
 

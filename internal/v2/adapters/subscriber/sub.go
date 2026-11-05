@@ -2,17 +2,15 @@ package subscriber
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/ship-monitor/cloud/pkg/hub"
 	"go.uber.org/zap"
 )
 
 type Handler interface {
-	HandleHeartbeat(ctx context.Context, h *hub.Heartbeat) error
+	HandleHeartbeat(ctx context.Context, msg *nats.Msg) error
 }
 
 type SecurityHandler interface {
@@ -37,7 +35,7 @@ func New(
 ) *S {
 	return &S{
 		conn:     conn,
-		logger:   logger,
+		logger:   logger.Named("Subscriber"),
 		handler:  handler,
 		security: security,
 		subs:     newSubsContainer(),
@@ -47,7 +45,11 @@ func New(
 func (s *S) Start() {
 	s.subscribe(
 		"device.*.health",
-		wrapHandler(s.logger, s.security, s.handler.HandleHeartbeat),
+		wrapHandler(
+			s.logger.Named("Handler"),
+			s.security,
+			s.handler.HandleHeartbeat,
+		),
 	)
 }
 
@@ -78,13 +80,15 @@ func (s *S) subscribe(subj string, handler nats.MsgHandler) {
 
 const HandleTimeout = time.Second * 10
 
-func wrapHandler[T any](
-	logger *zap.Logger,
+type HandlerFunc func(ctx context.Context, msg *nats.Msg) error
+
+func wrapHandler(
+	l *zap.Logger,
 	sec SecurityHandler,
-	handler func(context.Context, *T) error,
+	handler HandlerFunc,
 ) nats.MsgHandler {
 	return func(msg *nats.Msg) {
-		logger = logger.Named("Subject handler").With(
+		logger := l.With(
 			zap.String("subject", msg.Subject),
 		)
 
@@ -109,19 +113,7 @@ func wrapHandler[T any](
 			return
 		}
 
-		var data T
-
-		err = json.Unmarshal(msg.Data, &data)
-		if err != nil {
-			logger.Error(
-				"Unmarshall message",
-				zap.Error(err),
-			)
-
-			return
-		}
-
-		err = handler(ctx, &data)
+		err = handler(ctx, msg)
 		if err != nil {
 			logger.Error(
 				"Message handler",
@@ -131,12 +123,6 @@ func wrapHandler[T any](
 			return
 		}
 
-		err = msg.Ack()
-		if err != nil {
-			logger.Error(
-				"Acknowledge message",
-				zap.Error(err),
-			)
-		}
+		logger.Info("Handled message")
 	}
 }

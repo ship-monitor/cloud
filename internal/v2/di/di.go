@@ -159,8 +159,8 @@ func newQueueHandler(repo *aliverepo.Repo) *queue.Handler {
 	return queue.New(repo)
 }
 
-func newQueueSecurityHandler() *queuesecurity.Handler {
-	return queuesecurity.New()
+func newQueueSecurityHandler(logger *zap.Logger) *queuesecurity.Handler {
+	return queuesecurity.New(logger)
 }
 
 func newSubscriber(
