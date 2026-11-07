@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/server"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/config"
@@ -58,6 +59,7 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(newServer),
 		fx.Provide(newHTTPServer),
 		fx.Provide(newSubscriber),
+		fx.Provide(newPublisher),
 
 		fx.Invoke(func(*http.Server) {}),
 		fx.Invoke(func(*subscriber.S) {}),
@@ -67,22 +69,21 @@ func NewApp(config *config.Config) *fx.App {
 func logger(config *config.Config) fx.Option {
 	return fx.Module("logger",
 		fx.Provide(func() (*zap.Logger, error) {
-			logConf := zap.NewProductionConfig()
+			// logConf := zap.NewProductionConfig()
 
-			if config.IsDevelopment() {
-				logConf = zap.NewDevelopmentConfig()
-				logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(
-					time.Kitchen,
-				)
-				logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			}
-
+			// if config.IsDevelopment() {
+			logConf := zap.NewDevelopmentConfig()
+			logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(
+				time.Kitchen,
+			)
+			logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+			// }
 			logger, err := logConf.Build()
 			if err != nil {
 				return nil, fmt.Errorf("build logger from config: %w", err)
 			}
 
-			return logger, nil
+			return logger.Named("SHIP"), nil
 		}),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
@@ -130,7 +131,7 @@ func newHTTPServer(
 		Addr:              net.JoinHostPort("", config.Port),
 	}
 
-	logger = logger.Named("HTTP Server")
+	logger = logger.Named("HTTP")
 
 	lc.Append(fx.StartHook(func() {
 		go func() {
@@ -157,8 +158,11 @@ func newHTTPServer(
 	return &server
 }
 
-func newQueueHandler(repo *aliverepo.Repo) *queue.Handler {
-	return queue.New(repo)
+func newQueueHandler(
+	repo *aliverepo.Repo,
+	device *device.Service,
+) *queue.Handler {
+	return queue.New(repo, device)
 }
 
 func newQueueSecurityHandler(logger *zap.Logger) *queuesecurity.Handler {
@@ -184,4 +188,8 @@ func newSubscriber(
 	}))
 
 	return subs
+}
+
+func newPublisher(conn *nats.Conn) *publisher.P {
+	return publisher.New(conn)
 }

@@ -52,6 +52,7 @@ func request(deviceID uuid.UUID, approved bool) device.ConnectRequest {
 			time.FixedZone("test offset", 5*60*60+30*60),
 		),
 		Approved: approved,
+		UserID:   uuid.New(),
 	}
 }
 

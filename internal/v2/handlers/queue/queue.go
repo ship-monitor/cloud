@@ -24,15 +24,25 @@ type AliveRepo interface {
 	) error
 }
 
+type DeviceService interface {
+	ApproveConnection(
+		ctx context.Context,
+		requestID uuid.UUID,
+	) error
+}
+
 type Handler struct {
-	repo AliveRepo
+	repo   AliveRepo
+	device DeviceService
 }
 
 func New(
 	repo AliveRepo,
+	device DeviceService,
 ) *Handler {
 	return &Handler{
-		repo: repo,
+		repo:   repo,
+		device: device,
 	}
 }
 
@@ -67,5 +77,15 @@ func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
 	msg *nats.Msg,
 ) error {
-	return errNoID
+	response, err := messages.UnmarshalConnectResponse(msg)
+	if err != nil {
+		return fmt.Errorf("unmarshall message: %w", err)
+	}
+
+	err = h.device.ApproveConnection(ctx, response.Payload.RequestID)
+	if err != nil {
+		return fmt.Errorf("approve connection: %w", err)
+	}
+
+	return nil
 }

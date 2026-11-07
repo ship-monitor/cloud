@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/ship-monitor/cloud/pkg/connector/channels"
 	"go.uber.org/zap"
 )
 
@@ -44,8 +45,11 @@ func New(
 }
 
 func (s *S) Start() {
-	s.subscribe("device.*.health", s.handler.HandleHeartbeat)
-	s.subscribe("device.*.connect.response", s.handler.HandleConnectResponse)
+	s.subscribe(channels.HealthChannelW(), s.handler.HandleHeartbeat)
+	s.subscribe(
+		channels.ConnectResponseChannelW(),
+		s.handler.HandleConnectResponse,
+	)
 }
 
 func (s *S) Stop() error {
