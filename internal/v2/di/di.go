@@ -18,6 +18,7 @@ import (
 	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/security"
 	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
+	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
@@ -42,6 +43,7 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(userrepo.New),
 		fx.Provide(devicerepo.New),
 		fx.Provide(aliverepo.New),
+		fx.Provide(connect.New),
 
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),

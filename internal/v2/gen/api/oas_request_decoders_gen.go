@@ -14,8 +14,8 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-func (s *Server) decodeAddDeviceRequest(r *http.Request) (
-	req *AddDeviceReq,
+func (s *Server) decodeConnectDeviceRequest(r *http.Request) (
+	req *ConnectDeviceReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -62,7 +62,7 @@ func (s *Server) decodeAddDeviceRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request AddDeviceReq
+		var request ConnectDeviceReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err

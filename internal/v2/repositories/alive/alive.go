@@ -25,7 +25,7 @@ func New(
 	}
 }
 
-func (r *Repo) InsertHertbeat(
+func (r *Repo) InsertHeartbeat(
 	ctx context.Context,
 	deviceID uuid.UUID,
 	h hub.Heartbeat,

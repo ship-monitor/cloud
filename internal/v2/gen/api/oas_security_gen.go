@@ -34,7 +34,7 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // operationRolesBearerToken is a private map storing roles per operation.
 var operationRolesBearerToken = map[string][]string{
-	AddDeviceOperation:             []string{},
+	ConnectDeviceOperation:         []string{},
 	EditDeviceOperation:            []string{},
 	GetDeviceOperation:             []string{},
 	GetDeviceMetricsOperation:      []string{},

@@ -8,10 +8,10 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
-	// AddDevice implements AddDevice operation.
+	// ConnectDevice implements ConnectDevice operation.
 	//
 	// POST /api/v2/devices
-	AddDevice(ctx context.Context, req *AddDeviceReq) (AddDeviceRes, error)
+	ConnectDevice(ctx context.Context, req *ConnectDeviceReq) (ConnectDeviceRes, error)
 	// EditDevice implements EditDevice operation.
 	//
 	// PATCH /api/v2/devices/{deviceId}

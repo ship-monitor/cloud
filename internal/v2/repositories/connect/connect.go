@@ -37,6 +37,7 @@ func (r *Repo) WithTx(tx *sqlx.Tx) *Repo {
 type row struct {
 	ID        uuid.UUID `db:"id"`
 	DeviceID  uuid.UUID `db:"device_id"`
+	UserID    uuid.UUID `db:"user_id"`
 	CreatedAt time.Time `db:"created_at"`
 	Approved  bool      `db:"approved"`
 }
@@ -47,10 +48,11 @@ func (r row) toDomain() device.ConnectRequest {
 		DeviceID:  r.DeviceID,
 		CreatedAt: r.CreatedAt,
 		Approved:  r.Approved,
+		UserID:    r.UserID,
 	}
 }
 
-const columns = "id, device_id, created_at, approved"
+const columns = "id, device_id, created_at, approved, user_id"
 
 // Create inserts a connect request with the supplied ID and state.
 func (r *Repo) Create(
@@ -59,12 +61,13 @@ func (r *Repo) Create(
 ) error {
 	_, err := r.db.ExecContext(
 		ctx,
-		`INSERT INTO connect_requests (id, device_id, created_at, approved)
-		 VALUES (?, ?, ?, ?)`,
+		`INSERT INTO connect_requests (id, device_id, created_at, approved, user_id)
+		 VALUES (?, ?, ?, ?, ?)`,
 		request.ID,
 		request.DeviceID,
 		request.CreatedAt.Format(TimeFormat),
 		request.Approved,
+		request.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("insert connect request: %w", err)
@@ -128,15 +131,14 @@ func (r *Repo) ListByDevice(
 // It returns ErrNotFound if either identifier does not match.
 func (r *Repo) SetApproved(
 	ctx context.Context,
-	id, deviceID uuid.UUID,
+	id uuid.UUID,
 	approved bool,
 ) error {
 	res, err := r.db.ExecContext(
 		ctx,
-		`UPDATE connect_requests SET approved = ? WHERE id = ? AND device_id = ?`,
+		`UPDATE connect_requests SET approved = ? WHERE id = ?`,
 		approved,
 		id,
-		deviceID,
 	)
 	if err != nil {
 		return fmt.Errorf("update connect request approval: %w", err)

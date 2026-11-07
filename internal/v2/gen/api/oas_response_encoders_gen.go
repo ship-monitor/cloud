@@ -10,14 +10,14 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
-func encodeAddDeviceResponse(response AddDeviceRes, w http.ResponseWriter) error {
+func encodeConnectDeviceResponse(response ConnectDeviceRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
-	case *AddDeviceCreated:
+	case *ConnectDeviceCreated:
 		w.WriteHeader(201)
 
 		return nil
 
-	case *AddDeviceConflict:
+	case *ConnectDeviceConflict:
 		w.WriteHeader(409)
 
 		return nil

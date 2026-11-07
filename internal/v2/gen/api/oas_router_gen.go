@@ -207,7 +207,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					case "GET":
 						s.handleGetDevicesRequest([0]string{}, elemIsEscaped, w, r)
 					case "POST":
-						s.handleAddDeviceRequest([0]string{}, elemIsEscaped, w, r)
+						s.handleConnectDeviceRequest([0]string{}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET,POST",
@@ -558,9 +558,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						r.count = 0
 						return r, true
 					case "POST":
-						r.name = AddDeviceOperation
+						r.name = ConnectDeviceOperation
 						r.summary = ""
-						r.operationID = "AddDevice"
+						r.operationID = "ConnectDevice"
 						r.operationGroup = ""
 						r.pathPattern = "/api/v2/devices"
 						r.args = args

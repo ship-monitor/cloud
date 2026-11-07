@@ -40,7 +40,7 @@ type DeviceService interface {
 		actor auth.Actor,
 		paging devicedomain.Paging,
 	) ([]devicedomain.Device, error)
-	Add(
+	Connect(
 		ctx context.Context,
 		actor auth.Actor,
 		id uuid.UUID,

@@ -196,7 +196,6 @@ func TestSetApprovedAndDelete(t *testing.T) {
 		if err := repo.SetApproved(
 			ctx,
 			want.ID,
-			want.DeviceID,
 			approved,
 		); err != nil {
 			t.Fatalf("set approved=%t: %v", approved, err)
@@ -206,24 +205,11 @@ func TestSetApprovedAndDelete(t *testing.T) {
 		assertRequest(t, mustGet(t, repo, want.ID), want)
 	}
 
-	if err := repo.SetApproved(
-		ctx,
-		want.ID,
-		uuid.New(),
-		true,
-	); !errors.Is(
-		err,
-		connect.ErrNotFound,
-	) {
-		t.Errorf("set approved for wrong device: got %v, want ErrNotFound", err)
-	}
-
 	assertRequest(t, mustGet(t, repo, want.ID), want)
 
 	if err := repo.SetApproved(
 		ctx,
 		uuid.New(),
-		want.DeviceID,
 		true,
 	); !errors.Is(
 		err,
@@ -270,7 +256,7 @@ func TestWithTxRollback(t *testing.T) {
 	mustCreate(t, txRepo, created)
 	assertRequest(t, mustGet(t, txRepo, created.ID), created)
 
-	if err := txRepo.SetApproved(ctx, updated.ID, deviceID, true); err != nil {
+	if err := txRepo.SetApproved(ctx, updated.ID, true); err != nil {
 		t.Fatalf("set approved in transaction: %v", err)
 	}
 
@@ -369,7 +355,7 @@ func TestCanceledContext(t *testing.T) {
 		}},
 		{
 			"SetApproved",
-			func() error { return repo.SetApproved(ctx, want.ID, want.DeviceID, true) },
+			func() error { return repo.SetApproved(ctx, want.ID, true) },
 		},
 		{"Delete", func() error { return repo.Delete(ctx, want.ID) }},
 	}

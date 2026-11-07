@@ -159,26 +159,26 @@ func (h *Handler) GetDevices(
 	}, nil
 }
 
-// AddDevice implements [api.Handler].
-func (h *Handler) AddDevice(
+// ConnectDevice implements [api.Handler].
+func (h *Handler) ConnectDevice(
 	ctx context.Context,
-	req *api.AddDeviceReq,
-) (api.AddDeviceRes, error) {
+	req *api.ConnectDeviceReq,
+) (api.ConnectDeviceRes, error) {
 	actor, err := currentActor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
-	err = h.devices.Add(ctx, actor, req.DeviceID, req.SecurityKey)
+	err = h.devices.Connect(ctx, actor, req.DeviceID, req.SecurityKey)
 	if errors.Is(err, deviceservice.ErrAlreadyExists) {
-		return &api.AddDeviceConflict{}, nil
+		return &api.ConnectDeviceConflict{}, nil
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("add device: %w", err)
 	}
 
-	return &api.AddDeviceCreated{}, nil
+	return &api.ConnectDeviceCreated{}, nil
 }
 
 // GetDevice implements [api.Handler].

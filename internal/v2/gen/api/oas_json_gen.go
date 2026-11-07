@@ -13,14 +13,14 @@ import (
 )
 
 // Encode implements json.Marshaler.
-func (s *AddDeviceReq) Encode(e *jx.Encoder) {
+func (s *ConnectDeviceReq) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *AddDeviceReq) encodeFields(e *jx.Encoder) {
+func (s *ConnectDeviceReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("deviceId")
 		json.EncodeUUID(e, s.DeviceID)
@@ -31,15 +31,15 @@ func (s *AddDeviceReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfAddDeviceReq = [2]string{
+var jsonFieldsNameOfConnectDeviceReq = [2]string{
 	0: "deviceId",
 	1: "securityKey",
 }
 
-// Decode decodes AddDeviceReq from json.
-func (s *AddDeviceReq) Decode(d *jx.Decoder) error {
+// Decode decodes ConnectDeviceReq from json.
+func (s *ConnectDeviceReq) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode AddDeviceReq to nil")
+		return errors.New("invalid: unable to decode ConnectDeviceReq to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -74,7 +74,7 @@ func (s *AddDeviceReq) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode AddDeviceReq")
+		return errors.Wrap(err, "decode ConnectDeviceReq")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -91,8 +91,8 @@ func (s *AddDeviceReq) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfAddDeviceReq) {
-					name = jsonFieldsNameOfAddDeviceReq[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfConnectDeviceReq) {
+					name = jsonFieldsNameOfConnectDeviceReq[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -113,14 +113,14 @@ func (s *AddDeviceReq) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *AddDeviceReq) MarshalJSON() ([]byte, error) {
+func (s *ConnectDeviceReq) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AddDeviceReq) UnmarshalJSON(data []byte) error {
+func (s *ConnectDeviceReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

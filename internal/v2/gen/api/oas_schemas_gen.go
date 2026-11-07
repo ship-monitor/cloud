@@ -12,41 +12,6 @@ func (s *BadResponseStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
-// AddDeviceConflict is response for AddDevice operation.
-type AddDeviceConflict struct{}
-
-func (*AddDeviceConflict) addDeviceRes() {}
-
-// AddDeviceCreated is response for AddDevice operation.
-type AddDeviceCreated struct{}
-
-func (*AddDeviceCreated) addDeviceRes() {}
-
-type AddDeviceReq struct {
-	DeviceID    uuid.UUID `json:"deviceId"`
-	SecurityKey string    `json:"securityKey"`
-}
-
-// GetDeviceID returns the value of DeviceID.
-func (s *AddDeviceReq) GetDeviceID() uuid.UUID {
-	return s.DeviceID
-}
-
-// GetSecurityKey returns the value of SecurityKey.
-func (s *AddDeviceReq) GetSecurityKey() string {
-	return s.SecurityKey
-}
-
-// SetDeviceID sets the value of DeviceID.
-func (s *AddDeviceReq) SetDeviceID(val uuid.UUID) {
-	s.DeviceID = val
-}
-
-// SetSecurityKey sets the value of SecurityKey.
-func (s *AddDeviceReq) SetSecurityKey(val string) {
-	s.SecurityKey = val
-}
-
 // BadResponseStatusCode wraps Problem with StatusCode.
 type BadResponseStatusCode struct {
 	StatusCode int
@@ -96,6 +61,41 @@ func (s *BearerToken) SetToken(val string) {
 // SetRoles sets the value of Roles.
 func (s *BearerToken) SetRoles(val []string) {
 	s.Roles = val
+}
+
+// ConnectDeviceConflict is response for ConnectDevice operation.
+type ConnectDeviceConflict struct{}
+
+func (*ConnectDeviceConflict) connectDeviceRes() {}
+
+// ConnectDeviceCreated is response for ConnectDevice operation.
+type ConnectDeviceCreated struct{}
+
+func (*ConnectDeviceCreated) connectDeviceRes() {}
+
+type ConnectDeviceReq struct {
+	DeviceID    uuid.UUID `json:"deviceId"`
+	SecurityKey string    `json:"securityKey"`
+}
+
+// GetDeviceID returns the value of DeviceID.
+func (s *ConnectDeviceReq) GetDeviceID() uuid.UUID {
+	return s.DeviceID
+}
+
+// GetSecurityKey returns the value of SecurityKey.
+func (s *ConnectDeviceReq) GetSecurityKey() string {
+	return s.SecurityKey
+}
+
+// SetDeviceID sets the value of DeviceID.
+func (s *ConnectDeviceReq) SetDeviceID(val uuid.UUID) {
+	s.DeviceID = val
+}
+
+// SetSecurityKey sets the value of SecurityKey.
+func (s *ConnectDeviceReq) SetSecurityKey(val string) {
+	s.SecurityKey = val
 }
 
 // Ref: #/components/schemas/Device

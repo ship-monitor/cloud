@@ -22,10 +22,10 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
-	// AddDevice invokes AddDevice operation.
+	// ConnectDevice invokes ConnectDevice operation.
 	//
 	// POST /api/v2/devices
-	AddDevice(ctx context.Context, request *AddDeviceReq) (AddDeviceRes, error)
+	ConnectDevice(ctx context.Context, request *ConnectDeviceReq) (ConnectDeviceRes, error)
 	// EditDevice invokes EditDevice operation.
 	//
 	// PATCH /api/v2/devices/{deviceId}
@@ -105,15 +105,15 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 	return u
 }
 
-// AddDevice invokes AddDevice operation.
+// ConnectDevice invokes ConnectDevice operation.
 //
 // POST /api/v2/devices
-func (c *Client) AddDevice(ctx context.Context, request *AddDeviceReq) (AddDeviceRes, error) {
-	res, err := c.sendAddDevice(ctx, request)
+func (c *Client) ConnectDevice(ctx context.Context, request *ConnectDeviceReq) (ConnectDeviceRes, error) {
+	res, err := c.sendConnectDevice(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res AddDeviceRes, err error) {
+func (c *Client) sendConnectDevice(ctx context.Context, request *ConnectDeviceReq) (res ConnectDeviceRes, err error) {
 
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
@@ -124,7 +124,7 @@ func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res 
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
 	}
-	if err := encodeAddDeviceRequest(request, r); err != nil {
+	if err := encodeConnectDeviceRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
 	}
 
@@ -133,7 +133,7 @@ func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res 
 		var satisfied bitset
 		{
 
-			switch err := c.securityBearerToken(ctx, AddDeviceOperation, r); {
+			switch err := c.securityBearerToken(ctx, ConnectDeviceOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -174,7 +174,7 @@ func (c *Client) sendAddDevice(ctx context.Context, request *AddDeviceReq) (res 
 		_ = body.Close()
 	}()
 
-	result, err := decodeAddDeviceResponse(resp)
+	result, err := decodeConnectDeviceResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -121,7 +121,7 @@ paths:
       tags: [devices]
       security:
         - bearerToken: []
-      operationId: AddDevice
+      operationId: ConnectDevice
       requestBody:
         required: true
         content:

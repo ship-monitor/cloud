@@ -231,7 +231,7 @@ const (
         "tags": [
           "devices"
         ],
-        "operationId": "AddDevice",
+        "operationId": "ConnectDevice",
         "requestBody": {
           "content": {
             "application/json": {
@@ -784,7 +784,7 @@ paths:
         post:
             tags:
                 - devices
-            operationId: AddDevice
+            operationId: ConnectDevice
             requestBody:
                 content:
                     application/json:
@@ -1043,8 +1043,8 @@ tags:
         description: Devices management
 `
 
-	specJSONETag = "\"215b79632071c01faf0d44df32a6bd14\""
-	specYAMLETag = "\"10ea67b14f0d92e42100d4ea003d58b9\""
+	specJSONETag = "\"2e2d3b9e7d929557b5a83ea7eeb19195\""
+	specYAMLETag = "\"43b964346d33b1104cf290fb6b18868b\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

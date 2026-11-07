@@ -28,10 +28,10 @@ func (c *codeRecorder) Unwrap() http.ResponseWriter {
 
 func recordError(string, error) {}
 
-// handleAddDeviceRequest handles AddDevice operation.
+// handleConnectDeviceRequest handles ConnectDevice operation.
 //
 // POST /api/v2/devices
-func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleConnectDeviceRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	ctx := r.Context()
@@ -39,15 +39,15 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 	var (
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: AddDeviceOperation,
-			ID:   "AddDevice",
+			Name: ConnectDeviceOperation,
+			ID:   "ConnectDevice",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerToken(ctx, AddDeviceOperation, r)
+			sctx, ok, err := s.securityBearerToken(ctx, ConnectDeviceOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -91,7 +91,7 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeAddDeviceRequest(r)
+	request, rawBody, close, err := s.decodeConnectDeviceRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -107,13 +107,13 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 		}
 	}()
 
-	var response AddDeviceRes
+	var response ConnectDeviceRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    AddDeviceOperation,
+			OperationName:    ConnectDeviceOperation,
 			OperationSummary: "",
-			OperationID:      "AddDevice",
+			OperationID:      "ConnectDevice",
 			Body:             request,
 			RawBody:          rawBody,
 			Params:           middleware.Parameters{},
@@ -121,9 +121,9 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 		}
 
 		type (
-			Request  = *AddDeviceReq
+			Request  = *ConnectDeviceReq
 			Params   = struct{}
-			Response = AddDeviceRes
+			Response = ConnectDeviceRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -134,12 +134,12 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.AddDevice(ctx, request)
+				response, err = s.h.ConnectDevice(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.AddDevice(ctx, request)
+		response, err = s.h.ConnectDevice(ctx, request)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
@@ -158,7 +158,7 @@ func (s *Server) handleAddDeviceRequest(args [0]string, argsEscaped bool, w http
 		return
 	}
 
-	if err := encodeAddDeviceResponse(response, w); err != nil {
+	if err := encodeConnectDeviceResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

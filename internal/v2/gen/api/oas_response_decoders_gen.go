@@ -13,14 +13,14 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-func decodeAddDeviceResponse(resp *http.Response) (res AddDeviceRes, _ error) {
+func decodeConnectDeviceResponse(resp *http.Response) (res ConnectDeviceRes, _ error) {
 	switch resp.StatusCode {
 	case 201:
 		// Code 201.
-		return &AddDeviceCreated{}, nil
+		return &ConnectDeviceCreated{}, nil
 	case 409:
 		// Code 409.
-		return &AddDeviceConflict{}, nil
+		return &ConnectDeviceConflict{}, nil
 	}
 	// Convenient error response.
 	defRes, err := func() (res *BadResponseStatusCode, err error) {

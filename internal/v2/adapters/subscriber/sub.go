@@ -11,6 +11,7 @@ import (
 
 type Handler interface {
 	HandleHeartbeat(ctx context.Context, msg *nats.Msg) error
+	HandleConnectResponse(ctx context.Context, msg *nats.Msg) error
 }
 
 type SecurityHandler interface {
@@ -43,14 +44,8 @@ func New(
 }
 
 func (s *S) Start() {
-	s.subscribe(
-		"device.*.health",
-		wrapHandler(
-			s.logger.Named("Handler"),
-			s.security,
-			s.handler.HandleHeartbeat,
-		),
-	)
+	s.subscribe("device.*.health", s.handler.HandleHeartbeat)
+	s.subscribe("device.*.connect.response", s.handler.HandleConnectResponse)
 }
 
 func (s *S) Stop() error {
@@ -62,10 +57,12 @@ func (s *S) Stop() error {
 	return nil
 }
 
-func (s *S) subscribe(subj string, handler nats.MsgHandler) {
+func (s *S) subscribe(subj string, h HandlerFunc) {
 	sub, err := s.conn.Subscribe(
 		subj,
-		handler,
+		s.wrapHandler(
+			h,
+		),
 	)
 	if err != nil {
 		s.logger.Error(
@@ -82,20 +79,18 @@ const HandleTimeout = time.Second * 10
 
 type HandlerFunc func(ctx context.Context, msg *nats.Msg) error
 
-func wrapHandler(
-	l *zap.Logger,
-	sec SecurityHandler,
+func (s *S) wrapHandler(
 	handler HandlerFunc,
 ) nats.MsgHandler {
 	return func(msg *nats.Msg) {
-		logger := l.With(
+		logger := s.logger.With(
 			zap.String("subject", msg.Subject),
 		)
 
 		ctx, cancel := context.WithTimeout(context.Background(), HandleTimeout)
 		defer cancel()
 
-		ctx, err := sec.HandleMessage(ctx, msg)
+		ctx, err := s.security.HandleMessage(ctx, msg)
 		if err != nil {
 			logger.Error(
 				"Security handle",

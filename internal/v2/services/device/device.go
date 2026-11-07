@@ -11,6 +11,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
 	"github.com/ship-monitor/cloud/pkg/hub"
 )
 
@@ -47,21 +48,48 @@ type AliveRepository interface {
 		deviceID uuid.UUID,
 	) (*hub.Heartbeat, error)
 }
+type ConnRequestRepository interface {
+	Create(
+		ctx context.Context,
+		request domain.ConnectRequest,
+	) error
+	Get(
+		ctx context.Context,
+		id uuid.UUID,
+	) (domain.ConnectRequest, error)
+	SetApproved(
+		ctx context.Context,
+		id uuid.UUID,
+		approved bool,
+	) error
+}
+type Publisher interface {
+	PublishConnectRequest(
+		ctx context.Context,
+		r *messages.ConnectRequest,
+	) error
+}
 
 // Service implements device use cases.
 type Service struct {
 	repo  Repository
 	alive AliveRepository
+	pub   Publisher
+	conn  ConnRequestRepository
 }
 
 // New returns a Service backed by the given repository.
 func New(
 	repo Repository,
 	alive AliveRepository,
+	pub Publisher,
+	conn ConnRequestRepository,
 ) *Service {
 	return &Service{
 		repo:  repo,
 		alive: alive,
+		pub:   pub,
+		conn:  conn,
 	}
 }
 
@@ -101,8 +129,8 @@ func (s *Service) ListByOwner(
 	return devices, nil
 }
 
-// Add connects a new device to the actor.
-func (s *Service) Add(
+// Connect creates new connect request.
+func (s *Service) Connect(
 	ctx context.Context,
 	actor auth.Actor,
 	id uuid.UUID,
@@ -117,15 +145,26 @@ func (s *Service) Add(
 		return ErrAlreadyExists
 	}
 
-	device := domain.Device{
-		ID:          id,
-		OwnerID:     actor.UserID,
-		Name:        "",
+	request := messages.ConnectRequest{
+		RequestID:   uuid.New(),
 		SecurityKey: securityKey,
+		DeviceID:    id,
 	}
 
-	if err := s.repo.Create(ctx, device); err != nil {
-		return fmt.Errorf("create device: %w", err)
+	err = s.conn.Create(ctx, domain.ConnectRequest{
+		ID:        request.RequestID,
+		DeviceID:  id,
+		CreatedAt: time.Now(),
+		Approved:  false,
+		UserID:    actor.UserID,
+	})
+	if err != nil {
+		return fmt.Errorf("create connect request: %w", err)
+	}
+
+	err = s.pub.PublishConnectRequest(ctx, &request)
+	if err != nil {
+		return fmt.Errorf("publish connect request: %w", err)
 	}
 
 	return nil
@@ -194,4 +233,45 @@ func (s *Service) IsDeviceOnline(
 	}
 
 	return false, heartbeat.Timestamp, nil
+}
+
+// ApproveDuration represents time in which request can be approved.
+const ApproveDuration = time.Minute
+
+var errRequestExpired = errors.New("connect request expired")
+
+// ApproveConnection approves connection by connect request ID.
+func (s *Service) ApproveConnection(
+	ctx context.Context,
+	requestID uuid.UUID,
+) error {
+	request, err := s.conn.Get(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("get connect request: %w", err)
+	}
+
+	if request.Approved {
+		return nil
+	}
+
+	if request.CreatedAt.Add(ApproveDuration).After(time.Now()) {
+		return errRequestExpired
+	}
+
+	err = s.repo.Create(ctx, domain.Device{
+		ID:          request.DeviceID,
+		OwnerID:     request.UserID,
+		Name:        "NEW DEVICE " + request.DeviceID.String(),
+		SecurityKey: "",
+	})
+	if err != nil {
+		return fmt.Errorf("create new device: %w", err)
+	}
+
+	err = s.conn.SetApproved(ctx, requestID, true)
+	if err != nil {
+		return fmt.Errorf("approve connect request: %w", err)
+	}
+
+	return nil
 }

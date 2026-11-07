@@ -3,8 +3,10 @@ package di
 import (
 	"fmt"
 
+	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/alive"
+	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
@@ -28,6 +30,8 @@ func newUserService(repo *userrepo.Repository) *user.Service {
 func newDeviceService(
 	repo *devicerepo.Repository,
 	alive *alive.Repo,
+	pub *publisher.P,
+	conn *connect.Repo,
 ) *device.Service {
-	return device.New(repo, alive)
+	return device.New(repo, alive, pub, conn)
 }

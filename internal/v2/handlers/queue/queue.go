@@ -17,7 +17,7 @@ import (
 var _ subscriber.Handler = (*Handler)(nil)
 
 type AliveRepo interface {
-	InsertHertbeat(
+	InsertHeartbeat(
 		ctx context.Context,
 		deviceID uuid.UUID,
 		h hub.Heartbeat,
@@ -53,7 +53,7 @@ func (h *Handler) HandleHeartbeat(
 		return fmt.Errorf("unmarshall message: %w", err)
 	}
 
-	err = h.repo.InsertHertbeat(ctx, id, hub.Heartbeat{
+	err = h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
 		Timestamp: time.Unix(heartbeat.Payload.Timestamp, 0),
 	})
 	if err != nil {
@@ -61,4 +61,11 @@ func (h *Handler) HandleHeartbeat(
 	}
 
 	return nil
+}
+
+func (h *Handler) HandleConnectResponse(
+	ctx context.Context,
+	msg *nats.Msg,
+) error {
+	return errNoID
 }

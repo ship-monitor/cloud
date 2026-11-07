@@ -10,8 +10,8 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
-func encodeAddDeviceRequest(
-	req *AddDeviceReq,
+func encodeConnectDeviceRequest(
+	req *ConnectDeviceReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
