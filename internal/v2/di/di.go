@@ -161,8 +161,9 @@ func newHTTPServer(
 func newQueueHandler(
 	repo *aliverepo.Repo,
 	device *device.Service,
+	logger *zap.Logger,
 ) *queue.Handler {
-	return queue.New(repo, device)
+	return queue.New(repo, device, logger)
 }
 
 func newQueueSecurityHandler(logger *zap.Logger) *queuesecurity.Handler {
