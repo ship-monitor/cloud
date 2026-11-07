@@ -38,7 +38,7 @@ type (
 		Header  ConnectResponseHeader  `validate:"required"`
 	}
 	ConnectResponsePayload struct {
-		Allow     bool      `json:"allow" validate:"required"`
+		Approve   bool      `json:"allow" validate:"required"`
 		RequestID uuid.UUID `json:"requestId" validate:"required"`
 	}
 	ConnectResponseHeader struct {

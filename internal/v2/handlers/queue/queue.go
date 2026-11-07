@@ -12,6 +12,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
 	"github.com/ship-monitor/cloud/pkg/hub"
+	"go.uber.org/zap"
 )
 
 var _ subscriber.Handler = (*Handler)(nil)
@@ -34,15 +35,18 @@ type DeviceService interface {
 type Handler struct {
 	repo   AliveRepo
 	device DeviceService
+	logger *zap.Logger
 }
 
 func New(
 	repo AliveRepo,
 	device DeviceService,
+	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
 		repo:   repo,
 		device: device,
+		logger: logger,
 	}
 }
 
@@ -80,6 +84,15 @@ func (h *Handler) HandleConnectResponse(
 	response, err := messages.UnmarshalConnectResponse(msg)
 	if err != nil {
 		return fmt.Errorf("unmarshall message: %w", err)
+	}
+
+	if !response.Payload.Approve {
+		h.logger.Warn(
+			"Request not approved",
+			zap.Any("requestId", response.Payload.RequestID),
+		)
+
+		return nil
 	}
 
 	err = h.device.ApproveConnection(ctx, response.Payload.RequestID)
