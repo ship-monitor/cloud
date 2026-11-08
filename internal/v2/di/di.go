@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/rs/cors"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/server"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
@@ -125,9 +126,24 @@ func newHTTPServer(
 	handler *api.Server,
 	logger *zap.Logger,
 ) *http.Server {
+	c := cors.New(cors.Options{ //nolint:exhaustruct_v5
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+		},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+		Debug:            config.IsDevelopment(),
+	})
 	server := http.Server{ //nolint:exhaustruct_v5
 		ReadHeaderTimeout: ReadHeaderTimeout,
-		Handler:           handler,
+		Handler:           c.Handler(handler),
 		Addr:              net.JoinHostPort("", config.Port),
 	}
 
