@@ -254,7 +254,7 @@ func (s *Service) ApproveConnection(
 		return nil
 	}
 
-	if request.CreatedAt.Add(ApproveDuration).After(time.Now()) {
+	if !request.CreatedAt.Add(ApproveDuration).After(time.Now()) {
 		return errRequestExpired
 	}
 
