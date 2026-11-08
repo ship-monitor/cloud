@@ -59,7 +59,7 @@ func (r *Repository) Create(ctx context.Context, d domain.Device) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO devices (id, owner_id, name, security_key)
 		 VALUES (?, ?, ?, ?)`,
-		d.ID, d.OwnerID, d.Name,
+		d.ID, d.OwnerID, d.Name, d.SecurityKey,
 	)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
