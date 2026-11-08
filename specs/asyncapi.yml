@@ -8,30 +8,33 @@ servers:
     description: Development NATS server
     protocol: nats
 channels:
+  connectRequests:
+    address: devices.{deviceId}.connect.requests
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+    messages:
+      request:
+        $ref: "#/components/messages/connectRequest"
+  connectResponses:
+    address: devices.{deviceId}.connect.responses
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+    messages:
+      request:
+        $ref: "#/components/messages/connectResponse"
+
   devicesAlive:
-    address: devices.alive
+    address: devices.{deviceId}.health
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
     messages:
       heartbeat:
         $ref: "#/components/messages/heartbeat"
-  deviceVerification:
-    address: devices.verifications
-    messages:
-      verifyRequest:
-        $ref: "#/components/messages/verifyRequest"
-      verifyResponse:
-        $ref: "#/components/messages/verifyResponse"
 
 operations:
-  # deviceVerification:
-  #   action: send
-  #   reply:
-  #     messages:
-  #       - $ref: "#/channels/deviceVerification/messages/verifyResponse"
-  #   title: Device verification by secret key
-  #   messages:
-  #     - $ref: "#/channels/deviceVerification/messages/verifyRequest"
-  #   channel:
-  #     $ref: "#/channels/deviceVerification"
   onDeviceHeartbeat:
     title: Device sends heartbeat message
     channel:
@@ -49,18 +52,32 @@ components:
         timestamp:
           type: integer
           format: int64
-    verifyRequest:
+    connectRequest:
       type: object
-      required: [secretKey]
+      required: [secretKey, deviceId]
       properties:
         secretKey:
           type: string
-    verifyResponse:
+        requestId:
+          type: string
+          format: uuid
+    connectResponse:
       type: object
-      required: [success]
+      required: [approve, deviceId]
       properties:
-        success:
+        approve:
           type: boolean
+        requestId:
+          type: string
+          format: uuid
+    identificationHeaders:
+      type: object
+      required: [device-id]
+      properties:
+        device-id:
+          type: string
+          description: "Device identifier"
+          format: uuid
 
   messages:
     heartbeat:
@@ -75,19 +92,17 @@ components:
             format: uuid
       payload:
         $ref: "#/components/schemas/heartbeat"
-    verifyRequest:
+    connectRequest:
       contentType: application/json
       headers:
-        type: object
-        required: [device-id]
-        properties:
-          device-id:
-            type: string
-            description: "Device identifier"
-            format: uuid
+        $ref: "#/components/schemas/identificationHeaders"
       payload:
-        $ref: "#/components/schemas/verifyRequest"
-    verifyResponse:
+        $ref: "#/components/schemas/connectRequest"
+    connectResponse:
       contentType: application/json
       payload:
-        $ref: "#/components/schemas/verifyResponse"
+        $ref: "#/components/schemas/connectResponse"
+
+  parameters:
+    deviceId:
+      description: Device ID

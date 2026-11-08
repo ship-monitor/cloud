@@ -45,9 +45,15 @@ func New(
 }
 
 func (s *S) Start() {
-	s.subscribe(channels.HealthChannelW(), s.handler.HandleHeartbeat)
 	s.subscribe(
-		channels.ConnectResponseChannelW(),
+		channels.DevicesAliveAddress(channels.DevicesAliveParameters{
+			DeviceID: "*",
+		}).String(),
+		s.handler.HandleHeartbeat)
+	s.subscribe(
+		channels.ConnectResponsesAddress(channels.ConnectResponsesParameters{
+			DeviceID: "*",
+		}).String(),
 		s.handler.HandleConnectResponse,
 	)
 }

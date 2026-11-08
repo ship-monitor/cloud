@@ -69,15 +69,13 @@ func NewApp(config *config.Config) *fx.App {
 func logger(config *config.Config) fx.Option {
 	return fx.Module("logger",
 		fx.Provide(func() (*zap.Logger, error) {
-			// logConf := zap.NewProductionConfig()
-
-			// if config.IsDevelopment() {
 			logConf := zap.NewDevelopmentConfig()
-			logConf.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(
-				time.Kitchen,
-			)
+
 			logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			// }
+			if config.IsDevelopment() {
+				logConf.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+			}
+
 			logger, err := logConf.Build()
 			if err != nil {
 				return nil, fmt.Errorf("build logger from config: %w", err)
