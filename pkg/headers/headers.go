@@ -51,8 +51,11 @@ func (d *Decoder) Decode(dst any) error {
 		values: make(map[reflect.Value]bool),
 		types:  make(map[reflect.Type]int),
 	})
+	if err != nil {
+		return fmt.Errorf("decode struct: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 type decodePath struct {
@@ -60,6 +63,7 @@ type decodePath struct {
 	types  map[reflect.Type]int
 }
 
+//nolint:gocognit, varnamelen, nestif
 func (d *Decoder) decodeStruct(
 	value reflect.Value,
 	active *decodePath,

@@ -35,7 +35,6 @@ func (h *Handler) HandleMessage(
 	ctx context.Context,
 	msg *nats.Msg,
 ) (context.Context, error) {
-
 	id := msg.Header.Get(DeviceIDHeader)
 
 	deviceID, err := uuid.Parse(id)

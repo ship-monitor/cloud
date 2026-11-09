@@ -1,9 +1,11 @@
 {
   "words": [
     "healthnes",
-    "healthness"
+    "healthness",
+    "nolint",
+    "testpackage",
+    "goconst",
+    "varnamelen"
   ],
-  "userWords": [
-    "healthnes"
-  ]
+  "userWords": ["healthnes"]
 }

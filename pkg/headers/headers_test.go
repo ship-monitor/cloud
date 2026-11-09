@@ -165,8 +165,8 @@ func TestHeaderDecoderNestedStructs(t *testing.T) {
 	}
 
 	id := uuid.New()
-	original := &inner{}
-	dst := struct {
+	original := &inner{} //nolint:exhaustruct_v5
+	dst := struct {      //nolint:exhaustruct_v5
 		First   outer
 		Second  *inner
 		Missing *struct {
@@ -175,7 +175,7 @@ func TestHeaderDecoderNestedStructs(t *testing.T) {
 		Ignored inner `header:"-"`
 		Cycle   *recursive
 		Chain   *recursive
-	}{Second: original, Cycle: &recursive{}, Chain: &recursive{Next: &recursive{}}}
+	}{Second: original, Cycle: &recursive{}, Chain: &recursive{Next: &recursive{}}} //nolint:exhaustruct_v5
 	dst.Cycle.Next = dst.Cycle
 
 	err := NewDecoder(nats.Header{
