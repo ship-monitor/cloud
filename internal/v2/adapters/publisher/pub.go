@@ -2,12 +2,13 @@ package publisher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/pkg/connector/channels"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
+	"github.com/ship-monitor/cloud/pkg/connector/messages"
+	"github.com/ship-monitor/cloud/pkg/connector/parameters"
+	natsGen "github.com/ship-monitor/cloud/pkg/connector/proto/nats"
 )
 
 type P struct {
@@ -24,16 +25,18 @@ func New(
 
 func (p *P) PublishConnectRequest(
 	ctx context.Context,
-	r *messages.ConnectRequest,
+	request *messages.ConnectRequestOut,
 ) error {
-	msg := nats.NewMsg(channels.ConnectRequestChannel(r.DeviceID))
+	msg := nats.NewMsg(
+		channels.ConnectRequestsAddress(channels.ConnectRequestsParameters{
+			DeviceID: parameters.DeviceID(request.Headers.DeviceID.String()),
+		}).String(),
+	)
 
-	data, err := json.Marshal(&r)
+	err := request.MarshalEnvelopeNats(natsGen.NewEnvelopeOut(msg.Data))
 	if err != nil {
 		return fmt.Errorf("marshal JSON: %w", err)
 	}
-
-	msg.Data = data
 
 	err = p.conn.PublishMsg(msg)
 	if err != nil {

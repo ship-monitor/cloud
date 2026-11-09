@@ -9,8 +9,6 @@ import (
 	nats "github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
-	"github.com/ship-monitor/cloud/pkg/headers"
 	"go.uber.org/zap"
 )
 
@@ -30,27 +28,24 @@ func New(
 
 var errNoID = errors.New("no device id provided in header")
 
+const DeviceIDHeader = "device-id"
+
 // HandleMessage implements [subscriber.SecurityHandler].
 func (h *Handler) HandleMessage(
 	ctx context.Context,
 	msg *nats.Msg,
 ) (context.Context, error) {
-	var id messages.IdentificationHeader
 
-	err := headers.NewDecoder(&msg.Header).Decode(&id)
+	id := msg.Header.Get(DeviceIDHeader)
+
+	deviceID, err := uuid.Parse(id)
 	if err != nil {
-		h.logger.Error(
-			"Decode headers",
-			zap.Error(err),
-			zap.Any("headers", msg.Header),
-		)
-
-		return ctx, fmt.Errorf("decode headers: %w", err)
+		return ctx, fmt.Errorf("parse device is: %w", err)
 	}
 
-	if id.DeviceID == uuid.Nil {
+	if deviceID == uuid.Nil {
 		return ctx, errNoID
 	}
 
-	return device.WithDeviceID(ctx, id.DeviceID), nil
+	return device.WithDeviceID(ctx, deviceID), nil
 }

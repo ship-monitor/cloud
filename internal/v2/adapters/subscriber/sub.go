@@ -45,9 +45,15 @@ func New(
 }
 
 func (s *S) Start() {
-	s.subscribe(channels.HealthChannelW(), s.handler.HandleHeartbeat)
 	s.subscribe(
-		channels.ConnectResponseChannelW(),
+		channels.DevicesAliveAddress(channels.DevicesAliveParameters{
+			DeviceID: "*",
+		}).String(),
+		s.handler.HandleHeartbeat)
+	s.subscribe(
+		channels.ConnectResponsesAddress(channels.ConnectResponsesParameters{
+			DeviceID: "*",
+		}).String(),
 		s.handler.HandleConnectResponse,
 	)
 }
@@ -62,6 +68,8 @@ func (s *S) Stop() error {
 }
 
 func (s *S) subscribe(subj string, h HandlerFunc) {
+	s.logger.Info("Subscribing to subject", zap.String("subject", subj))
+
 	sub, err := s.conn.Subscribe(
 		subj,
 		s.wrapHandler(

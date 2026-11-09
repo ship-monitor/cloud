@@ -11,7 +11,8 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
+	"github.com/ship-monitor/cloud/pkg/connector/messages"
+	"github.com/ship-monitor/cloud/pkg/connector/schemas"
 	"github.com/ship-monitor/cloud/pkg/hub"
 )
 
@@ -66,7 +67,7 @@ type ConnRequestRepository interface {
 type Publisher interface {
 	PublishConnectRequest(
 		ctx context.Context,
-		r *messages.ConnectRequest,
+		r *messages.ConnectRequestOut,
 	) error
 }
 
@@ -145,14 +146,20 @@ func (s *Service) Connect(
 		return ErrAlreadyExists
 	}
 
-	request := messages.ConnectRequest{
-		RequestID:   uuid.New(),
-		SecurityKey: securityKey,
-		DeviceID:    id,
+	requestID := uuid.New()
+
+	request := messages.ConnectRequestOut{
+		Payload: schemas.ConnectRequest{
+			RequestID: requestID,
+			SecretKey: &securityKey,
+		},
+		Headers: schemas.IdentificationHeaders{
+			DeviceID: &id,
+		},
 	}
 
 	err = s.conn.Create(ctx, domain.ConnectRequest{
-		ID:        request.RequestID,
+		ID:        requestID,
 		DeviceID:  id,
 		CreatedAt: time.Now(),
 		Approved:  false,

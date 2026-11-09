@@ -10,7 +10,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas/messages"
+	"github.com/ship-monitor/cloud/pkg/connector/messages"
+	natsGen "github.com/ship-monitor/cloud/pkg/connector/proto/nats"
 	"github.com/ship-monitor/cloud/pkg/hub"
 	"go.uber.org/zap"
 )
@@ -61,14 +62,14 @@ func (h *Handler) HandleHeartbeat(
 	if !ok {
 		return errNoID
 	}
-
-	heartbeat, err := messages.UnmarshallHeartbeat(msg)
+	in := messages.HeartbeatIn{}
+	err := in.UnmarshalDevicesAliveNats(natsGen.NewEnvelopeIn(msg))
 	if err != nil {
 		return fmt.Errorf("unmarshall message: %w", err)
 	}
 
 	err = h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
-		Timestamp: time.Unix(heartbeat.Payload.Timestamp, 0),
+		Timestamp: time.Unix(*in.Payload().Timestamp, 0),
 	})
 	if err != nil {
 		return fmt.Errorf("insert heartbeat: %w", err)
@@ -81,21 +82,23 @@ func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
 	msg *nats.Msg,
 ) error {
-	response, err := messages.UnmarshalConnectResponse(msg)
+	response := messages.ConnectResponseIn{}
+
+	err := response.UnmarshalConnectResponsesNats(natsGen.NewEnvelopeIn(msg))
 	if err != nil {
 		return fmt.Errorf("unmarshall message: %w", err)
 	}
 
-	if !response.Payload.Approve {
+	if !*response.Payload().Approve {
 		h.logger.Warn(
 			"Request not approved",
-			zap.Any("requestId", response.Payload.RequestID),
+			zap.Any("requestId", response.Payload().RequestID),
 		)
 
 		return nil
 	}
 
-	err = h.device.ApproveConnection(ctx, response.Payload.RequestID)
+	err = h.device.ApproveConnection(ctx, response.Payload().RequestID)
 	if err != nil {
 		return fmt.Errorf("approve connection: %w", err)
 	}
