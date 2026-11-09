@@ -68,6 +68,8 @@ func (s *S) Stop() error {
 }
 
 func (s *S) subscribe(subj string, h HandlerFunc) {
+	s.logger.Info("Subscribing to subject", zap.String("subject", subj))
+
 	sub, err := s.conn.Subscribe(
 		subj,
 		s.wrapHandler(
