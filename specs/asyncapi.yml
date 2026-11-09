@@ -133,14 +133,18 @@ components:
         requestId:
           type: string
           format: uuid
+
     identificationHeaders:
       type: object
-      required: [device-id]
+      required: [device-id, Authorization]
       properties:
+        Authorization:
+          type: string
         device-id:
           type: string
           description: "Device identifier"
           format: uuid
+
     sensorId:
       type: string
       description: Sensor identifier. It could be in non-UUID format.
@@ -196,3 +200,11 @@ components:
   parameters:
     deviceId:
       description: Device identifier in UUID format.
+
+  # securitySchemes:
+  #   auth:
+  #     description: |
+  #       Authentication currently works via simple placing client ID in Authorization header
+  #     type: httpApiKey
+  #     in: header
+  #     name: Authorization

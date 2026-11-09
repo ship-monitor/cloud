@@ -56,22 +56,15 @@ var errNoID = errors.New("no device id found in context")
 // HandleHeartbeat implements [subscriber.Handler].
 func (h *Handler) HandleHeartbeat(
 	ctx context.Context,
-	msg *nats.Msg,
+	msg messages.HeartbeatReceiver,
 ) error {
 	id, ok := device.DeviceIDFromContext(ctx)
 	if !ok {
 		return errNoID
 	}
 
-	in := messages.HeartbeatIn{}
-
-	err := in.UnmarshalDevicesAliveNats(natsGen.NewEnvelopeIn(msg))
-	if err != nil {
-		return fmt.Errorf("unmarshall message: %w", err)
-	}
-
-	err = h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
-		Timestamp: time.Unix(*in.Payload().Timestamp, 0),
+	err := h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
+		Timestamp: time.Unix(*msg.Payload().Timestamp, 0),
 	})
 	if err != nil {
 		return fmt.Errorf("insert heartbeat: %w", err)

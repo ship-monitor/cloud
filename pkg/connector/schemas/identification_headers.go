@@ -7,6 +7,7 @@ import (
 )
 
 type IdentificationHeaders struct {
+	Authorization *string `json:"Authorization"`
 	// DeviceID--Device identifier
 	DeviceID *uuid.UUID `json:"device-id"`
 }

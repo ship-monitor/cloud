@@ -59,8 +59,9 @@ func NewApp(config *config.Config) *fx.App {
 
 		fx.Provide(newServer),
 		fx.Provide(newHTTPServer),
-		fx.Provide(newSubscriber),
 		fx.Provide(newPublisher),
+
+		provideConnector(),
 
 		fx.Invoke(func(*http.Server) {}),
 		fx.Invoke(func(*subscriber.S) {}),
@@ -183,27 +184,6 @@ func newQueueHandler(
 
 func newQueueSecurityHandler(logger *zap.Logger) *queuesecurity.Handler {
 	return queuesecurity.New(logger)
-}
-
-func newSubscriber(
-	lc fx.Lifecycle,
-	conn *nats.Conn,
-	logger *zap.Logger,
-	handler *queue.Handler,
-	security *queuesecurity.Handler,
-) *subscriber.S {
-	subs := subscriber.New(conn, logger, handler, security)
-
-	lc.Append(fx.StartStopHook(subs.Start, func() error {
-		err := subs.Stop()
-		if err != nil {
-			return fmt.Errorf("stop subscriber: %w", err)
-		}
-
-		return nil
-	}))
-
-	return subs
 }
 
 func newPublisher(conn *nats.Conn) *publisher.P {

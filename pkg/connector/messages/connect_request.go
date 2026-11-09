@@ -59,7 +59,8 @@ func (m *ConnectRequestOut) MarshalEnvelopeNats(envelope nats.EnvelopeWriter) er
 	}
 	envelope.SetContentType("application/json")
 	envelope.SetHeaders(run.Headers{
-		"DeviceID": m.Headers.DeviceID,
+		"Authorization": m.Headers.Authorization,
+		"DeviceID":      m.Headers.DeviceID,
 	})
 	return nil
 }
@@ -84,6 +85,9 @@ func (m *ConnectRequestIn) UnmarshalEnvelopeNats(envelope nats.EnvelopeReader) e
 		return err
 	}
 	headers := envelope.Headers()
+	if v, ok := headers["Authorization"]; ok {
+		m.headers.Authorization = v.(*string)
+	}
 	if v, ok := headers["DeviceID"]; ok {
 		m.headers.DeviceID = v.(*uuid.UUID)
 	}
