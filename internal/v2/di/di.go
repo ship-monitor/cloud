@@ -140,6 +140,7 @@ func newHTTPServer(
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 		Debug:            config.IsDevelopment(),
+		Logger:           zap.NewStdLog(logger.Named("HTTP.CORS")),
 	})
 	server := http.Server{ //nolint:exhaustruct_v5
 		ReadHeaderTimeout: ReadHeaderTimeout,
