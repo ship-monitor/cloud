@@ -109,14 +109,25 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 
 func Logging(logger *zap.Logger) api.Middleware {
 	return func(req middleware.Request, next middleware.Next) (middleware.Response, error) {
-		logger.Info(
-			fmt.Sprintf(
-				"%s %s - %s",
-				req.Raw.Method,
-				req.Raw.URL,
-				req.OperationID,
-			),
+		log := logger.With(
+			zap.String("operationId", req.OperationID),
 		)
+		logMessage := fmt.Sprintf(
+			"%s %s",
+			req.Raw.Method,
+			req.Raw.URL,
+		)
+
+		resp, err := next(req)
+		if err != nil {
+			log.Error(logMessage, zap.Error(err))
+		} else {
+			if tresp, ok := resp.Type.(interface{ GetStatusCode() int }); ok {
+				log = log.With(zap.Int("status", tresp.GetStatusCode()))
+			}
+
+			log.Info(logMessage)
+		}
 
 		return next(req)
 	}
