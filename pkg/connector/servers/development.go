@@ -106,19 +106,19 @@ func (s Development) Consumer() nats.Consumer {
 func (s Development) OpenConnectRequestsNats(
 	ctx context.Context,
 	params channels.ConnectRequestsParameters,
-
+	security run.AnySecurityScheme,
 ) (*channels.ConnectRequestsNats, error) {
 	return channels.OpenConnectRequestsNats(
-		ctx, s, params,
+		ctx, s, params, nil, security,
 	)
 }
 func (s Development) OpenConnectResponsesNats(
 	ctx context.Context,
 	params channels.ConnectResponsesParameters,
-
+	security run.AnySecurityScheme,
 ) (*channels.ConnectResponsesNats, error) {
 	return channels.OpenConnectResponsesNats(
-		ctx, s, params,
+		ctx, s, params, nil, security,
 	)
 }
 func (s Development) OpenDevicesAliveNats(
@@ -130,13 +130,49 @@ func (s Development) OpenDevicesAliveNats(
 		ctx, s, params, nil, security,
 	)
 }
+func (s Development) OpenMetricsNats(
+	ctx context.Context,
+	params channels.MetricsParameters,
+	security run.AnySecurityScheme,
+) (*channels.MetricsNats, error) {
+	return channels.OpenMetricsNats(
+		ctx, s, params, nil, security,
+	)
+}
 
+func (s Development) OpenPublishConnectRequestNats(
+	ctx context.Context,
+	params channels.ConnectRequestsParameters,
+
+) (*operations.PublishConnectRequestNats, error) {
+	return operations.OpenPublishConnectRequestNats(
+		ctx, s, params,
+	)
+}
+func (s Development) OpenOnConnectResponseNats(
+	ctx context.Context,
+	params channels.ConnectResponsesParameters,
+
+) (*operations.OnConnectResponseNats, error) {
+	return operations.OpenOnConnectResponseNats(
+		ctx, s, params,
+	)
+}
 func (s Development) OpenOnDeviceHeartbeatNats(
 	ctx context.Context,
 	params channels.DevicesAliveParameters,
 
 ) (*operations.OnDeviceHeartbeatNats, error) {
 	return operations.OpenOnDeviceHeartbeatNats(
+		ctx, s, params,
+	)
+}
+func (s Development) OpenOnMetricsNats(
+	ctx context.Context,
+	params channels.MetricsParameters,
+
+) (*operations.OnMetricsNats, error) {
+	return operations.OpenOnMetricsNats(
 		ctx, s, params,
 	)
 }

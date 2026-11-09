@@ -1,11 +1,15 @@
 asyncapi: 3.1.0
 info:
   title: SHIP connection protocol
-  version: 1.0.2
+  version: 1.0.3
 servers:
   development:
     host: localhost:4222
     description: Development NATS server
+    protocol: nats
+  production:
+    host: ship-monitor.ru:4222
+    description: Production NATS server
     protocol: nats
 channels:
   connectRequests:
@@ -16,13 +20,14 @@ channels:
     messages:
       request:
         $ref: "#/components/messages/connectRequest"
+
   connectResponses:
     address: device.{deviceId}.connect.responses
     parameters:
       deviceId:
         $ref: "#/components/parameters/deviceId"
     messages:
-      request:
+      response:
         $ref: "#/components/messages/connectResponse"
 
   devicesAlive:
@@ -34,17 +39,75 @@ channels:
       heartbeat:
         $ref: "#/components/messages/heartbeat"
 
+  metrics:
+    address: device.{deviceId}.metrics
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+    messages:
+      device:
+        $ref: "#/components/messages/metrics"
+      sensor:
+        $ref: "#/components/messages/sensorMetrics"
+
 operations:
   onDeviceHeartbeat:
     title: Device sends heartbeat message
+    action: receive
     channel:
       $ref: "#/channels/devicesAlive"
-    action: receive
     messages:
       - $ref: "#/channels/devicesAlive/messages/heartbeat"
 
+  publishConnectRequest:
+    title: Cloud publishes connect request
+    action: send
+    channel:
+      $ref: "#/channels/connectRequests"
+    messages:
+      - $ref: "#/channels/connectRequests/messages/request"
+
+  onConnectResponse:
+    title: Device sends response with approving info
+    action: receive
+    channel:
+      $ref: "#/channels/connectResponses"
+    messages:
+      - $ref: "#/channels/connectResponses/messages/response"
+
+  onMetrics:
+    title: Device sends own metrics or sensor metrics
+    action: receive
+    channel:
+      $ref: "#/channels/metrics"
+    messages:
+      - $ref: "#/channels/metrics/messages/device"
+      - $ref: "#/channels/metrics/messages/sensor"
+
 components:
   schemas:
+    metric:
+      type: object
+      required: [name, type, unit, value, timestamp]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - GAUGE
+            - COUNTER
+            - HISTOGRAM
+        unit:
+          type: string
+        value:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+          description: The UTC timestamp when metric was captured
+          example: "2026-11-09T09:38:00Z"
+
     heartbeat:
       type: object
       required: [timestamp]
@@ -54,7 +117,7 @@ components:
           format: int64
     connectRequest:
       type: object
-      required: [secretKey, deviceId]
+      required: [secretKey, requestId]
       properties:
         secretKey:
           type: string
@@ -63,7 +126,7 @@ components:
           format: uuid
     connectResponse:
       type: object
-      required: [approve, deviceId]
+      required: [approve, requestId]
       properties:
         approve:
           type: boolean
@@ -78,31 +141,58 @@ components:
           type: string
           description: "Device identifier"
           format: uuid
+    sensorId:
+      type: string
+      description: Sensor identifier. It could be in non-UUID format.
 
   messages:
     heartbeat:
       contentType: application/json
       headers:
-        type: object
-        required: [device-id]
-        properties:
-          device-id:
-            type: string
-            description: "Device identifier"
-            format: uuid
+        $ref: "#/components/schemas/identificationHeaders"
       payload:
         $ref: "#/components/schemas/heartbeat"
+
     connectRequest:
       contentType: application/json
       headers:
         $ref: "#/components/schemas/identificationHeaders"
       payload:
         $ref: "#/components/schemas/connectRequest"
+
     connectResponse:
       contentType: application/json
       payload:
         $ref: "#/components/schemas/connectResponse"
 
+    metrics:
+      contentType: application/json
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
+      payload:
+        type: object
+        required: [metrics]
+        properties:
+          metrics:
+            type: array
+            items:
+              $ref: "#/components/schemas/metric"
+
+    sensorMetrics:
+      contentType: application/json
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
+      payload:
+        type: object
+        required: [metrics, sensorId]
+        properties:
+          sensorId:
+            $ref: "#/components/schemas/sensorId"
+          metrics:
+            type: array
+            items:
+              $ref: "#/components/schemas/metric"
+
   parameters:
     deviceId:
-      description: Device ID
+      description: Device identifier in UUID format.

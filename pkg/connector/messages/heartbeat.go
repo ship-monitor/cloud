@@ -13,18 +13,12 @@ import (
 
 type HeartbeatSender interface {
 	SetPayload(payload schemas.Heartbeat) *HeartbeatOut
-	SetHeaders(headers struct {
-		// DeviceID--Device identifier
-		DeviceID *uuid.UUID `json:"device-id"`
-	}) *HeartbeatOut
+	SetHeaders(headers schemas.IdentificationHeaders) *HeartbeatOut
 }
 
 type HeartbeatOut struct {
 	Payload schemas.Heartbeat
-	Headers struct {
-		// DeviceID--Device identifier
-		DeviceID *uuid.UUID `json:"device-id"`
-	}
+	Headers schemas.IdentificationHeaders
 }
 
 func (m *HeartbeatOut) SetPayload(payload schemas.Heartbeat) *HeartbeatOut {
@@ -32,38 +26,26 @@ func (m *HeartbeatOut) SetPayload(payload schemas.Heartbeat) *HeartbeatOut {
 	return m
 }
 
-func (m *HeartbeatOut) SetHeaders(headers struct {
-	// DeviceID--Device identifier
-	DeviceID *uuid.UUID `json:"device-id"`
-}) *HeartbeatOut {
+func (m *HeartbeatOut) SetHeaders(headers schemas.IdentificationHeaders) *HeartbeatOut {
 	m.Headers = headers
 	return m
 }
 
 type HeartbeatReceiver interface {
 	Payload() schemas.Heartbeat
-	Headers() struct {
-		// DeviceID--Device identifier
-		DeviceID *uuid.UUID `json:"device-id"`
-	}
+	Headers() schemas.IdentificationHeaders
 }
 
 type HeartbeatIn struct {
 	payload schemas.Heartbeat
-	headers struct {
-		// DeviceID--Device identifier
-		DeviceID *uuid.UUID `json:"device-id"`
-	}
+	headers schemas.IdentificationHeaders
 }
 
 func (m *HeartbeatIn) Payload() schemas.Heartbeat {
 	return m.payload
 }
 
-func (m *HeartbeatIn) Headers() struct {
-	// DeviceID--Device identifier
-	DeviceID *uuid.UUID `json:"device-id"`
-} {
+func (m *HeartbeatIn) Headers() schemas.IdentificationHeaders {
 	return m.headers
 }
 

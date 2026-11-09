@@ -62,7 +62,9 @@ func (h *Handler) HandleHeartbeat(
 	if !ok {
 		return errNoID
 	}
+
 	in := messages.HeartbeatIn{}
+
 	err := in.UnmarshalDevicesAliveNats(natsGen.NewEnvelopeIn(msg))
 	if err != nil {
 		return fmt.Errorf("unmarshall message: %w", err)
@@ -98,7 +100,7 @@ func (h *Handler) HandleConnectResponse(
 		return nil
 	}
 
-	err = h.device.ApproveConnection(ctx, response.Payload().RequestID)
+	err = h.device.ApproveConnection(ctx, *response.Payload().RequestID)
 	if err != nil {
 		return fmt.Errorf("approve connection: %w", err)
 	}

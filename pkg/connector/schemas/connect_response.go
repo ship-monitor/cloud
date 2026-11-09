@@ -7,6 +7,6 @@ import (
 )
 
 type ConnectResponse struct {
-	Approve   *bool     `json:"approve"`
-	RequestID uuid.UUID `json:"requestId"`
+	Approve   *bool      `json:"approve"`
+	RequestID *uuid.UUID `json:"requestId"`
 }

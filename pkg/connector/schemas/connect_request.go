@@ -7,6 +7,6 @@ import (
 )
 
 type ConnectRequest struct {
-	SecretKey *string   `json:"secretKey"`
-	RequestID uuid.UUID `json:"requestId"`
+	SecretKey *string    `json:"secretKey"`
+	RequestID *uuid.UUID `json:"requestId"`
 }

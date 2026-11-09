@@ -40,7 +40,7 @@ func NewConnectRequestsNats(
 }
 
 type ConnectRequestsServerNats interface {
-	OpenConnectRequestsNats(context.Context, ConnectRequestsParameters) (*ConnectRequestsNats, error)
+	OpenConnectRequestsNats(context.Context, ConnectRequestsParameters, run.AnySecurityScheme) (*ConnectRequestsNats, error)
 	Producer() nats.Producer
 	Consumer() nats.Consumer
 }
@@ -49,7 +49,8 @@ func OpenConnectRequestsNats(
 	ctx context.Context,
 	server ConnectRequestsServerNats,
 	params ConnectRequestsParameters,
-
+	opBindings *nats.OperationBindings,
+	security run.AnySecurityScheme,
 ) (*ConnectRequestsNats, error) {
 	var err error
 	address, err := ConnectRequestsAddress(params).Expand()
@@ -63,8 +64,8 @@ func OpenConnectRequestsNats(
 			ctx,
 			address,
 			nil,
-			nil,
-			nil,
+			opBindings,
+			security,
 		)
 		if err != nil {
 			return nil, err
@@ -77,8 +78,8 @@ func OpenConnectRequestsNats(
 			ctx,
 			address,
 			nil,
-			nil,
-			nil,
+			opBindings,
+			security,
 		)
 		if err != nil {
 			return nil, err

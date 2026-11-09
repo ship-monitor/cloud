@@ -150,7 +150,7 @@ func (s *Service) Connect(
 
 	request := messages.ConnectRequestOut{
 		Payload: schemas.ConnectRequest{
-			RequestID: requestID,
+			RequestID: &requestID,
 			SecretKey: &securityKey,
 		},
 		Headers: schemas.IdentificationHeaders{
