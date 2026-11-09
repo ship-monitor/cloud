@@ -30,6 +30,29 @@ func (s *GetDevicesOK) Validate() error {
 	return nil
 }
 
+func (s *HealthResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Status.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *LoginUserReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -98,4 +121,17 @@ func (s *RegisterForm) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s ServiceStatus) Validate() error {
+	switch s {
+	case "ok":
+		return nil
+	case "warn":
+		return nil
+	case "fail":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }

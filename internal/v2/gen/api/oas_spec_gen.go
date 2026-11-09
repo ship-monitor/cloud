@@ -16,9 +16,9 @@ const (
 	specJSON = `{
   "openapi": "3.1.0",
   "info": {
-    "title": "Ship Monitor API",
-    "description": "OpenAPI specification generated from the Gin route registrations and handlers in this service.\n",
-    "version": "1.0.0"
+    "title": "Ship Monitor",
+    "description": "OpenAPI specification of Ship Monitor cloud service.\n",
+    "version": "2.0.0"
   },
   "servers": [
     {
@@ -465,6 +465,32 @@ const (
           }
         ]
       }
+    },
+    "/api/v2/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "operationId": "GetHealth",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/HealthResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          },
+          {
+            
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -531,6 +557,15 @@ const (
           "password",
           "name"
         ]
+      },
+      "ServiceStatus": {
+        "description": "Describes service status.\n- ok - service working\n- warn - service working but with some problems\n- fail - service available or not working\n",
+        "type": "string",
+        "enum": [
+          "ok",
+          "warn",
+          "fail"
+        ]
       }
     },
     "responses": {
@@ -572,6 +607,24 @@ const (
               "required": [
                 "online",
                 "lastSeen"
+              ]
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "description": "Describes healthness of application.",
+        "content": {
+          "application/health+json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "$ref": "#/components/schemas/ServiceStatus"
+                }
+              },
+              "required": [
+                "status"
               ]
             }
           }
@@ -652,15 +705,19 @@ const (
     {
       "name": "devices",
       "description": "Devices management"
+    },
+    {
+      "name": "meta",
+      "description": "Meta endpoints"
     }
   ]
 }`
 	specYAML = `openapi: 3.1.0
 info:
-    title: Ship Monitor API
+    title: Ship Monitor
     description: |
-        OpenAPI specification generated from the Gin route registrations and handlers in this service.
-    version: 1.0.0
+        OpenAPI specification of Ship Monitor cloud service.
+    version: 2.0.0
 servers:
     -   url: http://localhost:8080
         description: Local development server
@@ -921,6 +978,19 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
+    /api/v2/health:
+        get:
+            tags:
+                - meta
+            operationId: GetHealth
+            responses:
+                "200":
+                    $ref: '#/components/responses/HealthResponse'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+                - {}
 components:
     schemas:
         Device:
@@ -967,6 +1037,17 @@ components:
                 - email
                 - password
                 - name
+        ServiceStatus:
+            description: |
+                Describes service status.
+                - ok - service working
+                - warn - service working but with some problems
+                - fail - service available or not working
+            type: string
+            enum:
+                - "ok"
+                - "warn"
+                - "fail"
     responses:
         BadResponse:
             description: Returns on error, provide basic information about problem. Implements HTTP API details (RFC 9457) https://www.rfc-editor.org/info/rfc9457/.
@@ -995,6 +1076,17 @@ components:
                         required:
                             - online
                             - lastSeen
+        HealthResponse:
+            description: Describes healthness of application.
+            content:
+                application/health+json:
+                    schema:
+                        type: object
+                        properties:
+                            status:
+                                $ref: '#/components/schemas/ServiceStatus'
+                        required:
+                            - status
         LoginResponseOK:
             description: Successful login
             content:
@@ -1041,10 +1133,12 @@ tags:
         description: Authentication endpoints
     -   name: devices
         description: Devices management
+    -   name: meta
+        description: Meta endpoints
 `
 
-	specJSONETag = "\"2e2d3b9e7d929557b5a83ea7eeb19195\""
-	specYAMLETag = "\"43b964346d33b1104cf290fb6b18868b\""
+	specJSONETag = "\"f1d9743a91355b9efac5f26809c14bef\""
+	specYAMLETag = "\"5d21d510b507901e2f990de5e6bc2955\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.
@@ -1092,7 +1186,7 @@ type docsHandler struct {
 
 func newDocsHandler(ui bool, opts ...DocsOption) docsHandler {
 	cfg := docsConfig{
-		title: "Ship Monitor API",
+		title: "Ship Monitor",
 	}
 	for _, opt := range opts {
 		opt(&cfg)

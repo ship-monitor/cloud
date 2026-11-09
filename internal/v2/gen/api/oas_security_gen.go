@@ -40,6 +40,7 @@ var operationRolesBearerToken = map[string][]string{
 	GetDeviceMetricsOperation:      []string{},
 	GetDeviceOnlineStatusOperation: []string{},
 	GetDevicesOperation:            []string{},
+	GetHealthOperation:             []string{},
 	LoginUserOperation:             []string{},
 	RefreshTokenOperation:          []string{},
 	RegisterUserOperation:          []string{},

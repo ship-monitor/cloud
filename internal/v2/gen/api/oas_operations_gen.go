@@ -12,6 +12,7 @@ const (
 	GetDeviceMetricsOperation      OperationName = "GetDeviceMetrics"
 	GetDeviceOnlineStatusOperation OperationName = "GetDeviceOnlineStatus"
 	GetDevicesOperation            OperationName = "GetDevices"
+	GetHealthOperation             OperationName = "GetHealth"
 	LoginUserOperation             OperationName = "LoginUser"
 	RefreshTokenOperation          OperationName = "RefreshToken"
 	RegisterUserOperation          OperationName = "RegisterUser"

@@ -306,3 +306,10 @@ func toAPIDevices(devices []devicedomain.Device) []api.Device {
 
 	return out
 }
+
+// GetHealth implements [api.Handler].
+func (h *Handler) GetHealth(ctx context.Context) (*api.HealthResponse, error) {
+	return &api.HealthResponse{
+		Status: api.ServiceStatusOk,
+	}, nil
+}

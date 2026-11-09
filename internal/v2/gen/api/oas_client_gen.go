@@ -46,6 +46,10 @@ type Invoker interface {
 	//
 	// GET /api/v2/devices
 	GetDevices(ctx context.Context, params GetDevicesParams) (*GetDevicesOK, error)
+	// GetHealth invokes GetHealth operation.
+	//
+	// GET /api/v2/health
+	GetHealth(ctx context.Context) (*HealthResponse, error)
 	// LoginUser invokes LoginUser operation.
 	//
 	// POST /api/v2/auth/login
@@ -659,6 +663,81 @@ func (c *Client) sendGetDevices(ctx context.Context, params GetDevicesParams) (r
 	}()
 
 	result, err := decodeGetDevicesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetHealth invokes GetHealth operation.
+//
+// GET /api/v2/health
+func (c *Client) GetHealth(ctx context.Context) (*HealthResponse, error) {
+	res, err := c.sendGetHealth(ctx)
+	return res, err
+}
+
+func (c *Client) sendGetHealth(ctx context.Context) (res *HealthResponse, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/api/v2/health"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityBearerToken(ctx, GetHealthOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	result, err := decodeGetHealthResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

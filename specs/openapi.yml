@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Ship Monitor API
-  version: 1.0.0
+  title: Ship Monitor
+  version: 2.0.0
   description: |
-    OpenAPI specification generated from the Gin route registrations and handlers in this service.
+    OpenAPI specification of Ship Monitor cloud service.
 servers:
   - url: http://localhost:8080
     description: Local development server
@@ -17,12 +17,23 @@ tags:
     description: Authentication endpoints
   - name: devices
     description: Devices management
+  - name: meta
+    description: Meta endpoints
 
 security:
   - bearerToken: []
   - {}
 
 paths:
+  "/api/v2/health":
+    get:
+      tags: [meta]
+      operationId: GetHealth
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthResponse"
+        default:
+          $ref: "#/components/responses/BadResponse"
   "/api/v2/auth/register":
     post:
       tags: [auth]
@@ -289,10 +300,15 @@ components:
           example: Additional details about problem
     ServiceStatus:
       type: string
+      description: |
+        Describes service status.
+        - ok - service working
+        - warn - service working but with some problems
+        - fail - service available or not working
       enum:
-        - pass
-        - fail
+        - ok
         - warn
+        - fail
 
   responses:
     BadResponse:
@@ -336,6 +352,7 @@ components:
         "application/health+json":
           schema:
             type: object
+            required: [status]
             properties:
               status:
                 $ref: "#/components/schemas/ServiceStatus"

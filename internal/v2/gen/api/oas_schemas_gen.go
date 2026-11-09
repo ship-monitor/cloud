@@ -5,6 +5,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/go-faster/errors"
 	"github.com/google/uuid"
 )
 
@@ -189,6 +190,20 @@ func (s *GetOnlineResponseOK) SetOnline(val bool) {
 // SetLastSeen sets the value of LastSeen.
 func (s *GetOnlineResponseOK) SetLastSeen(val int64) {
 	s.LastSeen = val
+}
+
+type HealthResponse struct {
+	Status ServiceStatus `json:"status"`
+}
+
+// GetStatus returns the value of Status.
+func (s *HealthResponse) GetStatus() ServiceStatus {
+	return s.Status
+}
+
+// SetStatus sets the value of Status.
+func (s *HealthResponse) SetStatus(val ServiceStatus) {
+	s.Status = val
 }
 
 type LoginResponseOK struct {
@@ -484,3 +499,58 @@ type RegisterUserCreated struct{}
 
 // RemoveDeviceOK is response for RemoveDevice operation.
 type RemoveDeviceOK struct{}
+
+// Describes service status.
+//
+//   - ok - service working
+//   - warn - service working but with some problems
+//   - fail - service available or not working
+//
+// Ref: #/components/schemas/ServiceStatus
+type ServiceStatus string
+
+const (
+	ServiceStatusOk   ServiceStatus = "ok"
+	ServiceStatusWarn ServiceStatus = "warn"
+	ServiceStatusFail ServiceStatus = "fail"
+)
+
+// AllValues returns all ServiceStatus values.
+func (ServiceStatus) AllValues() []ServiceStatus {
+	return []ServiceStatus{
+		ServiceStatusOk,
+		ServiceStatusWarn,
+		ServiceStatusFail,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ServiceStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ServiceStatusOk:
+		return []byte(s), nil
+	case ServiceStatusWarn:
+		return []byte(s), nil
+	case ServiceStatusFail:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ServiceStatus) UnmarshalText(data []byte) error {
+	switch ServiceStatus(data) {
+	case ServiceStatusOk:
+		*s = ServiceStatusOk
+		return nil
+	case ServiceStatusWarn:
+		*s = ServiceStatusWarn
+		return nil
+	case ServiceStatusFail:
+		*s = ServiceStatusFail
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
