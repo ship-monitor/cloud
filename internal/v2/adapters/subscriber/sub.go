@@ -2,104 +2,85 @@ package subscriber
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/nats-io/nats.go"
-	"github.com/ship-monitor/cloud/pkg/connector/channels"
-	"github.com/ship-monitor/cloud/pkg/connector/messages"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas"
-	"github.com/ship-monitor/cloud/pkg/connector/servers"
+	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"go.uber.org/zap"
 )
-
-type Handler interface {
-	HandleHeartbeat(ctx context.Context, msg messages.HeartbeatReceiver) error
-	HandleConnectResponse(ctx context.Context, msg *nats.Msg) error
-}
 
 type SecurityHandler interface {
 	HandleMessage(
 		ctx context.Context,
-		header schemas.IdentificationHeaders,
+		header asyncapi.IdentificationHeadersSchema,
 	) (context.Context, error)
 }
 
-type HeartbeatChannel interface {
-	SubscribeHeartbeat(
+type Handler interface {
+	HandleHeartbeat(
 		ctx context.Context,
-		cb func(message messages.HeartbeatReceiver),
-	) (err error)
-}
-type ConnectResponseChannel interface {
-	SubscribeConnectResponse(
+		msg asyncapi.HeartbeatMessage,
+	) error
+	HandleConnectResponse(
 		ctx context.Context,
-		cb func(message messages.ConnectResponseReceiver),
-	) (err error)
+		response *asyncapi.ConnectResponseMessage,
+	) error
 }
 
+// type HeartbeatChannel interface {
+// 	SubscribeHeartbeat(
+// 		ctx context.Context,
+// 		cb func(message messages.HeartbeatReceiver),
+// 	) (err error)
+// }
+// type ConnectResponseChannel interface {
+// 	SubscribeConnectResponse(
+// 		ctx context.Context,
+// 		cb func(message messages.ConnectResponseReceiver),
+// 	) (err error)
+// }
+
 type S struct {
-	conn     *servers.Development
-	logger   *zap.Logger
-	handler  Handler
-	security SecurityHandler
+	controller *asyncapi.AppController
+	logger     *zap.Logger
+	handler    Handler
+	security   SecurityHandler
 
 	cancel context.CancelFunc
 }
 
 func New(
-	conn *servers.Development,
+	controller *asyncapi.AppController,
 	logger *zap.Logger,
 	handler Handler,
 	security SecurityHandler,
 ) *S {
 	return &S{
-		conn:     conn,
-		logger:   logger.Named("Subscriber"),
-		handler:  handler,
-		security: security,
-		cancel:   nil,
+		controller: controller,
+		logger:     logger.Named("Subscriber"),
+		handler:    handler,
+		security:   security,
+		cancel:     nil,
 	}
 }
 
-func (s *S) Start() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
+func (s *S) Start(ctx context.Context) error {
+	err := errors.Join(
 
-	deviceAlive, err := s.conn.OpenDevicesAliveNats(
-		ctx,
-		channels.DevicesAliveParameters{
-			DeviceID: "*",
-		}, nil,
-	)
-	if err != nil {
-		return fmt.Errorf("open channel: %w", err)
-	}
-
-	connectResponse, err := s.conn.OpenConnectResponsesNats(
-		ctx,
-		channels.ConnectResponsesParameters{
-			DeviceID: "*",
-		}, nil,
-	)
-	if err != nil {
-		return fmt.Errorf("open channel: %w", err)
-	}
-
-	go func() {
-		err = deviceAlive.SubscribeHeartbeat(ctx, s.HandleHeartbeat)
-		if err != nil {
-			s.logger.Error("Subscribe", zap.Error(err))
-		}
-	}()
-	go func() {
-		err := connectResponse.SubscribeConnectResponse(
+		s.controller.SubscribeToOnDeviceHeartbeatOperation(
 			ctx,
+			asyncapi.DevicesAliveChannelParameters{DeviceId: "*"},
+			s.HandleHeartbeat,
+		),
+		s.controller.SubscribeToOnConnectResponseOperation(
+			ctx,
+			asyncapi.ConnectResponsesChannelParameters{DeviceId: "*"},
 			s.HandleConnectResponse,
-		)
-		if err != nil {
-			s.logger.Error("Subscribe", zap.Error(err))
-		}
-	}()
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("subscribe: %w", err)
+	}
 
 	return nil
 }
@@ -110,21 +91,40 @@ func (s *S) Stop() error {
 	return nil
 }
 
-func (s *S) HandleHeartbeat(message messages.HeartbeatReceiver) {
-	ctx := context.Background()
+func (s *S) HandleHeartbeat(
+	ctx context.Context,
+	message asyncapi.HeartbeatMessage,
+) error {
+	s.logger.Info("Handle heartbeat")
 
-	ctx, err := s.security.HandleMessage(ctx, message.Headers())
+	ctx, err := s.security.HandleMessage(ctx, message.Headers)
 	if err != nil {
-		s.logger.Error("Security handle", zap.Error(err))
-
-		return
+		return fmt.Errorf("handle security: %w", err)
 	}
 
 	err = s.handler.HandleHeartbeat(ctx, message)
 	if err != nil {
-		s.logger.Error("Handle heartbeat", zap.Error(err))
-
-		return
+		return fmt.Errorf("handle heartbeat: %w", err)
 	}
+
+	return nil
 }
-func (s *S) HandleConnectResponse(message messages.ConnectResponseReceiver) {}
+
+func (s *S) HandleConnectResponse(
+	ctx context.Context,
+	message asyncapi.ConnectResponseMessage,
+) error {
+	s.logger.Info("Handle connect response")
+
+	ctx, err := s.security.HandleMessage(ctx, message.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	err = s.handler.HandleConnectResponse(ctx, &message)
+	if err != nil {
+		return fmt.Errorf("handle connect response: %w", err)
+	}
+
+	return nil
+}

@@ -1,4 +1,4 @@
-asyncapi: 3.1.0
+asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
   version: 1.0.3
@@ -57,7 +57,7 @@ operations:
     channel:
       $ref: "#/channels/devicesAlive"
     messages:
-      - $ref: "#/channels/devicesAlive/messages/heartbeat"
+      - $ref: "#/components/messages/heartbeat"
 
   publishConnectRequest:
     title: Cloud publishes connect request
@@ -65,7 +65,7 @@ operations:
     channel:
       $ref: "#/channels/connectRequests"
     messages:
-      - $ref: "#/channels/connectRequests/messages/request"
+      - $ref: "#/components/messages/connectRequest"
 
   onConnectResponse:
     title: Device sends response with approving info
@@ -73,7 +73,7 @@ operations:
     channel:
       $ref: "#/channels/connectResponses"
     messages:
-      - $ref: "#/channels/connectResponses/messages/response"
+      - $ref: "#/components/messages/connectResponse"
 
   onMetrics:
     title: Device sends own metrics or sensor metrics
@@ -81,8 +81,8 @@ operations:
     channel:
       $ref: "#/channels/metrics"
     messages:
-      - $ref: "#/channels/metrics/messages/device"
-      - $ref: "#/channels/metrics/messages/sensor"
+      - $ref: "#/components/messages/metrics"
+      - $ref: "#/components/messages/sensorMetrics"
 
 components:
   schemas:
@@ -136,14 +136,12 @@ components:
 
     identificationHeaders:
       type: object
-      required: [device-id, Authorization]
+      required: [Authorization]
       properties:
         Authorization:
           type: string
-        device-id:
-          type: string
-          description: "Device identifier"
           format: uuid
+          description: Currently holding device identifier
 
     sensorId:
       type: string
@@ -159,8 +157,6 @@ components:
 
     connectRequest:
       contentType: application/json
-      headers:
-        $ref: "#/components/schemas/identificationHeaders"
       payload:
         $ref: "#/components/schemas/connectRequest"
 
@@ -168,6 +164,8 @@ components:
       contentType: application/json
       payload:
         $ref: "#/components/schemas/connectResponse"
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
 
     metrics:
       contentType: application/json

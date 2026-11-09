@@ -1,48 +1,37 @@
 package di
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/lerenn/asyncapi-codegen/pkg/extensions/brokers/nats"
+	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
+	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
 	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
-	"github.com/ship-monitor/cloud/pkg/connector/servers"
+	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
+	"github.com/ship-monitor/cloud/pkg/connector/common"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
 func provideConnector() fx.Option {
 	return fx.Module("connector",
-		fx.Provide(newDevServer),
 		fx.Provide(newSubscriber),
+		fx.Provide(newConnectorController),
+
+		fx.Invoke(func(*subscriber.S) {}),
 	)
-}
-
-func newDevServer(lc fx.Lifecycle) (*servers.Development, error) {
-	url, err := servers.DevelopmentURL()
-	if err != nil {
-		return nil, fmt.Errorf("dev url: %w", err)
-	}
-
-	srv, err := servers.ConnectDevelopmentBidi(context.TODO(), url)
-	if err != nil {
-		return nil, fmt.Errorf("connect dev server: %w", err)
-	}
-
-	lc.Append(fx.StopHook(srv.Close))
-
-	return &srv.Development, nil
 }
 
 func newSubscriber(
 	lc fx.Lifecycle,
-	conn *servers.Development,
+	controller *asyncapi.AppController,
 	logger *zap.Logger,
 	handler *queue.Handler,
 	security *queuesecurity.Handler,
 ) *subscriber.S {
-	subs := subscriber.New(conn, logger, handler, security)
+	subs := subscriber.New(controller, logger, handler, security)
 
 	lc.Append(fx.StartStopHook(subs.Start, func() error {
 		err := subs.Stop()
@@ -54,4 +43,36 @@ func newSubscriber(
 	}))
 
 	return subs
+}
+
+func newConnectorController(
+	lc fx.Lifecycle,
+	config *config.Config,
+	logger *zap.Logger,
+) (*asyncapi.AppController, error) {
+	natsController, err := nats.NewController(config.NatsURL)
+	if err != nil {
+		return nil, fmt.Errorf("new nats controller: %w", err)
+	}
+
+	c, err := asyncapi.NewAppController(
+		natsController,
+		asyncapi.WithLogger(common.LoggerFromZap(logger)),
+		asyncapi.WithMiddlewares(
+			common.LoggingMiddleware(logger.Named("ConnectController")),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("new app controller: %w", err)
+	}
+
+	lc.Append(fx.StopHook(c.Close))
+
+	return c, nil
+}
+
+func newPublisher(
+	controller *asyncapi.AppController,
+) *publisher.P {
+	return publisher.New(controller)
 }

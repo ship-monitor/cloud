@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
-	"github.com/ship-monitor/cloud/pkg/connector/messages"
-	natsGen "github.com/ship-monitor/cloud/pkg/connector/proto/nats"
+	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"github.com/ship-monitor/cloud/pkg/hub"
 	"go.uber.org/zap"
 )
@@ -56,7 +54,7 @@ var errNoID = errors.New("no device id found in context")
 // HandleHeartbeat implements [subscriber.Handler].
 func (h *Handler) HandleHeartbeat(
 	ctx context.Context,
-	msg messages.HeartbeatReceiver,
+	msg asyncapi.HeartbeatMessage,
 ) error {
 	id, ok := device.DeviceIDFromContext(ctx)
 	if !ok {
@@ -64,7 +62,7 @@ func (h *Handler) HandleHeartbeat(
 	}
 
 	err := h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
-		Timestamp: time.Unix(*msg.Payload().Timestamp, 0),
+		Timestamp: time.Unix(msg.Payload.Timestamp, 0),
 	})
 	if err != nil {
 		return fmt.Errorf("insert heartbeat: %w", err)
@@ -75,25 +73,14 @@ func (h *Handler) HandleHeartbeat(
 
 func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
-	msg *nats.Msg,
+	response *asyncapi.ConnectResponseMessage,
 ) error {
-	response := messages.ConnectResponseIn{}
-
-	err := response.UnmarshalConnectResponsesNats(natsGen.NewEnvelopeIn(msg))
+	requestID, err := uuid.Parse(response.Payload.RequestId)
 	if err != nil {
-		return fmt.Errorf("unmarshall message: %w", err)
+		return fmt.Errorf("parse request id: %w", err)
 	}
 
-	if !*response.Payload().Approve {
-		h.logger.Warn(
-			"Request not approved",
-			zap.Any("requestId", response.Payload().RequestID),
-		)
-
-		return nil
-	}
-
-	err = h.device.ApproveConnection(ctx, *response.Payload().RequestID)
+	err = h.device.ApproveConnection(ctx, requestID)
 	if err != nil {
 		return fmt.Errorf("approve connection: %w", err)
 	}

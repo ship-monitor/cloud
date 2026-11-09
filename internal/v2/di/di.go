@@ -8,11 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nats-io/nats.go"
 	"github.com/rs/cors"
-	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/server"
-	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler"
@@ -64,7 +61,6 @@ func NewApp(config *config.Config) *fx.App {
 		provideConnector(),
 
 		fx.Invoke(func(*http.Server) {}),
-		fx.Invoke(func(*subscriber.S) {}),
 	)
 }
 
@@ -184,8 +180,4 @@ func newQueueHandler(
 
 func newQueueSecurityHandler(logger *zap.Logger) *queuesecurity.Handler {
 	return queuesecurity.New(logger)
-}
-
-func newPublisher(conn *nats.Conn) *publisher.P {
-	return publisher.New(conn)
 }

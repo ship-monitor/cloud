@@ -11,8 +11,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
-	"github.com/ship-monitor/cloud/pkg/connector/messages"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas"
+	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"github.com/ship-monitor/cloud/pkg/hub"
 )
 
@@ -67,7 +66,8 @@ type ConnRequestRepository interface {
 type Publisher interface {
 	PublishConnectRequest(
 		ctx context.Context,
-		r *messages.ConnectRequestOut,
+		id uuid.UUID,
+		r *asyncapi.ConnectRequestMessage,
 	) error
 }
 
@@ -148,13 +148,10 @@ func (s *Service) Connect(
 
 	requestID := uuid.New()
 
-	request := messages.ConnectRequestOut{
-		Payload: schemas.ConnectRequest{
-			RequestID: &requestID,
-			SecretKey: &securityKey,
-		},
-		Headers: schemas.IdentificationHeaders{
-			DeviceID: &id,
+	request := asyncapi.ConnectRequestMessage{
+		Payload: asyncapi.ConnectRequestSchema{
+			RequestId: requestID.String(),
+			SecretKey: securityKey,
 		},
 	}
 
@@ -169,7 +166,7 @@ func (s *Service) Connect(
 		return fmt.Errorf("create connect request: %w", err)
 	}
 
-	err = s.pub.PublishConnectRequest(ctx, &request)
+	err = s.pub.PublishConnectRequest(ctx, id, &request)
 	if err != nil {
 		return fmt.Errorf("publish connect request: %w", err)
 	}

@@ -3,10 +3,12 @@ package queuesecurity
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
-	"github.com/ship-monitor/cloud/pkg/connector/schemas"
+	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"go.uber.org/zap"
 )
 
@@ -26,19 +28,17 @@ func New(
 
 var errNoID = errors.New("no device id provided in header")
 
-const DeviceIDHeader = "DeviceID"
-
 // HandleMessage implements [subscriber.SecurityHandler].
 func (h *Handler) HandleMessage(
 	ctx context.Context,
-	header schemas.IdentificationHeaders,
+	header asyncapi.IdentificationHeadersSchema,
 ) (context.Context, error) {
 	h.logger.Debug("Message header", zap.Any("header", header))
 
-	deviceID := header.DeviceID
-	if deviceID == nil {
-		return ctx, errNoID
+	deviceID, err := uuid.Parse(header.Authorization)
+	if err != nil {
+		return ctx, fmt.Errorf("parse uuid: %w", err)
 	}
 
-	return device.WithDeviceID(ctx, *deviceID), nil
+	return device.WithDeviceID(ctx, deviceID), nil
 }
