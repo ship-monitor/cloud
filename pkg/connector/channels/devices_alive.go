@@ -21,7 +21,7 @@ func DevicesAliveAddress(params DevicesAliveParameters) run.ParamString {
 		"deviceId": string(params.DeviceID),
 	}
 	return run.ParamString{
-		Expr:       "devices.{deviceId}.health",
+		Expr:       "device.{deviceId}.health",
 		Parameters: paramMap,
 	}
 }

@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: SHIP connection protocol
-  version: 1.0.0
+  version: 1.0.2
 servers:
   development:
     host: localhost:4222
@@ -9,7 +9,7 @@ servers:
     protocol: nats
 channels:
   connectRequests:
-    address: devices.{deviceId}.connect.requests
+    address: device.{deviceId}.connect.requests
     parameters:
       deviceId:
         $ref: "#/components/parameters/deviceId"
@@ -17,7 +17,7 @@ channels:
       request:
         $ref: "#/components/messages/connectRequest"
   connectResponses:
-    address: devices.{deviceId}.connect.responses
+    address: device.{deviceId}.connect.responses
     parameters:
       deviceId:
         $ref: "#/components/parameters/deviceId"
@@ -26,7 +26,7 @@ channels:
         $ref: "#/components/messages/connectResponse"
 
   devicesAlive:
-    address: devices.{deviceId}.health
+    address: device.{deviceId}.health
     parameters:
       deviceId:
         $ref: "#/components/parameters/deviceId"

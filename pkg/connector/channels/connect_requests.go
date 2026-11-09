@@ -21,7 +21,7 @@ func ConnectRequestsAddress(params ConnectRequestsParameters) run.ParamString {
 		"deviceId": string(params.DeviceID),
 	}
 	return run.ParamString{
-		Expr:       "devices.{deviceId}.connect.requests",
+		Expr:       "device.{deviceId}.connect.requests",
 		Parameters: paramMap,
 	}
 }
