@@ -129,7 +129,7 @@ func Logging(logger *zap.Logger) api.Middleware {
 			log.Info(logMessage)
 		}
 
-		return next(req)
+		return resp, err
 	}
 }
 
