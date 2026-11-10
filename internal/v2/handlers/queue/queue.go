@@ -75,12 +75,7 @@ func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
 	response *asyncapi.ConnectResponseMessage,
 ) error {
-	requestID, err := uuid.Parse(response.Payload.RequestId)
-	if err != nil {
-		return fmt.Errorf("parse request id: %w", err)
-	}
-
-	err = h.device.ApproveConnection(ctx, requestID)
+	err := h.device.ApproveConnection(ctx, response.Payload.RequestID)
 	if err != nil {
 		return fmt.Errorf("approve connection: %w", err)
 	}

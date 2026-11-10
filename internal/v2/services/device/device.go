@@ -150,7 +150,7 @@ func (s *Service) Connect(
 
 	request := asyncapi.ConnectRequestMessage{
 		Payload: asyncapi.ConnectRequestSchema{
-			RequestId: requestID.String(),
+			RequestID: requestID,
 			SecretKey: securityKey,
 		},
 	}

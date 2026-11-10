@@ -2,7 +2,6 @@ package queuesecurity
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -25,8 +24,6 @@ func New(
 		logger: logger.Named("QueueSecurityHandler"),
 	}
 }
-
-var errNoID = errors.New("no device id provided in header")
 
 // HandleMessage implements [subscriber.SecurityHandler].
 func (h *Handler) HandleMessage(

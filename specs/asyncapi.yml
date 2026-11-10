@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
-  version: 1.0.3
+  version: 1.0.4
 servers:
   development:
     host: localhost:4222
@@ -50,6 +50,12 @@ channels:
       sensor:
         $ref: "#/components/messages/sensorMetrics"
 
+  sensorDeclarations:
+    address: device.{deviceId}.sensors
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+
 operations:
   onDeviceHeartbeat:
     title: Device sends heartbeat message
@@ -75,13 +81,20 @@ operations:
     messages:
       - $ref: "#/components/messages/connectResponse"
 
-  onMetrics:
-    title: Device sends own metrics or sensor metrics
+  metrics:
+    title: Device sends own metrics
     action: receive
     channel:
       $ref: "#/channels/metrics"
     messages:
       - $ref: "#/components/messages/metrics"
+
+  sensorMetrics:
+    title: Device sends sensor metrics
+    action: receive
+    channel:
+      $ref: "#/channels/metrics"
+    messages:
       - $ref: "#/components/messages/sensorMetrics"
 
 components:
@@ -122,8 +135,12 @@ components:
         secretKey:
           type: string
         requestId:
+          x-go-name: RequestID
           type: string
           format: uuid
+          x-go-type: uuid.UUID
+          x-go-type-imports:
+            path: github.com/google/uuid
     connectResponse:
       type: object
       required: [approve, requestId]
@@ -131,8 +148,12 @@ components:
         approve:
           type: boolean
         requestId:
+          x-go-name: RequestID
           type: string
           format: uuid
+          x-go-type: uuid.UUID
+          x-go-type-imports:
+            path: github.com/google/uuid
 
     identificationHeaders:
       type: object
@@ -145,6 +166,7 @@ components:
 
     sensorId:
       type: string
+      x-go-name: SensorID
       description: Sensor identifier. It could be in non-UUID format.
 
   messages:
@@ -189,6 +211,7 @@ components:
         required: [metrics, sensorId]
         properties:
           sensorId:
+            x-go-name: SensorID
             $ref: "#/components/schemas/sensorId"
           metrics:
             type: array
@@ -197,6 +220,7 @@ components:
 
   parameters:
     deviceId:
+      x-go-name: DeviceID
       description: Device identifier in UUID format.
 
   # securitySchemes:

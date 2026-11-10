@@ -19,29 +19,38 @@ func LoggerFromZap(logger *zap.Logger) extensions.Logger {
 
 // Error implements [extensions.Logger].
 func (q *queueLogger) Error(
-	ctx context.Context,
+	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
 ) {
-	q.zap.Error(msg, zap.Reflect("values", info))
+	q.zap.Error(msg, logInfoToFields(info)...)
 }
 
 // Info implements [extensions.Logger].
 func (q *queueLogger) Info(
-	ctx context.Context,
+	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
 ) {
-	q.zap.Info(msg, zap.Reflect("values", info))
+	q.zap.Info(msg, logInfoToFields(info)...)
 }
 
 // Warning implements [extensions.Logger].
 func (q *queueLogger) Warning(
-	ctx context.Context,
+	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
 ) {
-	q.zap.Warn(msg, zap.Reflect("values", info))
+	q.zap.Warn(msg, logInfoToFields(info)...)
 }
 
 var _ extensions.Logger = (*queueLogger)(nil)
+
+func logInfoToFields(info []extensions.LogInfo) []zap.Field {
+	fields := make([]zap.Field, 0, len(info))
+	for _, i := range info {
+		fields = append(fields, zap.Any(i.Key, i.Value))
+	}
+
+	return fields
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/brokers/nats"
+	"github.com/lerenn/asyncapi-codegen/pkg/extensions/middlewares"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/config"
@@ -55,11 +56,14 @@ func newConnectorController(
 		return nil, fmt.Errorf("new nats controller: %w", err)
 	}
 
+	qLog := common.LoggerFromZap(logger.Named("ConnectorController"))
+
 	c, err := asyncapi.NewAppController(
 		natsController,
-		asyncapi.WithLogger(common.LoggerFromZap(logger)),
+		asyncapi.WithLogger(qLog),
 		asyncapi.WithMiddlewares(
-			common.LoggingMiddleware(logger.Named("ConnectController")),
+			middlewares.Logging(qLog),
+			middlewares.Recovery(qLog),
 		),
 	)
 	if err != nil {
