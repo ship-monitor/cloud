@@ -3,6 +3,7 @@ package device
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 )
@@ -43,6 +44,8 @@ type deviceIDkey struct{}
 func WithDeviceID(ctx context.Context, id uuid.UUID) context.Context {
 	return context.WithValue(ctx, deviceIDkey{}, id)
 }
+
+var ErrNoIDInContext = errors.New("no device id found in context")
 
 func DeviceIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(deviceIDkey{}).(uuid.UUID)

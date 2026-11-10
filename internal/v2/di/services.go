@@ -8,8 +8,10 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
+	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
 )
@@ -34,4 +36,10 @@ func newDeviceService(
 	conn *connect.Repo,
 ) *device.Service {
 	return device.New(repo, alive, pub, conn)
+}
+
+func newSensorsService(
+	repo *sensorrepo.Repo,
+) *sensor.Service {
+	return sensor.New(repo)
 }

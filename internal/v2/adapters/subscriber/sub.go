@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"go.uber.org/zap"
 )
@@ -27,24 +30,20 @@ type Handler interface {
 	) error
 }
 
-// type HeartbeatChannel interface {
-// 	SubscribeHeartbeat(
-// 		ctx context.Context,
-// 		cb func(message messages.HeartbeatReceiver),
-// 	) (err error)
-// }
-// type ConnectResponseChannel interface {
-// 	SubscribeConnectResponse(
-// 		ctx context.Context,
-// 		cb func(message messages.ConnectResponseReceiver),
-// 	) (err error)
-// }
+type SensorService interface {
+	DeclareSensors(
+		ctx context.Context,
+		deviceID uuid.UUID,
+		sensors []sensor.Sensor,
+	) error
+}
 
 type S struct {
 	controller *asyncapi.AppController
 	logger     *zap.Logger
 	handler    Handler
 	security   SecurityHandler
+	sensor     SensorService
 }
 
 func New(
@@ -52,12 +51,14 @@ func New(
 	logger *zap.Logger,
 	handler Handler,
 	security SecurityHandler,
+	sensor SensorService,
 ) *S {
 	return &S{
 		controller: controller,
 		logger:     logger.Named("Subscriber"),
 		handler:    handler,
 		security:   security,
+		sensor:     sensor,
 	}
 }
 
@@ -158,5 +159,28 @@ func (s *S) HandleSensorDeclaration(
 	ctx context.Context,
 	msg asyncapi.SensorDeclarationMessage,
 ) error {
+	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	deviceID, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
+	}
+
+	sensors := make([]sensor.Sensor, 0, len(msg.Payload.Sensors))
+	for _, s := range msg.Payload.Sensors {
+		sensors = append(
+			sensors,
+			sensor.Sensor{ID: string(s.Id), Name: s.Name, DeviceID: deviceID},
+		)
+	}
+
+	err = s.sensor.DeclareSensors(ctx, deviceID, sensors)
+	if err != nil {
+		return fmt.Errorf("service: declare sensors: %w", err)
+	}
+
 	return nil
 }

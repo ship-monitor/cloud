@@ -19,6 +19,7 @@ import (
 	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	"github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
@@ -43,10 +44,12 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(devicerepo.New),
 		fx.Provide(aliverepo.New),
 		fx.Provide(connect.New),
+		fx.Provide(sensor.New),
 
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
 		fx.Provide(newDeviceService),
+		fx.Provide(newSensorsService),
 
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),

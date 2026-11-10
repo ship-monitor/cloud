@@ -11,6 +11,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
 	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
+	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"github.com/ship-monitor/cloud/pkg/connector/common"
 	"go.uber.org/fx"
@@ -32,8 +33,9 @@ func newSubscriber(
 	logger *zap.Logger,
 	handler *queue.Handler,
 	security *queuesecurity.Handler,
+	sensor *sensor.Service,
 ) *subscriber.S {
-	subs := subscriber.New(controller, logger, handler, security)
+	subs := subscriber.New(controller, logger, handler, security, sensor)
 
 	lc.Append(fx.StartStopHook(subs.Start, func(ctx context.Context) error {
 		err := subs.Stop(ctx)
