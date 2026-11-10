@@ -45,8 +45,6 @@ type S struct {
 	logger     *zap.Logger
 	handler    Handler
 	security   SecurityHandler
-
-	cancel context.CancelFunc
 }
 
 func New(
@@ -60,13 +58,11 @@ func New(
 		logger:     logger.Named("Subscriber"),
 		handler:    handler,
 		security:   security,
-		cancel:     nil,
 	}
 }
 
 func (s *S) Start(ctx context.Context) error {
 	err := errors.Join(
-
 		s.controller.SubscribeToOnDeviceHeartbeatOperation(
 			ctx,
 			asyncapi.DevicesAliveChannelParameters{DeviceId: "*"},
@@ -77,6 +73,21 @@ func (s *S) Start(ctx context.Context) error {
 			asyncapi.ConnectResponsesChannelParameters{DeviceId: "*"},
 			s.HandleConnectResponse,
 		),
+		s.controller.SubscribeToMetricsOperationForMetrics(
+			ctx,
+			asyncapi.MetricsChannelParameters{DeviceId: "*"},
+			s.HandleMetrics,
+		),
+		s.controller.SubscribeToMetricsOperationForSensorMetrics(
+			ctx,
+			asyncapi.MetricsChannelParameters{DeviceId: "*"},
+			s.HandleSensorMetrics,
+		),
+		s.controller.SubscribeToSensorDeclarationOperation(
+			ctx,
+			asyncapi.SensorDeclarationsChannelParameters{DeviceId: "*"},
+			s.HandleSensorDeclaration,
+		),
 	)
 	if err != nil {
 		return fmt.Errorf("subscribe: %w", err)
@@ -85,8 +96,8 @@ func (s *S) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *S) Stop() error {
-	s.cancel()
+func (s *S) Stop(ctx context.Context) error {
+	s.controller.UnsubscribeFromAllChannels(ctx)
 
 	return nil
 }
@@ -126,5 +137,26 @@ func (s *S) HandleConnectResponse(
 		return fmt.Errorf("handle connect response: %w", err)
 	}
 
+	return nil
+}
+
+func (s *S) HandleMetrics(
+	ctx context.Context,
+	msg asyncapi.MetricsMessage,
+) error {
+	return nil
+}
+
+func (s *S) HandleSensorMetrics(
+	ctx context.Context,
+	msg asyncapi.SensorMetricsMessage,
+) error {
+	return nil
+}
+
+func (s *S) HandleSensorDeclaration(
+	ctx context.Context,
+	msg asyncapi.SensorDeclarationMessage,
+) error {
 	return nil
 }

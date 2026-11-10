@@ -7,12 +7,35 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"sync"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions"
 
 	"github.com/google/uuid"
 )
+
+// validate is the validator used to discriminate between the several message
+// types that can be received on a single channel (issue #333).
+var validate = validator.New()
+
+// messageDispatchHandler tries to convert and validate a raw broker message
+// against a single expected message type and, when it matches, dispatches it to
+// the registered callback. It returns true when the message matched the type.
+type messageDispatchHandler func(ctx context.Context, bMsg extensions.BrokerMessage) (handled bool, err error)
+
+// messageDispatcher holds, per channel address, the per-message handlers
+// registered by multi-message receive subscriptions and multiplexes a single
+// broker subscription to them (issue #333). It is held by pointer on the
+// controller so the controller stays safe to copy by value.
+type messageDispatcher struct {
+	// mutex protects concurrent access to handlers.
+	mutex sync.Mutex
+	// handlers maps a channel address to the per-message handlers registered on it.
+	handlers map[string]map[string]messageDispatchHandler
+}
 
 // controller is the controller that will be used to communicate with the broker
 // It will be used internally by AppController and UserController
@@ -21,6 +44,9 @@ type controller struct {
 	broker extensions.BrokerController
 	// subscriptions is a map of all subscriptions
 	subscriptions map[string]extensions.BrokerChannelSubscription
+	// dispatcher multiplexes broker messages to the per-message handlers
+	// registered by multi-message receive subscriptions (issue #333).
+	dispatcher *messageDispatcher
 	// logger is the logger that will be used to log operations on controller
 	logger extensions.Logger
 	// middlewares are the middlewares that will be executed when sending or
@@ -57,8 +83,11 @@ func WithErrorHandler(handler extensions.ErrorHandler) ControllerOption {
 
 // AppSubscriber contains all handlers that are listening messages for App
 type AppSubscriber interface {
-	// MetricsOperationReceived receive all Metrics messages from Metrics channel.
-	MetricsOperationReceived(ctx context.Context, msg MetricsMessage) error
+	// MetricsOperationForMetricsReceived receive all Metrics messages from Metrics channel.
+	MetricsOperationForMetricsReceived(ctx context.Context, msg MetricsMessage) error
+
+	// MetricsOperationForSensorMetricsReceived receive all SensorMetrics messages from Metrics channel.
+	MetricsOperationForSensorMetricsReceived(ctx context.Context, msg SensorMetricsMessage) error
 
 	// OnConnectResponseOperationReceived receive all ConnectResponse messages from ConnectResponses channel.
 	OnConnectResponseOperationReceived(ctx context.Context, msg ConnectResponseMessage) error
@@ -66,8 +95,8 @@ type AppSubscriber interface {
 	// OnDeviceHeartbeatOperationReceived receive all Heartbeat messages from DevicesAlive channel.
 	OnDeviceHeartbeatOperationReceived(ctx context.Context, msg HeartbeatMessage) error
 
-	// SensorMetricsOperationReceived receive all SensorMetrics messages from Metrics channel.
-	SensorMetricsOperationReceived(ctx context.Context, msg SensorMetricsMessage) error
+	// SensorDeclarationOperationReceived receive all SensorDeclaration messages from SensorDeclarations channel.
+	SensorDeclarationOperationReceived(ctx context.Context, msg SensorDeclarationMessage) error
 }
 
 // AppController is the structure that provides sending capabilities to the
@@ -87,6 +116,7 @@ func NewAppController(bc extensions.BrokerController, options ...ControllerOptio
 	controller := controller{
 		broker:        bc,
 		subscriptions: make(map[string]extensions.BrokerChannelSubscription),
+		dispatcher:    &messageDispatcher{handlers: make(map[string]map[string]messageDispatchHandler)},
 		logger:        extensions.DummyLogger{},
 		middlewares:   make([]extensions.Middleware, 0),
 		errorHandler:  extensions.DefaultErrorHandler(),
@@ -186,15 +216,13 @@ func (c *AppController) SubscribeToAllChannels(ctx context.Context, as AppSubscr
 func (c *AppController) UnsubscribeFromAllChannels(ctx context.Context) {
 }
 
-// SubscribeToMetricsOperation will receive Metrics messages from Metrics channel.
+// SubscribeToMetricsOperationForMetrics will receive Metrics messages from Metrics channel.
 //
-// Callback function 'fn' will be called each time a new message is received.
+// Callback function 'fn' will be called each time a Metrics message is received.
 //
-// NOTE: for now, this only support the first message from AsyncAPI list.
-//
-// NOTE: for now, this only support the first message from AsyncAPI list.
-// If you need support for other messages, please raise an issue.
-func (c *AppController) SubscribeToMetricsOperation(
+// NOTE: this channel carries several message types; a received message is only
+// dispatched to this callback when it matches the MetricsMessage schema.
+func (c *AppController) SubscribeToMetricsOperationForMetrics(
 	ctx context.Context,
 	params MetricsChannelParameters,
 	fn func(ctx context.Context, msg MetricsMessage) error,
@@ -206,27 +234,152 @@ func (c *AppController) SubscribeToMetricsOperation(
 	ctx = addAppContextValues(ctx, addr)
 	ctx = context.WithValue(ctx, extensions.ContextKeyIsDirection, "reception")
 
-	// Check if the controller is already subscribed
-	_, exists := c.subscriptions[addr]
-	if exists {
-		err := fmt.Errorf("%w: controller is already subscribed on channel %q", extensions.ErrAlreadySubscribedChannel, addr)
-		c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
-		return err
+	// Build the handler that discriminates MetricsMessage messages and
+	// dispatches them to the callback.
+	handler := func(hdlrCtx context.Context, bMsg extensions.BrokerMessage) (bool, error) {
+		// Try to convert the broker message to the expected type
+		msg, err := brokerMessageToMetricsMessage(bMsg)
+		if err != nil {
+			return false, nil
+		}
+
+		// Validate it against the message schema to discriminate it from the
+		// other message types received on this channel.
+		if err := validate.Struct(msg); err != nil {
+			return false, nil
+		}
+
+		// Execute the subscription function
+		if err := fn(hdlrCtx, msg); err != nil {
+			return true, err
+		}
+
+		return true, nil
 	}
 
-	// Subscribe to broker channel
+	// Register the handler and subscribe to the channel if not done already
+	return c.subscribeToMetricsOperation(ctx, addr, "MetricsMessage", handler)
+}
+
+// UnsubscribeFromMetricsOperationForMetrics will stop the reception of Metrics messages from Metrics channel.
+// The underlying broker subscription is canceled once the last message type on
+// the channel is unsubscribed.
+// A timeout can be set in context to avoid blocking operation, if needed.
+func (c *AppController) UnsubscribeFromMetricsOperationForMetrics(
+	ctx context.Context,
+	params MetricsChannelParameters,
+) {
+	// Get channel address
+	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+
+	c.unsubscribeFromMetricsOperation(ctx, addr, "MetricsMessage")
+}
+
+// SubscribeToMetricsOperationForSensorMetrics will receive SensorMetrics messages from Metrics channel.
+//
+// Callback function 'fn' will be called each time a SensorMetrics message is received.
+//
+// NOTE: this channel carries several message types; a received message is only
+// dispatched to this callback when it matches the SensorMetricsMessage schema.
+func (c *AppController) SubscribeToMetricsOperationForSensorMetrics(
+	ctx context.Context,
+	params MetricsChannelParameters,
+	fn func(ctx context.Context, msg SensorMetricsMessage) error,
+) error {
+	// Get channel address
+	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+
+	// Set context
+	ctx = addAppContextValues(ctx, addr)
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsDirection, "reception")
+
+	// Build the handler that discriminates SensorMetricsMessage messages and
+	// dispatches them to the callback.
+	handler := func(hdlrCtx context.Context, bMsg extensions.BrokerMessage) (bool, error) {
+		// Try to convert the broker message to the expected type
+		msg, err := brokerMessageToSensorMetricsMessage(bMsg)
+		if err != nil {
+			return false, nil
+		}
+
+		// Validate it against the message schema to discriminate it from the
+		// other message types received on this channel.
+		if err := validate.Struct(msg); err != nil {
+			return false, nil
+		}
+
+		// Execute the subscription function
+		if err := fn(hdlrCtx, msg); err != nil {
+			return true, err
+		}
+
+		return true, nil
+	}
+
+	// Register the handler and subscribe to the channel if not done already
+	return c.subscribeToMetricsOperation(ctx, addr, "SensorMetricsMessage", handler)
+}
+
+// UnsubscribeFromMetricsOperationForSensorMetrics will stop the reception of SensorMetrics messages from Metrics channel.
+// The underlying broker subscription is canceled once the last message type on
+// the channel is unsubscribed.
+// A timeout can be set in context to avoid blocking operation, if needed.
+func (c *AppController) UnsubscribeFromMetricsOperationForSensorMetrics(
+	ctx context.Context,
+	params MetricsChannelParameters,
+) {
+	// Get channel address
+	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+
+	c.unsubscribeFromMetricsOperation(ctx, addr, "SensorMetricsMessage")
+}
+
+// subscribeToMetricsOperation registers a per-message handler on the
+// Metrics channel and, on the first
+// registration, opens a single broker subscription multiplexed to every
+// registered handler (issue #333).
+func (c *AppController) subscribeToMetricsOperation(
+	ctx context.Context,
+	addr string,
+	msgName string,
+	handler messageDispatchHandler,
+) error {
+	c.dispatcher.mutex.Lock()
+	defer c.dispatcher.mutex.Unlock()
+
+	// If there are already handlers on this channel, just register this one: the
+	// existing broker subscription will dispatch to it.
+	if handlers, exists := c.dispatcher.handlers[addr]; exists {
+		if _, exists := handlers[msgName]; exists {
+			err := fmt.Errorf("%w: controller is already subscribed for message %q on channel %q", extensions.ErrAlreadySubscribedChannel, msgName, addr)
+			c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
+			return err
+		}
+
+		handlers[msgName] = handler
+		c.logger.Info(ctx, "Subscribed to channel", extensions.LogInfosFromContext(ctx)...)
+		return nil
+	}
+
+	// First registration on this channel: register the handler...
+	c.dispatcher.handlers[addr] = map[string]messageDispatchHandler{msgName: handler}
+
+	// ...and subscribe to the broker channel.
 	sub, err := c.broker.Subscribe(ctx, addr)
 	if err != nil {
+		delete(c.dispatcher.handlers, addr)
 		c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
 		return err
 	}
+	c.subscriptions[addr] = sub
 	c.logger.Info(ctx, "Subscribed to channel", extensions.LogInfosFromContext(ctx)...)
 
-	// Asynchronously listen to new messages and pass them to app receiver
+	// Asynchronously listen to new messages and dispatch them to the matching
+	// registered handler.
 	go func() {
 		for {
 			// Listen to next message
-			stop, err := c.listenToMetricsOperationNextMessage(addr, sub, fn)
+			stop, err := c.listenToMetricsOperationNextMessage(addr, sub)
 			if err != nil {
 				c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
 			}
@@ -238,16 +391,12 @@ func (c *AppController) SubscribeToMetricsOperation(
 		}
 	}()
 
-	// Add the cancel channel to the inside map
-	c.subscriptions[addr] = sub
-
 	return nil
 }
 
 func (c *AppController) listenToMetricsOperationNextMessage(
 	addr string,
 	sub extensions.BrokerChannelSubscription,
-	fn func(ctx context.Context, msg MetricsMessage) error,
 ) (stop bool, err error) {
 	// Create a context for the received response
 	msgCtx, cancel := context.WithCancel(context.Background())
@@ -269,20 +418,37 @@ func (c *AppController) listenToMetricsOperationNextMessage(
 
 	// Execute middlewares before handling the message
 	if err := c.executeMiddlewares(msgCtx, &acknowledgeableBrokerMessage.BrokerMessage, func(middlewareCtx context.Context) error {
-		// Process message
-		msg, err := brokerMessageToMetricsMessage(acknowledgeableBrokerMessage.BrokerMessage)
-		if err != nil {
-			return err
+		// Snapshot the registered message names in a deterministic order
+		c.dispatcher.mutex.Lock()
+		handlers := c.dispatcher.handlers[addr]
+		msgNames := make([]string, 0, len(handlers))
+		for msgName := range handlers {
+			msgNames = append(msgNames, msgName)
+		}
+		c.dispatcher.mutex.Unlock()
+		sort.Strings(msgNames)
+
+		// Try each registered handler until one matches the received message
+		for _, msgName := range msgNames {
+			c.dispatcher.mutex.Lock()
+			handler := c.dispatcher.handlers[addr][msgName]
+			c.dispatcher.mutex.Unlock()
+			if handler == nil {
+				continue
+			}
+
+			handled, err := handler(middlewareCtx, acknowledgeableBrokerMessage.BrokerMessage)
+			if err != nil {
+				return err
+			}
+			if handled {
+				acknowledgeableBrokerMessage.Ack()
+				return nil
+			}
 		}
 
-		// Execute the subscription function
-		if err := fn(middlewareCtx, msg); err != nil {
-			return err
-		}
-
-		acknowledgeableBrokerMessage.Ack()
-
-		return nil
+		// No registered handler matched the received message
+		return extensions.ErrNoMatchingMessage
 	}); err != nil {
 		c.errorHandler(msgCtx, addr, &acknowledgeableBrokerMessage, err)
 		// On error execute the acknowledgeableBrokerMessage nack() function and
@@ -293,29 +459,40 @@ func (c *AppController) listenToMetricsOperationNextMessage(
 	return false, nil
 }
 
-// UnsubscribeFromMetricsOperation will stop the reception of Metrics messages from Metrics channel.
-// A timeout can be set in context to avoid blocking operation, if needed.
-func (c *AppController) UnsubscribeFromMetricsOperation(
+func (c *AppController) unsubscribeFromMetricsOperation(
 	ctx context.Context,
-	params MetricsChannelParameters,
+	addr string,
+	msgName string,
 ) {
-	// Get channel address
-	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+	c.dispatcher.mutex.Lock()
+	defer c.dispatcher.mutex.Unlock()
 
-	// Check if there receivers for this channel
-	sub, exists := c.subscriptions[addr]
+	// Check if there are handlers for this channel
+	handlers, exists := c.dispatcher.handlers[addr]
 	if !exists {
 		return
 	}
 
+	// Check if this message type is subscribed
+	if _, exists := handlers[msgName]; !exists {
+		return
+	}
+
+	// Remove the handler for this message type
+	delete(handlers, msgName)
+
 	// Set context
 	ctx = addAppContextValues(ctx, addr)
 
-	// Stop the subscription
-	sub.Cancel(ctx)
+	// If there are no more handlers on this channel, cancel the broker subscription
+	if len(handlers) == 0 {
+		delete(c.dispatcher.handlers, addr)
 
-	// Remove if from the receivers
-	delete(c.subscriptions, addr)
+		if sub, exists := c.subscriptions[addr]; exists {
+			sub.Cancel(ctx)
+			delete(c.subscriptions, addr)
+		}
+	}
 
 	c.logger.Info(ctx, "Unsubscribed from channel", extensions.LogInfosFromContext(ctx)...)
 }
@@ -588,7 +765,7 @@ func (c *AppController) UnsubscribeFromOnDeviceHeartbeatOperation(
 	c.logger.Info(ctx, "Unsubscribed from channel", extensions.LogInfosFromContext(ctx)...)
 }
 
-// SubscribeToSensorMetricsOperation will receive SensorMetrics messages from Metrics channel.
+// SubscribeToSensorDeclarationOperation will receive SensorDeclaration messages from SensorDeclarations channel.
 //
 // Callback function 'fn' will be called each time a new message is received.
 //
@@ -596,13 +773,13 @@ func (c *AppController) UnsubscribeFromOnDeviceHeartbeatOperation(
 //
 // NOTE: for now, this only support the first message from AsyncAPI list.
 // If you need support for other messages, please raise an issue.
-func (c *AppController) SubscribeToSensorMetricsOperation(
+func (c *AppController) SubscribeToSensorDeclarationOperation(
 	ctx context.Context,
-	params MetricsChannelParameters,
-	fn func(ctx context.Context, msg SensorMetricsMessage) error,
+	params SensorDeclarationsChannelParameters,
+	fn func(ctx context.Context, msg SensorDeclarationMessage) error,
 ) error {
 	// Get channel address
-	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+	addr := fmt.Sprintf("device.%s.sensors", params.DeviceId)
 
 	// Set context
 	ctx = addAppContextValues(ctx, addr)
@@ -628,7 +805,7 @@ func (c *AppController) SubscribeToSensorMetricsOperation(
 	go func() {
 		for {
 			// Listen to next message
-			stop, err := c.listenToSensorMetricsOperationNextMessage(addr, sub, fn)
+			stop, err := c.listenToSensorDeclarationOperationNextMessage(addr, sub, fn)
 			if err != nil {
 				c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
 			}
@@ -646,10 +823,10 @@ func (c *AppController) SubscribeToSensorMetricsOperation(
 	return nil
 }
 
-func (c *AppController) listenToSensorMetricsOperationNextMessage(
+func (c *AppController) listenToSensorDeclarationOperationNextMessage(
 	addr string,
 	sub extensions.BrokerChannelSubscription,
-	fn func(ctx context.Context, msg SensorMetricsMessage) error,
+	fn func(ctx context.Context, msg SensorDeclarationMessage) error,
 ) (stop bool, err error) {
 	// Create a context for the received response
 	msgCtx, cancel := context.WithCancel(context.Background())
@@ -672,7 +849,7 @@ func (c *AppController) listenToSensorMetricsOperationNextMessage(
 	// Execute middlewares before handling the message
 	if err := c.executeMiddlewares(msgCtx, &acknowledgeableBrokerMessage.BrokerMessage, func(middlewareCtx context.Context) error {
 		// Process message
-		msg, err := brokerMessageToSensorMetricsMessage(acknowledgeableBrokerMessage.BrokerMessage)
+		msg, err := brokerMessageToSensorDeclarationMessage(acknowledgeableBrokerMessage.BrokerMessage)
 		if err != nil {
 			return err
 		}
@@ -695,14 +872,14 @@ func (c *AppController) listenToSensorMetricsOperationNextMessage(
 	return false, nil
 }
 
-// UnsubscribeFromSensorMetricsOperation will stop the reception of SensorMetrics messages from Metrics channel.
+// UnsubscribeFromSensorDeclarationOperation will stop the reception of SensorDeclaration messages from SensorDeclarations channel.
 // A timeout can be set in context to avoid blocking operation, if needed.
-func (c *AppController) UnsubscribeFromSensorMetricsOperation(
+func (c *AppController) UnsubscribeFromSensorDeclarationOperation(
 	ctx context.Context,
-	params MetricsChannelParameters,
+	params SensorDeclarationsChannelParameters,
 ) {
 	// Get channel address
-	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+	addr := fmt.Sprintf("device.%s.sensors", params.DeviceId)
 
 	// Check if there receivers for this channel
 	sub, exists := c.subscriptions[addr]
@@ -1009,14 +1186,39 @@ func (c *UserController) UnsubscribeFromPublishConnectRequestOperation(
 	c.logger.Info(ctx, "Unsubscribed from channel", extensions.LogInfosFromContext(ctx)...)
 }
 
-// SendToMetricsOperation will send a Metrics message on Metrics channel.
-//
-// NOTE: for now, this only support the first message from AsyncAPI list.
-// If you need support for other messages, please raise an issue.
-func (c *UserController) SendToMetricsOperation(
+// SendToMetricsOperationForMetrics will send a Metrics message on Metrics channel.
+func (c *UserController) SendToMetricsOperationForMetrics(
 	ctx context.Context,
 	params MetricsChannelParameters,
 	msg MetricsMessage,
+) error {
+	// Set channel address
+	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+
+	// Set context
+	ctx = addUserContextValues(ctx, addr)
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsDirection, "publication")
+
+	// Convert to BrokerMessage
+	brokerMsg, err := msg.toBrokerMessage()
+	if err != nil {
+		return err
+	}
+
+	// Set broker message to context
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsBrokerMessage, brokerMsg.String())
+
+	// Send the message on event-broker through middlewares
+	return c.executeMiddlewares(ctx, &brokerMsg, func(ctx context.Context) error {
+		return c.broker.Publish(ctx, addr, brokerMsg)
+	})
+}
+
+// SendToMetricsOperationForSensorMetrics will send a SensorMetrics message on Metrics channel.
+func (c *UserController) SendToMetricsOperationForSensorMetrics(
+	ctx context.Context,
+	params MetricsChannelParameters,
+	msg SensorMetricsMessage,
 ) error {
 	// Set channel address
 	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
@@ -1102,17 +1304,17 @@ func (c *UserController) SendToOnDeviceHeartbeatOperation(
 	})
 }
 
-// SendToSensorMetricsOperation will send a SensorMetrics message on Metrics channel.
+// SendToSensorDeclarationOperation will send a SensorDeclaration message on SensorDeclarations channel.
 //
 // NOTE: for now, this only support the first message from AsyncAPI list.
 // If you need support for other messages, please raise an issue.
-func (c *UserController) SendToSensorMetricsOperation(
+func (c *UserController) SendToSensorDeclarationOperation(
 	ctx context.Context,
-	params MetricsChannelParameters,
-	msg SensorMetricsMessage,
+	params SensorDeclarationsChannelParameters,
+	msg SensorDeclarationMessage,
 ) error {
 	// Set channel address
-	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+	addr := fmt.Sprintf("device.%s.sensors", params.DeviceId)
 
 	// Set context
 	ctx = addUserContextValues(ctx, addr)
@@ -1193,11 +1395,6 @@ type MetricsChannelParameters struct {
 }
 
 // Message 'DeviceMessageFromMetricsChannel' reference another one at '#/components/messages/metrics'.
-// This should be fixed in a future version to allow message override.
-// If you encounter this message, feel free to open an issue on this subject
-// to let know that you need this functionnality.
-
-// Message 'SensorMessageFromMetricsChannel' reference another one at '#/components/messages/sensorMetrics'.
 // This should be fixed in a future version to allow message override.
 // If you encounter this message, feel free to open an issue on this subject
 // to let know that you need this functionnality.
@@ -1449,6 +1646,69 @@ func (msg MetricsMessage) toBrokerMessage() (extensions.BrokerMessage, error) {
 	}, nil
 }
 
+// SensorDeclarationMessage is the message expected for 'SensorDeclarationMessage' channel.
+type SensorDeclarationMessage struct {
+	// Headers will be used to fill the message headers
+	Headers IdentificationHeadersSchema
+
+	// Payload will be inserted in the message payload
+	Payload SensorDeclarationSchema
+}
+
+// NewSensorDeclarationMessage creates a new SensorDeclarationMessage with default values if any.
+func NewSensorDeclarationMessage() SensorDeclarationMessage {
+	var msg SensorDeclarationMessage
+
+	return msg
+}
+
+// brokerMessageToSensorDeclarationMessage will fill a new SensorDeclarationMessage with data from generic broker message
+func brokerMessageToSensorDeclarationMessage(bMsg extensions.BrokerMessage) (SensorDeclarationMessage, error) {
+	var msg SensorDeclarationMessage
+
+	// Unmarshal payload to expected message payload format
+	err := json.Unmarshal(bMsg.Payload, &msg.Payload)
+	if err != nil {
+		return msg, err
+	}
+
+	// Get each headers from broker message
+	for k, v := range bMsg.Headers {
+		switch {
+		case k == "Authorization": // Retrieving Authorization header
+			msg.Headers.Authorization = string(v)
+		default:
+			// TODO: log unknown error
+		}
+	}
+
+	// TODO: run checks on msg type
+
+	return msg, nil
+}
+
+// toBrokerMessage will generate a generic broker message from SensorDeclarationMessage data
+func (msg SensorDeclarationMessage) toBrokerMessage() (extensions.BrokerMessage, error) {
+	// TODO: implement checks on message
+
+	// Marshal payload to JSON
+	payload, err := json.Marshal(msg.Payload)
+	if err != nil {
+		return extensions.BrokerMessage{}, err
+	}
+
+	// Add each headers to broker message
+	headers := make(map[string][]byte, 1)
+
+	// Adding Authorization header
+	headers["Authorization"] = []byte(msg.Headers.Authorization)
+
+	return extensions.BrokerMessage{
+		Headers: headers,
+		Payload: payload,
+	}, nil
+}
+
 // SensorMetricsMessagePayload is a schema from the AsyncAPI specification required in messages
 type SensorMetricsMessagePayload struct {
 	Metrics []MetricSchema `json:"metrics" validate:"required"`
@@ -1565,6 +1825,18 @@ const (
 	// TypePropertyFromMetricSchemaHISTOGRAM is a possible value of TypePropertyFromMetricSchema.
 	TypePropertyFromMetricSchemaHISTOGRAM TypePropertyFromMetricSchema = "HISTOGRAM"
 )
+
+// SensorDeclarationSchema is a schema from the AsyncAPI specification required in messages
+type SensorDeclarationSchema struct {
+	Sensors []SensorDeclarationItemSchema `json:"sensors" validate:"required"`
+}
+
+// SensorDeclarationItemSchema is a schema from the AsyncAPI specification required in messages
+type SensorDeclarationItemSchema struct {
+	// Description: Sensor identifier. It could be in non-UUID format.
+	Id   SensorID `json:"id"`
+	Name string   `json:"name"`
+}
 
 // SensorID is a schema from the AsyncAPI specification required in messages
 // Description: Sensor identifier. It could be in non-UUID format.

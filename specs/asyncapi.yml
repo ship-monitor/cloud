@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
-  version: 1.0.4
+  version: 1.1.0
 servers:
   development:
     host: localhost:4222
@@ -47,8 +47,6 @@ channels:
     messages:
       device:
         $ref: "#/components/messages/metrics"
-      sensor:
-        $ref: "#/components/messages/sensorMetrics"
 
   sensorDeclarations:
     address: device.{deviceId}.sensors
@@ -88,14 +86,15 @@ operations:
       $ref: "#/channels/metrics"
     messages:
       - $ref: "#/components/messages/metrics"
+      - $ref: "#/components/messages/sensorMetrics"
 
-  sensorMetrics:
-    title: Device sends sensor metrics
+  sensorDeclaration:
+    title: Device sends list of its sensors
     action: receive
     channel:
-      $ref: "#/channels/metrics"
+      $ref: "#/channels/sensorDeclarations"
     messages:
-      - $ref: "#/components/messages/sensorMetrics"
+      - $ref: "#/components/messages/sensorDeclaration"
 
 components:
   schemas:
@@ -169,6 +168,24 @@ components:
       x-go-name: SensorID
       description: Sensor identifier. It could be in non-UUID format.
 
+    sensorDeclarationItem:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          $ref: "#/components/schemas/sensorId"
+        name:
+          type: string
+
+    sensorDeclaration:
+      type: object
+      required: [sensors]
+      properties:
+        sensors:
+          type: array
+          items:
+            $ref: "#/components/schemas/sensorDeclarationItem"
+
   messages:
     heartbeat:
       contentType: application/json
@@ -217,6 +234,13 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/metric"
+
+    sensorDeclaration:
+      contentType: application/json
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
+      payload:
+        $ref: "#/components/schemas/sensorDeclaration"
 
   parameters:
     deviceId:

@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/brokers/nats"
@@ -34,8 +35,8 @@ func newSubscriber(
 ) *subscriber.S {
 	subs := subscriber.New(controller, logger, handler, security)
 
-	lc.Append(fx.StartStopHook(subs.Start, func() error {
-		err := subs.Stop()
+	lc.Append(fx.StartStopHook(subs.Start, func(ctx context.Context) error {
+		err := subs.Stop(ctx)
 		if err != nil {
 			return fmt.Errorf("stop subscriber: %w", err)
 		}
