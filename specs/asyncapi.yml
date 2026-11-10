@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
-  version: 1.1.0
+  version: 1.1.2
 servers:
   development:
     host: localhost:4222

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions"
 
 	"github.com/google/uuid"
@@ -188,7 +188,7 @@ func (c AppController) executeMiddlewares(ctx context.Context, msg *extensions.B
 }
 
 func addAppContextValues(ctx context.Context, addr string) context.Context {
-	ctx = context.WithValue(ctx, extensions.ContextKeyIsVersion, "1.0.4")
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsVersion, "1.1.2")
 	ctx = context.WithValue(ctx, extensions.ContextKeyIsProvider, "app")
 	return context.WithValue(ctx, extensions.ContextKeyIsChannel, addr)
 }
@@ -1024,7 +1024,7 @@ func (c UserController) executeMiddlewares(ctx context.Context, msg *extensions.
 }
 
 func addUserContextValues(ctx context.Context, addr string) context.Context {
-	ctx = context.WithValue(ctx, extensions.ContextKeyIsVersion, "1.0.4")
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsVersion, "1.1.2")
 	ctx = context.WithValue(ctx, extensions.ContextKeyIsProvider, "user")
 	return context.WithValue(ctx, extensions.ContextKeyIsChannel, addr)
 }
@@ -1336,7 +1336,7 @@ func (c *UserController) SendToSensorDeclarationOperation(
 }
 
 // AsyncAPIVersion is the version of the used AsyncAPI document
-const AsyncAPIVersion = "1.0.4"
+const AsyncAPIVersion = "1.1.2"
 
 // MessageWithCorrelationID is implemented by messages that carry a correlation ID.
 type MessageWithCorrelationID interface {
