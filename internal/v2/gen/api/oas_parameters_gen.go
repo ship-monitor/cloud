@@ -442,6 +442,71 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 	return params, nil
 }
 
+// GetSensorsParams is parameters of GetSensors operation.
+type GetSensorsParams struct {
+	DeviceID uuid.UUID
+}
+
+func unpackGetSensorsParams(packed middleware.Parameters) (params GetSensorsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "deviceId",
+			In:   "path",
+		}
+		params.DeviceID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetSensorsParams(args [1]string, argsEscaped bool, r *http.Request) (params GetSensorsParams, _ error) {
+	// Decode path: deviceId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "deviceId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DeviceID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "deviceId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RemoveDeviceParams is parameters of RemoveDevice operation.
 type RemoveDeviceParams struct {
 	DeviceID uuid.UUID

@@ -19,9 +19,10 @@ import (
 	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
-	"github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
+	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
+	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
 	"go.uber.org/fx"
@@ -44,7 +45,7 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(devicerepo.New),
 		fx.Provide(aliverepo.New),
 		fx.Provide(connect.New),
-		fx.Provide(sensor.New),
+		fx.Provide(sensorrepo.New),
 
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
@@ -91,12 +92,13 @@ func logger(config *config.Config) fx.Option {
 }
 
 func newHandler(
-	t *token.Service,
-	u *user.Service,
-	d *device.Service,
+	tokens *token.Service,
+	users *user.Service,
+	devices *device.Service,
 	logger *zap.Logger,
+	sensors *sensor.Service,
 ) *handler.Handler {
-	return handler.New(t, u, d, logger)
+	return handler.New(tokens, users, devices, sensors, logger)
 }
 
 func newSecurityHandler(t *token.Service) *security.Handler {

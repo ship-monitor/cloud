@@ -36,6 +36,10 @@ type Handler interface {
 	//
 	// GET /api/v2/health
 	GetHealth(ctx context.Context) (*HealthResponse, error)
+	// GetSensors implements GetSensors operation.
+	//
+	// GET /api/v2/devices/{deviceId}/sensors
+	GetSensors(ctx context.Context, params GetSensorsParams) (*GetSensorsOK, error)
 	// LoginUser implements LoginUser operation.
 	//
 	// POST /api/v2/auth/login

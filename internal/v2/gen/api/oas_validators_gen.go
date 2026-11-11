@@ -30,6 +30,29 @@ func (s *GetDevicesOK) Validate() error {
 	return nil
 }
 
+func (s *GetSensorsOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Sensors == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sensors",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *HealthResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer

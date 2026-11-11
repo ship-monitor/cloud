@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
 
@@ -58,4 +59,12 @@ type DeviceService interface {
 		actor auth.Actor,
 		id uuid.UUID,
 	) (online bool, lastSeen time.Time, err error)
+}
+
+type SensorService interface {
+	GetSensors(
+		ctx context.Context,
+		actor auth.Actor,
+		deviceID uuid.UUID,
+	) ([]sensor.Sensor, error)
 }

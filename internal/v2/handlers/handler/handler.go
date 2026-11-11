@@ -22,6 +22,7 @@ type Handler struct {
 	tokenService TokenService
 	users        UserService
 	devices      DeviceService
+	sensors      SensorService
 	logger       *zap.Logger
 }
 
@@ -46,12 +47,14 @@ func New(
 	tokenService TokenService,
 	users UserService,
 	devices DeviceService,
+	sensors SensorService,
 	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
 		tokenService: tokenService,
 		users:        users,
 		devices:      devices,
+		sensors:      sensors,
 		logger:       logger,
 	}
 }
@@ -312,4 +315,34 @@ func (h *Handler) GetHealth(ctx context.Context) (*api.HealthResponse, error) {
 	return &api.HealthResponse{
 		Status: api.ServiceStatusOk,
 	}, nil
+}
+
+// GetSensors implements [api.Handler].
+func (h *Handler) GetSensors(
+	ctx context.Context,
+	params api.GetSensorsParams,
+) (*api.GetSensorsOK, error) {
+	actor, err := currentActor(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get actor: %w", err)
+	}
+
+	sensors, err := h.sensors.GetSensors(ctx, actor, params.DeviceID)
+	if err != nil {
+		return nil, fmt.Errorf("get sensors: %w", err)
+	}
+
+	response := api.GetSensorsOK{
+		Sensors: make([]api.Sensor, 0, len(sensors)),
+	}
+
+	for _, s := range sensors {
+		response.Sensors = append(response.Sensors, api.Sensor{
+			ID:       s.ID,
+			Name:     s.Name,
+			DeviceID: s.DeviceID,
+		})
+	}
+
+	return &response, nil
 }

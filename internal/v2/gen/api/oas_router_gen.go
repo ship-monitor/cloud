@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	rn9AllowedHeaders = map[string]string{
+	rn10AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
-	rn11AllowedHeaders = map[string]string{
+	rn12AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
-	rn13AllowedHeaders = map[string]string{
+	rn14AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
 	rn1AllowedHeaders = map[string]string{
@@ -33,6 +33,9 @@ var (
 		"GET": "Authorization",
 	}
 	rn6AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn9AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 	rn8AllowedHeaders = map[string]string{
@@ -122,7 +125,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn9AllowedHeaders,
+								allowedHeaders: rn10AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -159,7 +162,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn11AllowedHeaders,
+									allowedHeaders: rn12AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -184,7 +187,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn13AllowedHeaders,
+									allowedHeaders: rn14AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -324,6 +327,33 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
 										allowedHeaders: rn6AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 's': // Prefix: "sensors"
+
+							if l := len("sensors"); len(elem) >= l && elem[0:l] == "sensors" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetSensorsRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn9AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -704,6 +734,31 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.operationID = "GetDeviceOnlineStatus"
 									r.operationGroup = ""
 									r.pathPattern = "/api/v2/devices/{deviceId}/online"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 's': // Prefix: "sensors"
+
+							if l := len("sensors"); len(elem) >= l && elem[0:l] == "sensors" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetSensorsOperation
+									r.summary = ""
+									r.operationID = "GetSensors"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v2/devices/{deviceId}/sensors"
 									r.args = args
 									r.count = 1
 									return r, true

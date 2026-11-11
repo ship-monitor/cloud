@@ -195,25 +195,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Returns list of all user's devices",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "devices": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Device"
-                      }
-                    }
-                  },
-                  "required": [
-                    "devices"
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetDevicesOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -283,15 +265,7 @@ const (
         "operationId": "GetDevice",
         "parameters": [
           {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "$ref": "#/components/parameters/deviceId"
           }
         ],
         "responses": {
@@ -317,15 +291,7 @@ const (
         "operationId": "RemoveDevice",
         "parameters": [
           {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "$ref": "#/components/parameters/deviceId"
           }
         ],
         "responses": {
@@ -351,15 +317,7 @@ const (
         "operationId": "EditDevice",
         "parameters": [
           {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "$ref": "#/components/parameters/deviceId"
           }
         ],
         "requestBody": {
@@ -405,15 +363,7 @@ const (
         "operationId": "GetDeviceMetrics",
         "parameters": [
           {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "$ref": "#/components/parameters/deviceId"
           }
         ],
         "responses": {
@@ -438,15 +388,7 @@ const (
         "operationId": "GetDeviceOnlineStatus",
         "parameters": [
           {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "$ref": "#/components/parameters/deviceId"
           }
         ],
         "responses": {
@@ -462,6 +404,38 @@ const (
             "bearerToken": [
               
             ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/sensors": {
+      "get": {
+        "tags": [
+          "devices",
+          "sensors"
+        ],
+        "operationId": "GetSensors",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetSensorsOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          },
+          {
+            
           }
         ]
       }
@@ -558,6 +532,26 @@ const (
           "name"
         ]
       },
+      "Sensor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "deviceId"
+        ]
+      },
       "ServiceStatus": {
         "description": "Describes service status.\n- ok - service working\n- warn - service working but with some problems\n- fail - service available or not working\n",
         "type": "string",
@@ -589,6 +583,27 @@ const (
           }
         }
       },
+      "GetDevicesOK": {
+        "description": "Returns list of all user's devices",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "devices": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Device"
+                  }
+                }
+              },
+              "required": [
+                "devices"
+              ]
+            }
+          }
+        }
+      },
       "GetOnlineResponseOK": {
         "description": "Returns online status",
         "content": {
@@ -607,6 +622,27 @@ const (
               "required": [
                 "online",
                 "lastSeen"
+              ]
+            }
+          }
+        }
+      },
+      "GetSensorsOK": {
+        "description": "Return list of all device sensors",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sensors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Sensor"
+                  }
+                }
+              },
+              "required": [
+                "sensors"
               ]
             }
           }
@@ -683,6 +719,19 @@ const (
         }
       }
     },
+    "parameters": {
+      "deviceId": {
+        "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
     "securitySchemes": {
       "bearerToken": {
         "type": "http",
@@ -705,6 +754,10 @@ const (
     {
       "name": "devices",
       "description": "Devices management"
+    },
+    {
+      "name": "sensors",
+      "description": "Sensors management"
     },
     {
       "name": "meta",
@@ -822,18 +875,7 @@ paths:
                         minimum: 1
             responses:
                 "200":
-                    description: Returns list of all user's devices
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    devices:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/Device'
-                                required:
-                                    - devices
+                    $ref: '#/components/responses/GetDevicesOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -872,14 +914,7 @@ paths:
                 - devices
             operationId: GetDevice
             parameters:
-                -   name: deviceId
-                    in: path
-                    required: true
-                    style: simple
-                    explode: false
-                    schema:
-                        type: string
-                        format: uuid
+                -   $ref: '#/components/parameters/deviceId'
             responses:
                 "200":
                     $ref: '#/components/responses/GetDeviceResponseOK'
@@ -892,14 +927,7 @@ paths:
                 - devices
             operationId: RemoveDevice
             parameters:
-                -   name: deviceId
-                    in: path
-                    required: true
-                    style: simple
-                    explode: false
-                    schema:
-                        type: string
-                        format: uuid
+                -   $ref: '#/components/parameters/deviceId'
             responses:
                 "200":
                     description: Deleted successful
@@ -912,14 +940,7 @@ paths:
                 - devices
             operationId: EditDevice
             parameters:
-                -   name: deviceId
-                    in: path
-                    required: true
-                    style: simple
-                    explode: false
-                    schema:
-                        type: string
-                        format: uuid
+                -   $ref: '#/components/parameters/deviceId'
             requestBody:
                 content:
                     application/json:
@@ -944,14 +965,7 @@ paths:
                 - devices
             operationId: GetDeviceMetrics
             parameters:
-                -   name: deviceId
-                    in: path
-                    required: true
-                    style: simple
-                    explode: false
-                    schema:
-                        type: string
-                        format: uuid
+                -   $ref: '#/components/parameters/deviceId'
             responses:
                 default:
                     $ref: '#/components/responses/BadResponse'
@@ -963,14 +977,7 @@ paths:
                 - devices
             operationId: GetDeviceOnlineStatus
             parameters:
-                -   name: deviceId
-                    in: path
-                    required: true
-                    style: simple
-                    explode: false
-                    schema:
-                        type: string
-                        format: uuid
+                -   $ref: '#/components/parameters/deviceId'
             responses:
                 "200":
                     $ref: '#/components/responses/GetOnlineResponseOK'
@@ -978,6 +985,22 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
+    /api/v2/devices/{deviceId}/sensors:
+        get:
+            tags:
+                - devices
+                - sensors
+            operationId: GetSensors
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+            responses:
+                "200":
+                    $ref: '#/components/responses/GetSensorsOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+                - {}
     /api/v2/health:
         get:
             tags:
@@ -1037,6 +1060,20 @@ components:
                 - email
                 - password
                 - name
+        Sensor:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                deviceId:
+                    type: string
+                    format: uuid
+            required:
+                - id
+                - name
+                - deviceId
         ServiceStatus:
             description: |
                 Describes service status.
@@ -1061,6 +1098,19 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/Device'
+        GetDevicesOK:
+            description: Returns list of all user's devices
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            devices:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Device'
+                        required:
+                            - devices
         GetOnlineResponseOK:
             description: Returns online status
             content:
@@ -1076,6 +1126,19 @@ components:
                         required:
                             - online
                             - lastSeen
+        GetSensorsOK:
+            description: Return list of all device sensors
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            sensors:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Sensor'
+                        required:
+                            - sensors
         HealthResponse:
             description: Describes healthness of application.
             content:
@@ -1121,6 +1184,16 @@ components:
                             - success
                             - token
                             - refreshToken
+    parameters:
+        deviceId:
+            name: deviceId
+            in: path
+            required: true
+            style: simple
+            explode: false
+            schema:
+                type: string
+                format: uuid
     securitySchemes:
         bearerToken:
             type: http
@@ -1133,12 +1206,14 @@ tags:
         description: Authentication endpoints
     -   name: devices
         description: Devices management
+    -   name: sensors
+        description: Sensors management
     -   name: meta
         description: Meta endpoints
 `
 
-	specJSONETag = "\"f1d9743a91355b9efac5f26809c14bef\""
-	specYAMLETag = "\"5d21d510b507901e2f990de5e6bc2955\""
+	specJSONETag = "\"e5fef9778dcffb898954804bc5c8d72a\""
+	specYAMLETag = "\"85a2a10d9ed411daab906f8cfdc43111\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

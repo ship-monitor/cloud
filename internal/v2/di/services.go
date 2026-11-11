@@ -40,6 +40,7 @@ func newDeviceService(
 
 func newSensorsService(
 	repo *sensorrepo.Repo,
+	devices *device.Service,
 ) *sensor.Service {
-	return sensor.New(repo)
+	return sensor.New(repo, devices)
 }

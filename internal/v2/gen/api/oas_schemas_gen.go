@@ -192,6 +192,20 @@ func (s *GetOnlineResponseOK) SetLastSeen(val int64) {
 	s.LastSeen = val
 }
 
+type GetSensorsOK struct {
+	Sensors []Sensor `json:"sensors"`
+}
+
+// GetSensors returns the value of Sensors.
+func (s *GetSensorsOK) GetSensors() []Sensor {
+	return s.Sensors
+}
+
+// SetSensors sets the value of Sensors.
+func (s *GetSensorsOK) SetSensors(val []Sensor) {
+	s.Sensors = val
+}
+
 type HealthResponse struct {
 	Status ServiceStatus `json:"status"`
 }
@@ -499,6 +513,43 @@ type RegisterUserCreated struct{}
 
 // RemoveDeviceOK is response for RemoveDevice operation.
 type RemoveDeviceOK struct{}
+
+// Ref: #/components/schemas/Sensor
+type Sensor struct {
+	ID       string    `json:"id"`
+	Name     string    `json:"name"`
+	DeviceID uuid.UUID `json:"deviceId"`
+}
+
+// GetID returns the value of ID.
+func (s *Sensor) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Sensor) GetName() string {
+	return s.Name
+}
+
+// GetDeviceID returns the value of DeviceID.
+func (s *Sensor) GetDeviceID() uuid.UUID {
+	return s.DeviceID
+}
+
+// SetID sets the value of ID.
+func (s *Sensor) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Sensor) SetName(val string) {
+	s.Name = val
+}
+
+// SetDeviceID sets the value of DeviceID.
+func (s *Sensor) SetDeviceID(val uuid.UUID) {
+	s.DeviceID = val
+}
 
 // Describes service status.
 //

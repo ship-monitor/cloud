@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 )
 
@@ -20,13 +22,26 @@ type Repo interface {
 	) (*sensor.Container, error)
 }
 
-type Service struct {
-	repo Repo
+type DeviceService interface {
+	Get(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+	) (device.Device, error)
 }
 
-func New(repo Repo) *Service {
+type Service struct {
+	repo    Repo
+	devices DeviceService
+}
+
+func New(
+	repo Repo,
+	devices DeviceService,
+) *Service {
 	return &Service{
-		repo: repo,
+		repo:    repo,
+		devices: devices,
 	}
 }
 
@@ -47,8 +62,14 @@ func (s *Service) DeclareSensors(
 
 func (s *Service) GetSensors(
 	ctx context.Context,
+	actor auth.Actor,
 	deviceID uuid.UUID,
 ) ([]sensor.Sensor, error) {
+	_, err := s.devices.Get(ctx, actor, deviceID)
+	if err != nil {
+		return nil, fmt.Errorf("get device: %w", err)
+	}
+
 	c, err := s.repo.GetSensors(ctx, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("get sensors: %w", err)
