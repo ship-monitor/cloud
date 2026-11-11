@@ -16,6 +16,10 @@ type Handler interface {
 	//
 	// PATCH /api/v2/devices/{deviceId}
 	EditDevice(ctx context.Context, req *EditDeviceReq, params EditDeviceParams) error
+	// EditSensor implements EditSensor operation.
+	//
+	// PATCH /api/v2/devices/{deviceId}/sensors/{sensorId}
+	EditSensor(ctx context.Context, req *EditSensorReq, params EditSensorParams) (*EditSensorOK, error)
 	// GetDevice implements GetDevice operation.
 	//
 	// GET /api/v2/devices/{deviceId}
@@ -23,7 +27,7 @@ type Handler interface {
 	// GetDeviceMetrics implements GetDeviceMetrics operation.
 	//
 	// GET /api/v2/devices/{deviceId}/metrics
-	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (GetDeviceMetricsRes, error)
+	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (*Metrics, error)
 	// GetDeviceOnlineStatus implements GetDeviceOnlineStatus operation.
 	//
 	// GET /api/v2/devices/{deviceId}/online
@@ -36,6 +40,10 @@ type Handler interface {
 	//
 	// GET /api/v2/health
 	GetHealth(ctx context.Context) (*HealthResponse, error)
+	// GetSensorMetrics implements GetSensorMetrics operation.
+	//
+	// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics
+	GetSensorMetrics(ctx context.Context, params GetSensorMetricsParams) (*Metrics, error)
 	// GetSensors implements GetSensors operation.
 	//
 	// GET /api/v2/devices/{deviceId}/sensors

@@ -67,4 +67,17 @@ type SensorService interface {
 		actor auth.Actor,
 		deviceID uuid.UUID,
 	) ([]sensor.Sensor, error)
+	GetSensor(
+		ctx context.Context,
+		actor auth.Actor,
+		sensorID string,
+		deviceID uuid.UUID,
+	) (*sensor.Sensor, error)
+	Rename(
+		ctx context.Context,
+		actor auth.Actor,
+		id string,
+		deviceID uuid.UUID,
+		displayName string,
+	) error
 }

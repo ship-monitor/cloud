@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -37,10 +38,12 @@ func (r *Repository) WithTx(tx *sqlx.Tx) *Repository {
 
 // row mirrors the columns of the users table.
 type row struct {
-	ID           uuid.UUID `db:"id"`
-	Name         string    `db:"name"`
-	Email        string    `db:"email"`
-	PasswordHash string    `db:"password_hash"`
+	ID           uuid.UUID  `db:"id"`
+	Name         string     `db:"name"`
+	Email        string     `db:"email"`
+	PasswordHash string     `db:"password_hash"`
+	CreatedAt    time.Time  `db:"created_at"`
+	UpdatedAt    *time.Time `db:"updated_at"`
 }
 
 func (r row) toDomain() domain.User {
@@ -52,14 +55,14 @@ func (r row) toDomain() domain.User {
 	}
 }
 
-const columns = "id, name, email, password_hash"
+const columns = "id, name, email, password_hash, created_at, updated_at"
 
 // Create inserts a new user.
 func (r *Repository) Create(ctx context.Context, u domain.User) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO users (id, name, email, password_hash)
-		 VALUES (?, ?, ?, ?)`,
-		u.ID, u.Name, u.Email, u.PasswordHash,
+		`INSERT INTO users (id, name, email, password_hash, created_at)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		u.ID, u.Name, u.Email, u.PasswordHash, time.Now(),
 	)
 	if err != nil {
 		return fmt.Errorf("insert user: %w", err)
@@ -76,7 +79,11 @@ func (r *Repository) Get(
 	var rw row
 
 	err := r.db.
-		QueryRowxContext(ctx, `SELECT `+columns+` FROM users WHERE id = ?`, id).
+		QueryRowxContext(
+			ctx,
+			`SELECT `+columns+` FROM users WHERE id = $1`,
+			id,
+		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, ErrNotFound
@@ -99,7 +106,7 @@ func (r *Repository) GetByEmail(
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT `+columns+` FROM users WHERE email = ?`,
+			`SELECT `+columns+` FROM users WHERE email = $1`,
 			email,
 		).
 		StructScan(&rw)
@@ -143,12 +150,12 @@ func (r *Repository) EmailTaken(
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT EXISTS (SELECT 1 FROM users WHERE email = ?)`,
+			`SELECT EXISTS ( SELECT 1 FROM users WHERE email = $1 )`,
 			email,
 		).
 		Scan(&taken)
 	if err != nil {
-		return false, fmt.Errorf("check email taken: %w", err)
+		return false, fmt.Errorf("query row exist: %w", err)
 	}
 
 	return taken, nil
@@ -156,7 +163,7 @@ func (r *Repository) EmailTaken(
 
 // Delete removes the user with the given id, or ErrNotFound.
 func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
+	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}

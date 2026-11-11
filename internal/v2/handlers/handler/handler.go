@@ -9,9 +9,8 @@ import (
 	"fmt"
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
-	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
+	deviceService "github.com/ship-monitor/cloud/internal/v2/services/device"
 	userservice "github.com/ship-monitor/cloud/internal/v2/services/user"
 	"go.uber.org/zap"
 )
@@ -81,7 +80,7 @@ func (h *Handler) RemoveDevice(
 	}
 
 	err = h.devices.Remove(ctx, actor, params.DeviceID)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, deviceService.ErrNotFound) {
 		return errDeviceNotFound
 	}
 
@@ -103,6 +102,8 @@ func (h *Handler) RegisterUser(
 	}
 
 	if err != nil {
+		h.logger.Error("Register user", zap.Error(err))
+
 		return errRegisterUser.WithDetail(err.Error())
 	}
 
@@ -173,8 +174,10 @@ func (h *Handler) ConnectDevice(
 	}
 
 	err = h.devices.Connect(ctx, actor, req.DeviceID, req.SecurityKey)
-	if errors.Is(err, deviceservice.ErrAlreadyExists) {
-		return &api.ConnectDeviceConflict{}, nil
+	if errors.Is(err, deviceService.ErrAlreadyExists) {
+		return new(
+			toApiProblem(errAlreadyConnected.WithDetail(err.Error())),
+		), nil
 	}
 
 	if err != nil {
@@ -195,7 +198,7 @@ func (h *Handler) GetDevice(
 	}
 
 	d, err := h.devices.Get(ctx, actor, params.DeviceID)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, deviceService.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 
@@ -218,7 +221,7 @@ func (h *Handler) EditDevice(
 	}
 
 	err = h.devices.Rename(ctx, actor, params.DeviceID, req.Name)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, deviceService.ErrNotFound) {
 		return errDeviceNotFound
 	}
 
@@ -244,7 +247,7 @@ func (h *Handler) GetDeviceOnlineStatus(
 		actor,
 		params.DeviceID,
 	)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, deviceService.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 
@@ -262,52 +265,16 @@ func (h *Handler) GetDeviceOnlineStatus(
 func (h *Handler) GetDeviceMetrics(
 	ctx context.Context,
 	params api.GetDeviceMetricsParams,
-) (api.GetDeviceMetricsRes, error) {
+) (*api.Metrics, error) {
 	return nil, errUnknownError.WithDetail("Currently not implemented")
 }
 
-// pagingFromParams converts API pagination parameters to domain paging.
-//
-// The generated code enforces page >= 0 and pageSize >= 1,
-// but not the maximum page size or integer values, so both are checked here.
-func pagingFromParams(
-	params api.GetDevicesParams,
-) (devicedomain.Paging, error) {
-	paging := devicedomain.Paging{
-		Page: 0,
-		Size: devicedomain.DefaultPageSize,
-	}
-
-	if v, ok := params.Page.Get(); ok {
-		paging.Page = v
-	}
-
-	if v, ok := params.PageSize.Get(); ok {
-		if v > devicedomain.MaxPageSize {
-			return paging, errInvalidPagination
-		}
-
-		paging.Size = v
-	}
-
-	return paging, nil
-}
-
-func toAPIDevice(d devicedomain.Device) *api.Device {
-	return &api.Device{
-		ID:      d.ID,
-		Name:    d.Name,
-		OwnerID: d.OwnerID,
-	}
-}
-
-func toAPIDevices(devices []devicedomain.Device) []api.Device {
-	out := make([]api.Device, len(devices))
-	for i, d := range devices {
-		out[i] = *toAPIDevice(d)
-	}
-
-	return out
+// GetSensorMetrics implements [api.Handler].
+func (h *Handler) GetSensorMetrics(
+	ctx context.Context,
+	params api.GetSensorMetricsParams,
+) (*api.Metrics, error) {
+	return nil, errUnknownError.WithDetail("Currently not implemented")
 }
 
 // GetHealth implements [api.Handler].
@@ -337,12 +304,45 @@ func (h *Handler) GetSensors(
 	}
 
 	for _, s := range sensors {
-		response.Sensors = append(response.Sensors, api.Sensor{
-			ID:       s.ID,
-			Name:     s.Name,
-			DeviceID: s.DeviceID,
-		})
+		response.Sensors = append(response.Sensors, *toApiSensor(&s))
 	}
 
 	return &response, nil
+}
+
+// EditSensor implements [api.Handler].
+func (h *Handler) EditSensor(
+	ctx context.Context,
+	req *api.EditSensorReq,
+	params api.EditSensorParams,
+) (*api.EditSensorOK, error) {
+	actor, err := currentActor(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get actor: %w", err)
+	}
+
+	err = h.sensors.Rename(
+		ctx,
+		actor,
+		params.SensorID,
+		params.DeviceID,
+		req.DisplayName,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("rename: %w", err)
+	}
+
+	sensor, err := h.sensors.GetSensor(
+		ctx,
+		actor,
+		params.SensorID,
+		params.DeviceID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get updated sensor: %w", err)
+	}
+
+	return &api.EditSensorOK{
+		Sensor: *toApiSensor(sensor),
+	}, nil
 }

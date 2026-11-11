@@ -242,7 +242,7 @@ const (
             "description": "Successfully added new device"
           },
           "409": {
-            "description": "Someone already added this device"
+            "$ref": "#/components/responses/ConnectDeviceConflict"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -358,7 +358,8 @@ const (
     "/api/v2/devices/{deviceId}/metrics": {
       "get": {
         "tags": [
-          "devices"
+          "devices",
+          "metrics"
         ],
         "operationId": "GetDeviceMetrics",
         "parameters": [
@@ -367,6 +368,9 @@ const (
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetDeviceMetricsOK"
+          },
           "default": {
             "$ref": "#/components/responses/BadResponse"
           }
@@ -433,9 +437,74 @@ const (
             "bearerToken": [
               
             ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/sensors/{sensorId}": {
+      "patch": {
+        "tags": [
+          "devices",
+          "sensors"
+        ],
+        "operationId": "EditSensor",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
           },
           {
-            
+            "$ref": "#/components/parameters/sensorId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EditSensor"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/EditSensorOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics": {
+      "get": {
+        "tags": [
+          "devices",
+          "sensors",
+          "metrics"
+        ],
+        "operationId": "GetSensorMetrics",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "$ref": "#/components/parameters/sensorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetSensorMetricsOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
           }
         ]
       }
@@ -488,6 +557,65 @@ const (
           "id",
           "name",
           "ownerId"
+        ]
+      },
+      "Metric": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MetricType"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "timestamp": {
+            "description": "The UTC timestamp when metric was captured",
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "unit",
+          "value",
+          "timestamp"
+        ]
+      },
+      "MetricType": {
+        "type": "string",
+        "enum": [
+          "GAUGE",
+          "COUNTER",
+          "HISTOGRAM"
+        ]
+      },
+      "Metrics": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MetricType"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "values"
         ]
       },
       "Problem": {
@@ -544,12 +672,16 @@ const (
           "deviceId": {
             "type": "string",
             "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "deviceId"
+          "deviceId",
+          "displayName"
         ]
       },
       "ServiceStatus": {
@@ -569,6 +701,44 @@ const (
           "application/problem+json": {
             "schema": {
               "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "ConnectDeviceConflict": {
+        "description": "Someone already added this device",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "EditSensorOK": {
+        "description": "Successful editing, returns new sensor data",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sensor": {
+                  "$ref": "#/components/schemas/Sensor"
+                }
+              },
+              "required": [
+                "sensor"
+              ]
+            }
+          }
+        }
+      },
+      "GetDeviceMetricsOK": {
+        "description": "Returns device metrics",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Metrics"
             }
           }
         }
@@ -623,6 +793,16 @@ const (
                 "online",
                 "lastSeen"
               ]
+            }
+          }
+        }
+      },
+      "GetSensorMetricsOK": {
+        "description": "Returns sensor metrics",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Metrics"
             }
           }
         }
@@ -730,6 +910,36 @@ const (
           "type": "string",
           "format": "uuid"
         }
+      },
+      "sensorId": {
+        "name": "sensorId",
+        "in": "path",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "requestBodies": {
+      "EditSensor": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "displayName"
+              ]
+            }
+          }
+        },
+        "required": true
       }
     },
     "securitySchemes": {
@@ -758,6 +968,10 @@ const (
     {
       "name": "sensors",
       "description": "Sensors management"
+    },
+    {
+      "name": "metrics",
+      "description": "Receiving metrics"
     },
     {
       "name": "meta",
@@ -903,7 +1117,7 @@ paths:
                 "201":
                     description: Successfully added new device
                 "409":
-                    description: Someone already added this device
+                    $ref: '#/components/responses/ConnectDeviceConflict'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -963,10 +1177,13 @@ paths:
         get:
             tags:
                 - devices
+                - metrics
             operationId: GetDeviceMetrics
             parameters:
                 -   $ref: '#/components/parameters/deviceId'
             responses:
+                "200":
+                    $ref: '#/components/responses/GetDeviceMetricsOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -1000,7 +1217,41 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-                - {}
+    /api/v2/devices/{deviceId}/sensors/{sensorId}:
+        patch:
+            tags:
+                - devices
+                - sensors
+            operationId: EditSensor
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+                -   $ref: '#/components/parameters/sensorId'
+            requestBody:
+                $ref: '#/components/requestBodies/EditSensor'
+            responses:
+                "200":
+                    $ref: '#/components/responses/EditSensorOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+    /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics:
+        get:
+            tags:
+                - devices
+                - sensors
+                - metrics
+            operationId: GetSensorMetrics
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+                -   $ref: '#/components/parameters/sensorId'
+            responses:
+                "200":
+                    $ref: '#/components/responses/GetSensorMetricsOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
     /api/v2/health:
         get:
             tags:
@@ -1031,6 +1282,48 @@ components:
                 - id
                 - name
                 - ownerId
+        Metric:
+            type: object
+            properties:
+                name:
+                    type: string
+                type:
+                    $ref: '#/components/schemas/MetricType'
+                unit:
+                    type: string
+                value:
+                    type: number
+                timestamp:
+                    description: The UTC timestamp when metric was captured
+                    type: string
+                    format: date-time
+            required:
+                - name
+                - type
+                - unit
+                - value
+                - timestamp
+        MetricType:
+            type: string
+            enum:
+                - "GAUGE"
+                - "COUNTER"
+                - "HISTOGRAM"
+        Metrics:
+            type: object
+            properties:
+                name:
+                    type: string
+                type:
+                    $ref: '#/components/schemas/MetricType'
+                values:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Metric'
+            required:
+                - name
+                - type
+                - values
         Problem:
             type: object
             properties:
@@ -1070,10 +1363,13 @@ components:
                 deviceId:
                     type: string
                     format: uuid
+                displayName:
+                    type: string
             required:
                 - id
                 - name
                 - deviceId
+                - displayName
         ServiceStatus:
             description: |
                 Describes service status.
@@ -1092,6 +1388,29 @@ components:
                 application/problem+json:
                     schema:
                         $ref: '#/components/schemas/Problem'
+        ConnectDeviceConflict:
+            description: Someone already added this device
+            content:
+                application/problem+json:
+                    schema:
+                        $ref: '#/components/schemas/Problem'
+        EditSensorOK:
+            description: Successful editing, returns new sensor data
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            sensor:
+                                $ref: '#/components/schemas/Sensor'
+                        required:
+                            - sensor
+        GetDeviceMetricsOK:
+            description: Returns device metrics
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Metrics'
         GetDeviceResponseOK:
             description: Returns device
             content:
@@ -1126,6 +1445,12 @@ components:
                         required:
                             - online
                             - lastSeen
+        GetSensorMetricsOK:
+            description: Returns sensor metrics
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Metrics'
         GetSensorsOK:
             description: Return list of all device sensors
             content:
@@ -1194,6 +1519,26 @@ components:
             schema:
                 type: string
                 format: uuid
+        sensorId:
+            name: sensorId
+            in: path
+            required: true
+            style: simple
+            explode: false
+            schema:
+                type: string
+    requestBodies:
+        EditSensor:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            displayName:
+                                type: string
+                        required:
+                            - displayName
+            required: true
     securitySchemes:
         bearerToken:
             type: http
@@ -1208,12 +1553,14 @@ tags:
         description: Devices management
     -   name: sensors
         description: Sensors management
+    -   name: metrics
+        description: Receiving metrics
     -   name: meta
         description: Meta endpoints
 `
 
-	specJSONETag = "\"e5fef9778dcffb898954804bc5c8d72a\""
-	specYAMLETag = "\"85a2a10d9ed411daab906f8cfdc43111\""
+	specJSONETag = "\"1397d2019f5163b967d9a52ba189eb9f\""
+	specYAMLETag = "\"210f36fd832c5c481e6e4885ec25b03b\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

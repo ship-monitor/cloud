@@ -36,11 +36,13 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 var operationRolesBearerToken = map[string][]string{
 	ConnectDeviceOperation:         []string{},
 	EditDeviceOperation:            []string{},
+	EditSensorOperation:            []string{},
 	GetDeviceOperation:             []string{},
 	GetDeviceMetricsOperation:      []string{},
 	GetDeviceOnlineStatusOperation: []string{},
 	GetDevicesOperation:            []string{},
 	GetHealthOperation:             []string{},
+	GetSensorMetricsOperation:      []string{},
 	GetSensorsOperation:            []string{},
 	LoginUserOperation:             []string{},
 	RefreshTokenOperation:          []string{},

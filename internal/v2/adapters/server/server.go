@@ -109,7 +109,7 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 
 func Logging(logger *zap.Logger) api.Middleware {
 	return func(req middleware.Request, next middleware.Next) (middleware.Response, error) {
-		log := logger.With(
+		log := logger.Named("Logging").With(
 			zap.String("operationId", req.OperationID),
 		)
 		logMessage := fmt.Sprintf(

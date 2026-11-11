@@ -28,8 +28,7 @@ func New() *Config {
 		SecurityKey: os.Getenv("SECURITY_KEY"),
 		devel:       os.Getenv("DEVEL"),
 		DB: db.Config{
-			Driver: os.Getenv("DB_DRIVER"),
-			DSN:    os.Getenv("DB_DSN"),
+			DSN: os.Getenv("DB_DSN"),
 		},
 		NatsURL:   os.Getenv("NATS_URL"),
 		ValkeyURL: os.Getenv("VALKEY_URL"),

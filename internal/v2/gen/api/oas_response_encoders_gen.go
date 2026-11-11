@@ -17,8 +17,15 @@ func encodeConnectDeviceResponse(response ConnectDeviceRes, w http.ResponseWrite
 
 		return nil
 
-	case *ConnectDeviceConflict:
+	case *Problem:
+		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
 
 		return nil
 
@@ -29,6 +36,19 @@ func encodeConnectDeviceResponse(response ConnectDeviceRes, w http.ResponseWrite
 
 func encodeEditDeviceResponse(response *EditDeviceOK, w http.ResponseWriter) error {
 	w.WriteHeader(200)
+
+	return nil
+}
+
+func encodeEditSensorResponse(response *EditSensorOK, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
 
 	return nil
 }
@@ -46,11 +66,17 @@ func encodeGetDeviceResponse(response *Device, w http.ResponseWriter) error {
 	return nil
 }
 
-func encodeGetDeviceMetricsResponse(response GetDeviceMetricsRes, w http.ResponseWriter) error {
-	switch response := response.(type) {
-	default:
-		return errors.Errorf("unexpected response type: %T", response)
+func encodeGetDeviceMetricsResponse(response *Metrics, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
 	}
+
+	return nil
 }
 
 func encodeGetDeviceOnlineStatusResponse(response *GetOnlineResponseOK, w http.ResponseWriter) error {
@@ -81,6 +107,19 @@ func encodeGetDevicesResponse(response *GetDevicesOK, w http.ResponseWriter) err
 
 func encodeGetHealthResponse(response *HealthResponse, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/health+json")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetSensorMetricsResponse(response *Metrics, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
 	e := new(jx.Encoder)

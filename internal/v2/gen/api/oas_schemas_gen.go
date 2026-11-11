@@ -4,6 +4,7 @@ package api
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/google/uuid"
@@ -63,11 +64,6 @@ func (s *BearerToken) SetToken(val string) {
 func (s *BearerToken) SetRoles(val []string) {
 	s.Roles = val
 }
-
-// ConnectDeviceConflict is response for ConnectDevice operation.
-type ConnectDeviceConflict struct{}
-
-func (*ConnectDeviceConflict) connectDeviceRes() {}
 
 // ConnectDeviceCreated is response for ConnectDevice operation.
 type ConnectDeviceCreated struct{}
@@ -151,6 +147,34 @@ func (s *EditDeviceReq) GetName() string {
 // SetName sets the value of Name.
 func (s *EditDeviceReq) SetName(val string) {
 	s.Name = val
+}
+
+type EditSensorOK struct {
+	Sensor Sensor `json:"sensor"`
+}
+
+// GetSensor returns the value of Sensor.
+func (s *EditSensorOK) GetSensor() Sensor {
+	return s.Sensor
+}
+
+// SetSensor sets the value of Sensor.
+func (s *EditSensorOK) SetSensor(val Sensor) {
+	s.Sensor = val
+}
+
+type EditSensorReq struct {
+	DisplayName string `json:"displayName"`
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *EditSensorReq) GetDisplayName() string {
+	return s.DisplayName
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *EditSensorReq) SetDisplayName(val string) {
+	s.DisplayName = val
 }
 
 type GetDevicesOK struct {
@@ -279,6 +303,152 @@ func (s *LoginUserReq) SetEmail(val string) {
 // SetPassword sets the value of Password.
 func (s *LoginUserReq) SetPassword(val string) {
 	s.Password = val
+}
+
+// Ref: #/components/schemas/Metric
+type Metric struct {
+	Name  string     `json:"name"`
+	Type  MetricType `json:"type"`
+	Unit  string     `json:"unit"`
+	Value float64    `json:"value"`
+	// The UTC timestamp when metric was captured.
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// GetName returns the value of Name.
+func (s *Metric) GetName() string {
+	return s.Name
+}
+
+// GetType returns the value of Type.
+func (s *Metric) GetType() MetricType {
+	return s.Type
+}
+
+// GetUnit returns the value of Unit.
+func (s *Metric) GetUnit() string {
+	return s.Unit
+}
+
+// GetValue returns the value of Value.
+func (s *Metric) GetValue() float64 {
+	return s.Value
+}
+
+// GetTimestamp returns the value of Timestamp.
+func (s *Metric) GetTimestamp() time.Time {
+	return s.Timestamp
+}
+
+// SetName sets the value of Name.
+func (s *Metric) SetName(val string) {
+	s.Name = val
+}
+
+// SetType sets the value of Type.
+func (s *Metric) SetType(val MetricType) {
+	s.Type = val
+}
+
+// SetUnit sets the value of Unit.
+func (s *Metric) SetUnit(val string) {
+	s.Unit = val
+}
+
+// SetValue sets the value of Value.
+func (s *Metric) SetValue(val float64) {
+	s.Value = val
+}
+
+// SetTimestamp sets the value of Timestamp.
+func (s *Metric) SetTimestamp(val time.Time) {
+	s.Timestamp = val
+}
+
+// Ref: #/components/schemas/MetricType
+type MetricType string
+
+const (
+	MetricTypeGAUGE     MetricType = "GAUGE"
+	MetricTypeCOUNTER   MetricType = "COUNTER"
+	MetricTypeHISTOGRAM MetricType = "HISTOGRAM"
+)
+
+// AllValues returns all MetricType values.
+func (MetricType) AllValues() []MetricType {
+	return []MetricType{
+		MetricTypeGAUGE,
+		MetricTypeCOUNTER,
+		MetricTypeHISTOGRAM,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s MetricType) MarshalText() ([]byte, error) {
+	switch s {
+	case MetricTypeGAUGE:
+		return []byte(s), nil
+	case MetricTypeCOUNTER:
+		return []byte(s), nil
+	case MetricTypeHISTOGRAM:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *MetricType) UnmarshalText(data []byte) error {
+	switch MetricType(data) {
+	case MetricTypeGAUGE:
+		*s = MetricTypeGAUGE
+		return nil
+	case MetricTypeCOUNTER:
+		*s = MetricTypeCOUNTER
+		return nil
+	case MetricTypeHISTOGRAM:
+		*s = MetricTypeHISTOGRAM
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/Metrics
+type Metrics struct {
+	Name   string     `json:"name"`
+	Type   MetricType `json:"type"`
+	Values []Metric   `json:"values"`
+}
+
+// GetName returns the value of Name.
+func (s *Metrics) GetName() string {
+	return s.Name
+}
+
+// GetType returns the value of Type.
+func (s *Metrics) GetType() MetricType {
+	return s.Type
+}
+
+// GetValues returns the value of Values.
+func (s *Metrics) GetValues() []Metric {
+	return s.Values
+}
+
+// SetName sets the value of Name.
+func (s *Metrics) SetName(val string) {
+	s.Name = val
+}
+
+// SetType sets the value of Type.
+func (s *Metrics) SetType(val MetricType) {
+	s.Type = val
+}
+
+// SetValues sets the value of Values.
+func (s *Metrics) SetValues(val []Metric) {
+	s.Values = val
 }
 
 // NewOptInt64 returns new OptInt64 with value set to v.
@@ -421,6 +591,8 @@ func (s *Problem) SetDetail(val OptString) {
 	s.Detail = val
 }
 
+func (*Problem) connectDeviceRes() {}
+
 type RefreshResponseOK struct {
 	Success      bool   `json:"success"`
 	Token        string `json:"token"`
@@ -516,9 +688,10 @@ type RemoveDeviceOK struct{}
 
 // Ref: #/components/schemas/Sensor
 type Sensor struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name"`
-	DeviceID uuid.UUID `json:"deviceId"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	DeviceID    uuid.UUID `json:"deviceId"`
+	DisplayName string    `json:"displayName"`
 }
 
 // GetID returns the value of ID.
@@ -536,6 +709,11 @@ func (s *Sensor) GetDeviceID() uuid.UUID {
 	return s.DeviceID
 }
 
+// GetDisplayName returns the value of DisplayName.
+func (s *Sensor) GetDisplayName() string {
+	return s.DisplayName
+}
+
 // SetID sets the value of ID.
 func (s *Sensor) SetID(val string) {
 	s.ID = val
@@ -549,6 +727,11 @@ func (s *Sensor) SetName(val string) {
 // SetDeviceID sets the value of DeviceID.
 func (s *Sensor) SetDeviceID(val uuid.UUID) {
 	s.DeviceID = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *Sensor) SetDisplayName(val string) {
+	s.DisplayName = val
 }
 
 // Describes service status.

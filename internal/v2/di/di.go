@@ -64,6 +64,8 @@ func NewApp(config *config.Config) *fx.App {
 
 		provideConnector(),
 
+		deprecations(),
+
 		fx.Invoke(func(*http.Server) {}),
 	)
 }
@@ -72,6 +74,8 @@ func logger(config *config.Config) fx.Option {
 	return fx.Module("logger",
 		fx.Provide(func() (*zap.Logger, error) {
 			logConf := zap.NewDevelopmentConfig()
+
+			logConf.DisableStacktrace = true
 
 			logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 			if config.IsDevelopment() {

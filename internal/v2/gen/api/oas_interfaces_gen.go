@@ -4,7 +4,3 @@ package api
 type ConnectDeviceRes interface {
 	connectDeviceRes()
 }
-
-type GetDeviceMetricsRes interface {
-	getDeviceMetricsRes()
-}

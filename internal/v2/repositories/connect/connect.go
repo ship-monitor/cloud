@@ -35,11 +35,12 @@ func (r *Repo) WithTx(tx *sqlx.Tx) *Repo {
 }
 
 type row struct {
-	ID        uuid.UUID `db:"id"`
-	DeviceID  uuid.UUID `db:"device_id"`
-	UserID    uuid.UUID `db:"user_id"`
-	CreatedAt time.Time `db:"created_at"`
-	Approved  bool      `db:"approved"`
+	ID         uuid.UUID  `db:"id"`
+	DeviceID   uuid.UUID  `db:"device_id"`
+	UserID     uuid.UUID  `db:"user_id"`
+	CreatedAt  time.Time  `db:"created_at"`
+	ApprovedAt *time.Time `db:"approved_at"`
+	Approved   bool       `db:"approved"`
 }
 
 func (r row) toDomain() device.ConnectRequest {
@@ -52,7 +53,7 @@ func (r row) toDomain() device.ConnectRequest {
 	}
 }
 
-const columns = "id, device_id, created_at, approved, user_id"
+const columns = "id, device_id, created_at, approved_at, approved, user_id"
 
 // Create inserts a connect request with the supplied ID and state.
 func (r *Repo) Create(
@@ -62,10 +63,10 @@ func (r *Repo) Create(
 	_, err := r.db.ExecContext(
 		ctx,
 		`INSERT INTO connect_requests (id, device_id, created_at, approved, user_id)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5)`,
 		request.ID,
 		request.DeviceID,
-		request.CreatedAt.Format(TimeFormat),
+		request.CreatedAt.UTC(),
 		request.Approved,
 		request.UserID,
 	)
@@ -84,7 +85,7 @@ func (r *Repo) Get(
 	var record row
 
 	err := r.db.QueryRowxContext(ctx,
-		`SELECT `+columns+` FROM connect_requests WHERE id = ?`, id,
+		`SELECT `+columns+` FROM connect_requests WHERE id = $1`, id,
 	).StructScan(&record)
 	if errors.Is(err, sql.ErrNoRows) {
 		return device.ConnectRequest{}, ErrNotFound
@@ -136,7 +137,7 @@ func (r *Repo) SetApproved(
 ) error {
 	res, err := r.db.ExecContext(
 		ctx,
-		`UPDATE connect_requests SET approved = ? WHERE id = ?`,
+		`UPDATE connect_requests SET approved = $1 WHERE id = $2`,
 		approved,
 		id,
 	)
@@ -155,7 +156,7 @@ func (r *Repo) SetApproved(
 func (r *Repo) Delete(ctx context.Context, id uuid.UUID) error {
 	res, err := r.db.ExecContext(
 		ctx,
-		`DELETE FROM connect_requests WHERE id = ?`,
+		`DELETE FROM connect_requests WHERE id = $1`,
 		id,
 	)
 	if err != nil {

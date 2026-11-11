@@ -8,11 +8,13 @@ type OperationName = string
 const (
 	ConnectDeviceOperation         OperationName = "ConnectDevice"
 	EditDeviceOperation            OperationName = "EditDevice"
+	EditSensorOperation            OperationName = "EditSensor"
 	GetDeviceOperation             OperationName = "GetDevice"
 	GetDeviceMetricsOperation      OperationName = "GetDeviceMetrics"
 	GetDeviceOnlineStatusOperation OperationName = "GetDeviceOnlineStatus"
 	GetDevicesOperation            OperationName = "GetDevices"
 	GetHealthOperation             OperationName = "GetHealth"
+	GetSensorMetricsOperation      OperationName = "GetSensorMetrics"
 	GetSensorsOperation            OperationName = "GetSensors"
 	LoginUserOperation             OperationName = "LoginUser"
 	RefreshTokenOperation          OperationName = "RefreshToken"

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -37,10 +38,12 @@ func (r *Repository) WithTx(tx *sqlx.Tx) *Repository {
 
 // row mirrors the columns of the devices table.
 type row struct {
-	ID          uuid.UUID `db:"id"`
-	OwnerID     uuid.UUID `db:"owner_id"`
-	Name        string    `db:"name"`
-	SecurityKey string    `db:"security_key"`
+	ID          uuid.UUID  `db:"id"`
+	OwnerID     uuid.UUID  `db:"owner_id"`
+	Name        string     `db:"name"`
+	SecurityKey string     `db:"security_key"`
+	CreatedAt   time.Time  `db:"created_at"`
+	UpdatedAt   *time.Time `db:"updated_at"`
 }
 
 func (r row) toDomain() domain.Device {
@@ -52,14 +55,14 @@ func (r row) toDomain() domain.Device {
 	}
 }
 
-const columns = "id, owner_id, name, security_key"
+const columns = "id, owner_id, name, security_key, created_at, updated_at"
 
 // Create inserts a new device.
 func (r *Repository) Create(ctx context.Context, d domain.Device) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO devices (id, owner_id, name, security_key)
-		 VALUES (?, ?, ?, ?)`,
-		d.ID, d.OwnerID, d.Name, d.SecurityKey,
+		`INSERT INTO devices (id, owner_id, name, security_key, created_at)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		d.ID, d.OwnerID, d.Name, d.SecurityKey, time.Now().UTC(),
 	)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
@@ -80,7 +83,7 @@ func (r *Repository) Get(
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT `+columns+` FROM devices WHERE id = ? AND owner_id = ?`,
+			`SELECT `+columns+` FROM devices WHERE id = $1 AND owner_id = $2`,
 			id, ownerID,
 		).
 		StructScan(&rw)
@@ -106,7 +109,7 @@ func (r *Repository) ListByOwner(
 
 	err := sqlx.SelectContext(ctx, r.db, &rows,
 		`SELECT `+columns+
-			` FROM devices WHERE owner_id = ? ORDER BY id LIMIT ? OFFSET ?`,
+			` FROM devices WHERE owner_id = $1 ORDER BY id LIMIT $2 OFFSET $3`,
 		ownerID, paging.Size, paging.Offset(),
 	)
 	if err != nil {
@@ -124,7 +127,7 @@ func (r *Repository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT EXISTS (SELECT 1 FROM devices WHERE id = ?)`,
+			`SELECT EXISTS (SELECT 1 FROM devices WHERE id = $1)`,
 			id,
 		).
 		Scan(&exists)
@@ -157,7 +160,7 @@ func (r *Repository) Rename(
 	name string,
 ) error {
 	res, err := r.db.ExecContext(ctx,
-		`UPDATE devices SET name = ? WHERE id = ? AND owner_id = ?`,
+		`UPDATE devices SET name = $1 WHERE id = $2 AND owner_id = $3`,
 		name, id, ownerID,
 	)
 	if err != nil {
@@ -180,7 +183,7 @@ func (r *Repository) Rename(
 // or ErrNotFound.
 func (r *Repository) Delete(ctx context.Context, ownerID, id uuid.UUID) error {
 	res, err := r.db.ExecContext(ctx,
-		`DELETE FROM devices WHERE id = ? AND owner_id = ?`,
+		`DELETE FROM devices WHERE id = $1 AND owner_id = $2`,
 		id, ownerID,
 	)
 	if err != nil {

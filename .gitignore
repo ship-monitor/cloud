@@ -5,3 +5,4 @@ tmp/
 cookies.txt
 *.sqlite3
 .gocache/
+.pgdata/

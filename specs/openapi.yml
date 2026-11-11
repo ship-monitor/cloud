@@ -19,6 +19,8 @@ tags:
     description: Devices management
   - name: sensors
     description: Sensors management
+  - name: metrics
+    description: Receiving metrics
   - name: meta
     description: Meta endpoints
 
@@ -142,7 +144,7 @@ paths:
         "201":
           description: "Successfully added new device"
         "409":
-          description: "Someone already added this device"
+          $ref: "#/components/responses/ConnectDeviceConflict"
         default:
           $ref: "#/components/responses/BadResponse"
   "/api/v2/devices/{deviceId}":
@@ -210,6 +212,8 @@ paths:
   "/api/v2/devices/{deviceId}/sensors":
     get:
       tags: [devices, sensors]
+      security:
+        - bearerToken: []
       operationId: GetSensors
       parameters:
         - $ref: "#/components/parameters/deviceId"
@@ -218,16 +222,52 @@ paths:
           $ref: "#/components/responses/GetSensorsOK"
         default:
           $ref: "#/components/responses/BadResponse"
+  "/api/v2/devices/{deviceId}/sensors/{sensorId}":
+    patch:
+      tags: [devices, sensors]
+      security:
+        - bearerToken: []
+      operationId: EditSensor
+      parameters:
+        - $ref: "#/components/parameters/deviceId"
+        - $ref: "#/components/parameters/sensorId"
+
+      requestBody:
+        $ref: "#/components/requestBodies/EditSensor"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/EditSensorOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
+
+  "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics":
+    get:
+      tags: [devices, sensors, metrics]
+      security:
+        - bearerToken: []
+      operationId: GetSensorMetrics
+      parameters:
+        - $ref: "#/components/parameters/deviceId"
+        - $ref: "#/components/parameters/sensorId"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/GetSensorMetricsOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
 
   "/api/v2/devices/{deviceId}/metrics":
     get:
-      tags: [devices]
+      tags: [devices, metrics]
       security:
         - bearerToken: []
       operationId: GetDeviceMetrics
       parameters:
         - $ref: "#/components/parameters/deviceId"
       responses:
+        "200":
+          $ref: "#/components/responses/GetDeviceMetricsOK"
         default:
           $ref: "#/components/responses/BadResponse"
 
@@ -240,10 +280,17 @@ components:
       schema:
         type: string
         format: uuid
+    sensorId:
+      in: path
+      name: sensorId
+      required: true
+      schema:
+        type: string
   securitySchemes:
     bearerToken:
       type: http
       scheme: bearer
+
   schemas:
     RegisterForm:
       type: object
@@ -298,7 +345,7 @@ components:
         - fail
     Sensor:
       type: object
-      required: [id, name, deviceId]
+      required: [id, name, deviceId, displayName]
       properties:
         id:
           type: string
@@ -307,6 +354,56 @@ components:
         deviceId:
           type: string
           format: uuid
+        displayName:
+          type: string
+    MetricType:
+      type: string
+      enum:
+        - GAUGE
+        - COUNTER
+        - HISTOGRAM
+
+    Metric:
+      type: object
+      required: [name, type, unit, value, timestamp]
+      properties:
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/MetricType"
+        unit:
+          type: string
+        value:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+          description: The UTC timestamp when metric was captured
+          example: "2026-11-09T09:38:00Z"
+    Metrics:
+      type: object
+      required: [name, type, values]
+      properties:
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/MetricType"
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+
+  requestBodies:
+    EditSensor:
+      required: true
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [displayName]
+            properties:
+              displayName:
+                type: string
 
   responses:
     BadResponse:
@@ -385,6 +482,13 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/Device"
+    ConnectDeviceConflict:
+      description: "Someone already added this device"
+      content:
+        "application/problem+json":
+          schema:
+            $ref: "#/components/schemas/Problem"
+
     GetSensorsOK:
       description: Return list of all device sensors
       content:
@@ -397,3 +501,25 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/Sensor"
+    EditSensorOK:
+      description: Successful editing, returns new sensor data
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [sensor]
+            properties:
+              sensor:
+                $ref: "#/components/schemas/Sensor"
+    GetSensorMetricsOK:
+      description: Returns sensor metrics
+      content:
+        "application/json":
+          schema:
+            $ref: "#/components/schemas/Metrics"
+    GetDeviceMetricsOK:
+      description: Returns device metrics
+      content:
+        "application/json":
+          schema:
+            $ref: "#/components/schemas/Metrics"

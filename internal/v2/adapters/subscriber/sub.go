@@ -34,7 +34,7 @@ type SensorService interface {
 	DeclareSensors(
 		ctx context.Context,
 		deviceID uuid.UUID,
-		sensors []sensor.Sensor,
+		sensors []sensor.SensorDecl,
 	) error
 }
 
@@ -126,17 +126,23 @@ func (s *S) HandleConnectResponse(
 	ctx context.Context,
 	message asyncapi.ConnectResponseMessage,
 ) error {
-	s.logger.Info("Handle connect response")
+	s.logger.Debug("Handling connect response")
 
 	ctx, err := s.security.HandleMessage(ctx, message.Headers)
 	if err != nil {
+		s.logger.Error("Handle security", zap.Error(err))
+
 		return fmt.Errorf("handle security: %w", err)
 	}
 
 	err = s.handler.HandleConnectResponse(ctx, &message)
 	if err != nil {
+		s.logger.Error("Handle connect response", zap.Error(err))
+
 		return fmt.Errorf("handle connect response: %w", err)
 	}
+
+	s.logger.Info("Handled connect response")
 
 	return nil
 }
@@ -169,11 +175,11 @@ func (s *S) HandleSensorDeclaration(
 		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
 	}
 
-	sensors := make([]sensor.Sensor, 0, len(msg.Payload.Sensors))
+	sensors := make([]sensor.SensorDecl, 0, len(msg.Payload.Sensors))
 	for _, s := range msg.Payload.Sensors {
 		sensors = append(
 			sensors,
-			sensor.Sensor{ID: string(s.Id), Name: s.Name, DeviceID: deviceID},
+			sensor.SensorDecl{ID: string(s.Id), Name: s.Name},
 		)
 	}
 

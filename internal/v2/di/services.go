@@ -14,6 +14,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
+	"go.uber.org/zap"
 )
 
 func newTokenSerice(config *config.Config) (*token.Service, error) {
@@ -41,6 +42,7 @@ func newDeviceService(
 func newSensorsService(
 	repo *sensorrepo.Repo,
 	devices *device.Service,
+	logger *zap.Logger,
 ) *sensor.Service {
-	return sensor.New(repo, devices)
+	return sensor.New(repo, devices, logger)
 }

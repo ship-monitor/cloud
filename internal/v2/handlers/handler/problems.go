@@ -51,6 +51,12 @@ var (
 		"Device not found",
 	)
 
+	errAlreadyConnected = problem.New(
+		"device-already-connected",
+		http.StatusConflict,
+		"Device already connected to another user",
+	)
+
 	errInvalidPagination = problem.New(
 		"invalid-pagination",
 		http.StatusBadRequest,
@@ -80,21 +86,25 @@ func (h *Handler) NewError(
 	)
 }
 
-//nolint:varnamelen
 func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
 	resp := &api.BadResponseStatusCode{
 		StatusCode: p.Status,
-		Response: api.Problem{
-			Type:   p.Type,
-			Title:  p.Title,
-			Status: p.Status,
-			Detail: api.OptString{Set: false, Value: ""},
-		},
-	}
-
-	if p.Detail != "" {
-		resp.Response.Detail = api.NewOptString(p.Detail)
+		Response:   toApiProblem(p),
 	}
 
 	return resp
+}
+
+func toApiProblem(p *problem.Error) api.Problem {
+	apiP := api.Problem{
+		Type:   p.Type,
+		Title:  p.Title,
+		Status: p.Status,
+		Detail: api.OptString{Set: false, Value: ""},
+	}
+	if p.Detail != "" {
+		apiP.Detail = api.NewOptString(p.Detail)
+	}
+
+	return apiP
 }
