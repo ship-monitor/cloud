@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
-	"github.com/ship-monitor/cloud/migrations"
+	"github.com/ship-monitor/cloud/migrations/postgres"
 )
 
 const Driver = "postgres"
@@ -36,7 +36,7 @@ func New(config *Config) (*sqlx.DB, error) {
 }
 
 func migrate(db *sqlx.DB) error {
-	goose.SetBaseFS(migrations.Migrations)
+	goose.SetBaseFS(postgres.Migrations)
 
 	if err := goose.SetDialect(Driver); err != nil {
 		return fmt.Errorf("set dialect: %w", err)
