@@ -6,3 +6,7 @@ cookies.txt
 *.sqlite3
 .gocache/
 .pgdata/
+.clickhousedata/
+agent/
+.claude/
+.agents/

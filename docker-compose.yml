@@ -11,6 +11,19 @@ services:
     image: valkey/valkey:8.0-alpine
     ports:
       - "6379:6379"
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    restart: always
+    environment:
+      CLICKHOUSE_USER: metrics-user
+      CLICKHOUSE_PASSWORD: password
+      CLICKHOUSE_DB: metrics
+    ports:
+      - "9000:9000" # native port
+      - "8123:8123" # http port
+    volumes:
+      - ./.clickhousedata:/var/lib/clickhouse
   postgres:
     image: postgres:latest
     environment:
