@@ -3,16 +3,16 @@ package alive
 import (
 	"time"
 
-	"github.com/ship-monitor/cloud/pkg/hub"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 )
 
 type HeartbeatRecord struct {
-	hub.Heartbeat
+	device.Heartbeat
 
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func NewRecord(h hub.Heartbeat) HeartbeatRecord {
+func NewRecord(h device.Heartbeat) HeartbeatRecord {
 	return HeartbeatRecord{
 		Heartbeat: h,
 		CreatedAt: time.Now().UTC(),

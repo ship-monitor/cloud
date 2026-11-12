@@ -10,7 +10,6 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
-	"github.com/ship-monitor/cloud/pkg/hub"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +19,7 @@ type AliveRepo interface {
 	InsertHeartbeat(
 		ctx context.Context,
 		deviceID uuid.UUID,
-		h hub.Heartbeat,
+		h device.Heartbeat,
 	) error
 }
 
@@ -61,7 +60,7 @@ func (h *Handler) HandleHeartbeat(
 		return errNoID
 	}
 
-	err := h.repo.InsertHeartbeat(ctx, id, hub.Heartbeat{
+	err := h.repo.InsertHeartbeat(ctx, id, device.Heartbeat{
 		Timestamp: time.Unix(msg.Payload.Timestamp, 0),
 	})
 	if err != nil {

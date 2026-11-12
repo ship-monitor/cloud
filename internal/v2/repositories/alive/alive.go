@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ship-monitor/cloud/pkg/hub"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -28,7 +28,7 @@ func New(
 func (r *Repo) InsertHeartbeat(
 	ctx context.Context,
 	deviceID uuid.UUID,
-	h hub.Heartbeat,
+	h device.Heartbeat,
 ) error {
 	record := NewRecord(h)
 
@@ -55,7 +55,7 @@ func (r *Repo) InsertHeartbeat(
 func (r *Repo) GetLastHeartbeat(
 	ctx context.Context,
 	deviceID uuid.UUID,
-) (*hub.Heartbeat, error) {
+) (*device.Heartbeat, error) {
 	var record HeartbeatRecord
 
 	err := r.valkey.Do(ctx,

@@ -12,7 +12,6 @@ import (
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
-	"github.com/ship-monitor/cloud/pkg/hub"
 )
 
 var (
@@ -46,7 +45,7 @@ type AliveRepository interface {
 	GetLastHeartbeat(
 		ctx context.Context,
 		deviceID uuid.UUID,
-	) (*hub.Heartbeat, error)
+	) (*domain.Heartbeat, error)
 }
 type ConnRequestRepository interface {
 	Create(
