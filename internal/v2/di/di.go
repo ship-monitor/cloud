@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/rs/cors"
@@ -19,7 +20,9 @@ import (
 	aliverepo "github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	devicemetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/devicemetrics"
 	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
+	sensormetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensormetrics"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
@@ -44,6 +47,8 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(aliverepo.New),
 		fx.Provide(connect.New),
 		fx.Provide(sensorrepo.New),
+		fx.Provide(devicemetricsrepo.New),
+		fx.Provide(sensormetricsrepo.New),
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
 		fx.Provide(newDeviceService),
@@ -56,7 +61,7 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(newHTTPServer),
 		fx.Provide(newPublisher),
 		provideConnector(),
-		deprecations(),
+		deprecations(config),
 		fx.Invoke(func(*http.Server) {}),
 	)
 }
@@ -81,7 +86,9 @@ func logger(config *config.Config) fx.Option {
 			return logger.Named("SHIP"), nil
 		}),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log}
+			return &fxevent.ZapLogger{
+				Logger: log,
+			}
 		}),
 	)
 }
@@ -121,33 +128,29 @@ func newHTTPServer(
 	handler *api.Server,
 	logger *zap.Logger,
 ) *http.Server {
-	c := cors.New(cors.Options{ //nolint:exhaustruct_v5
-		AllowedOrigins: []string{
-			"http://localhost:5173",
-		},
-		AllowedMethods: []string{
-			http.MethodGet,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodOptions,
-		},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-		Debug:            config.IsDevelopment(),
-		// Logger:           zap.NewStdLog(logger.Named("HTTP.CORS")),
-	})
-	server := http.Server{ //nolint:exhaustruct_v5
-		ReadHeaderTimeout: ReadHeaderTimeout,
-		Handler:           c.Handler(handler),
-		Addr:              net.JoinHostPort("", config.Port),
+	logger = logger.Named("HTTP")
+
+	srvHandler := http.Handler(handler)
+
+	if config.IsDevelopment() {
+		c := getCORS(config, logger)
+		srvHandler = c.Handler(srvHandler)
 	}
 
-	logger = logger.Named("HTTP")
+	server := http.Server{ //nolint:exhaustruct_v5
+		ReadHeaderTimeout: ReadHeaderTimeout,
+		Handler:           srvHandler,
+		Addr:              net.JoinHostPort(config.Host, config.Port),
+	}
+
+	url := url.URL{ //nolint:exhaustruct_v5
+		Scheme: "http",
+		Host:   server.Addr,
+	}
 
 	lc.Append(fx.StartHook(func() {
 		go func() {
-			logger.Info("Starting", zap.String("addr", server.Addr))
+			logger.Info("Starting", zap.String("addr", url.String()))
 
 			err := server.ListenAndServe()
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -168,6 +171,25 @@ func newHTTPServer(
 	}))
 
 	return &server
+}
+
+func getCORS(config *config.Config, logger *zap.Logger) *cors.Cors {
+	if len(config.CorsOrigins) == 0 {
+		logger.Warn("No CORS origins specified")
+	}
+
+	return cors.New(cors.Options{ //nolint:exhaustruct_v5
+		AllowedOrigins: config.CorsOrigins,
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	})
 }
 
 func newQueueHandler(

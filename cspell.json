@@ -5,7 +5,9 @@
     "nolint",
     "testpackage",
     "goconst",
-    "varnamelen"
+    "varnamelen",
+    "clickhouse",
+    "exhaustruct"
   ],
   "userWords": ["healthnes"]
 }
