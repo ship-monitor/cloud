@@ -1425,6 +1425,10 @@ func (s *Metrics) encodeFields(e *jx.Encoder) {
 		s.Type.Encode(e)
 	}
 	{
+		e.FieldStart("unit")
+		e.Str(s.Unit)
+	}
+	{
 		e.FieldStart("values")
 		e.ArrStart()
 		for _, elem := range s.Values {
@@ -1434,10 +1438,11 @@ func (s *Metrics) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfMetrics = [3]string{
+var jsonFieldsNameOfMetrics = [4]string{
 	0: "name",
 	1: "type",
-	2: "values",
+	2: "unit",
+	3: "values",
 }
 
 // Decode decodes Metrics from json.
@@ -1471,8 +1476,20 @@ func (s *Metrics) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
-		case "values":
+		case "unit":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Unit = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"unit\"")
+			}
+		case "values":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				s.Values = make([]Metric, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -1499,7 +1516,7 @@ func (s *Metrics) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

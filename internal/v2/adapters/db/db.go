@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
@@ -36,13 +37,12 @@ func New(config *Config) (*sqlx.DB, error) {
 }
 
 func migrate(db *sqlx.DB) error {
-	goose.SetBaseFS(postgres.Migrations)
-
-	if err := goose.SetDialect(Driver); err != nil {
-		return fmt.Errorf("set dialect: %w", err)
+	provider, err := goose.NewProvider(Driver, db.DB, postgres.Migrations)
+	if err != nil {
+		return fmt.Errorf("new provider: %w", err)
 	}
 
-	if err := goose.Up(db.DB, "."); err != nil {
+	if _, err := provider.Up(context.Background()); err != nil {
 		return fmt.Errorf("up: %w", err)
 	}
 

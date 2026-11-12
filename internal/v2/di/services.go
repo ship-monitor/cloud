@@ -8,9 +8,12 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/repositories/alive"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	devicemetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/devicemetrics"
 	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
+	sensormetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensormetrics"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
+	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
@@ -45,4 +48,18 @@ func newSensorsService(
 	logger *zap.Logger,
 ) *sensor.Service {
 	return sensor.New(repo, devices, logger)
+}
+
+func newMetricsService(
+	devices *device.Service,
+	deviceMetrics *devicemetricsrepo.Repository,
+	sensorMetrics *sensormetricsrepo.Repository,
+	logger *zap.Logger,
+) *metricsservice.Service {
+	return metricsservice.New(
+		devices,
+		deviceMetrics,
+		sensorMetrics,
+		logger,
+	)
 }

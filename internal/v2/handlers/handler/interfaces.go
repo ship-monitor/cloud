@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
@@ -80,4 +81,20 @@ type SensorService interface {
 		deviceID uuid.UUID,
 		displayName string,
 	) error
+}
+
+type MetricsService interface {
+	GetDeviceMetrics(
+		ctx context.Context,
+		actor auth.Actor,
+		deviceID uuid.UUID,
+		query metrics.Query,
+	) ([]metrics.Metric, error)
+	GetSensorMetrics(
+		ctx context.Context,
+		actor auth.Actor,
+		deviceID uuid.UUID,
+		sensorID string,
+		query metrics.Query,
+	) ([]metrics.Metric, error)
 }

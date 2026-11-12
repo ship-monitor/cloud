@@ -64,6 +64,12 @@ var (
 	).WithDetail("Page must be a non-negative integer, " +
 		"pageSize must be an integer between 1 and 50")
 
+	errInvalidLimit = problem.New(
+		"invalid-limit",
+		http.StatusBadRequest,
+		"Invalid limit parameter",
+	).WithDetail("Limit must be a non-negative integer")
+
 	errUnknownError = problem.New(
 		"unknown-error",
 		http.StatusInternalServerError,

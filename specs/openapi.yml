@@ -250,6 +250,10 @@ paths:
       parameters:
         - $ref: "#/components/parameters/deviceId"
         - $ref: "#/components/parameters/sensorId"
+        - $ref: "#/components/parameters/metricsFrom"
+        - $ref: "#/components/parameters/metricsTo"
+        - $ref: "#/components/parameters/metricsName"
+        - $ref: "#/components/parameters/metricsLimit"
 
       responses:
         "200":
@@ -286,6 +290,37 @@ components:
       required: true
       schema:
         type: string
+    metricsFrom:
+      in: query
+      name: from
+      required: true
+      schema:
+        type: string
+        format: date-time
+    metricsTo:
+      in: query
+      name: to
+      required: true
+      schema:
+        type: string
+        format: date-time
+    metricsName:
+      in: query
+      required: true
+      name: metric
+      schema:
+        type: string
+    metricsLimit:
+      in: query
+      required: false
+      name: limit
+      schema:
+        type: integer
+        format: int64
+        maximum: 1000
+        minimum: 10
+        default: 100
+
   securitySchemes:
     bearerToken:
       type: http
@@ -382,12 +417,14 @@ components:
           example: "2026-11-09T09:38:00Z"
     Metrics:
       type: object
-      required: [name, type, values]
+      required: [name, type, unit, values]
       properties:
         name:
           type: string
         type:
           $ref: "#/components/schemas/MetricType"
+        unit:
+          type: string
         values:
           type: array
           items:

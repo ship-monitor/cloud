@@ -490,6 +490,18 @@ const (
           },
           {
             "$ref": "#/components/parameters/sensorId"
+          },
+          {
+            "$ref": "#/components/parameters/metricsFrom"
+          },
+          {
+            "$ref": "#/components/parameters/metricsTo"
+          },
+          {
+            "$ref": "#/components/parameters/metricsName"
+          },
+          {
+            "$ref": "#/components/parameters/metricsLimit"
           }
         ],
         "responses": {
@@ -605,6 +617,9 @@ const (
           "type": {
             "$ref": "#/components/schemas/MetricType"
           },
+          "unit": {
+            "type": "string"
+          },
           "values": {
             "type": "array",
             "items": {
@@ -615,6 +630,7 @@ const (
         "required": [
           "name",
           "type",
+          "unit",
           "values"
         ]
       },
@@ -909,6 +925,50 @@ const (
         "schema": {
           "type": "string",
           "format": "uuid"
+        }
+      },
+      "metricsFrom": {
+        "name": "from",
+        "in": "query",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "metricsLimit": {
+        "name": "limit",
+        "in": "query",
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "maximum": 1000,
+          "minimum": 10
+        }
+      },
+      "metricsName": {
+        "name": "metric",
+        "in": "query",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "metricsTo": {
+        "name": "to",
+        "in": "query",
+        "required": true,
+        "style": "form",
+        "explode": true,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
         }
       },
       "sensorId": {
@@ -1245,6 +1305,10 @@ paths:
             parameters:
                 -   $ref: '#/components/parameters/deviceId'
                 -   $ref: '#/components/parameters/sensorId'
+                -   $ref: '#/components/parameters/metricsFrom'
+                -   $ref: '#/components/parameters/metricsTo'
+                -   $ref: '#/components/parameters/metricsName'
+                -   $ref: '#/components/parameters/metricsLimit'
             responses:
                 "200":
                     $ref: '#/components/responses/GetSensorMetricsOK'
@@ -1316,6 +1380,8 @@ components:
                     type: string
                 type:
                     $ref: '#/components/schemas/MetricType'
+                unit:
+                    type: string
                 values:
                     type: array
                     items:
@@ -1323,6 +1389,7 @@ components:
             required:
                 - name
                 - type
+                - unit
                 - values
         Problem:
             type: object
@@ -1519,6 +1586,42 @@ components:
             schema:
                 type: string
                 format: uuid
+        metricsFrom:
+            name: from
+            in: query
+            required: true
+            style: form
+            explode: true
+            schema:
+                type: string
+                format: date-time
+        metricsLimit:
+            name: limit
+            in: query
+            style: form
+            explode: true
+            schema:
+                type: integer
+                format: int64
+                maximum: 1000
+                minimum: 10
+        metricsName:
+            name: metric
+            in: query
+            required: true
+            style: form
+            explode: true
+            schema:
+                type: string
+        metricsTo:
+            name: to
+            in: query
+            required: true
+            style: form
+            explode: true
+            schema:
+                type: string
+                format: date-time
         sensorId:
             name: sensorId
             in: path
@@ -1559,8 +1662,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"1397d2019f5163b967d9a52ba189eb9f\""
-	specYAMLETag = "\"210f36fd832c5c481e6e4885ec25b03b\""
+	specJSONETag = "\"6f0841b41d6258537fae9453d3752c62\""
+	specYAMLETag = "\"3b287857aa4f108847bf95e0d37d5f08\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

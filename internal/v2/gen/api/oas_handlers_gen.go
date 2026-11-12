@@ -1256,6 +1256,22 @@ func (s *Server) handleGetSensorMetricsRequest(args [2]string, argsEscaped bool,
 					Name: "sensorId",
 					In:   "path",
 				}: params.SensorID,
+				{
+					Name: "from",
+					In:   "query",
+				}: params.From,
+				{
+					Name: "to",
+					In:   "query",
+				}: params.To,
+				{
+					Name: "metric",
+					In:   "query",
+				}: params.Metric,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
 			},
 			Raw: r,
 		}

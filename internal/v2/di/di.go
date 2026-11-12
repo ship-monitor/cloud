@@ -25,6 +25,7 @@ import (
 	sensormetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensormetrics"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
+	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
@@ -53,6 +54,7 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(newUserService),
 		fx.Provide(newDeviceService),
 		fx.Provide(newSensorsService),
+		fx.Provide(newMetricsService),
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),
 		fx.Provide(newQueueHandler),
@@ -97,10 +99,11 @@ func newHandler(
 	tokens *token.Service,
 	users *user.Service,
 	devices *device.Service,
-	logger *zap.Logger,
 	sensors *sensor.Service,
+	metrics *metricsservice.Service,
+	logger *zap.Logger,
 ) *handler.Handler {
-	return handler.New(tokens, users, devices, sensors, logger)
+	return handler.New(tokens, users, devices, sensors, metrics, logger)
 }
 
 func newSecurityHandler(t *token.Service) *security.Handler {

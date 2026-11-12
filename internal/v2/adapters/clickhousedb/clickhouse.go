@@ -2,7 +2,6 @@ package clickhousedb
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log/slog"
 
@@ -13,6 +12,7 @@ import (
 	clickMigrations "github.com/ship-monitor/cloud/migrations/clickhouse"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
+	"go.uber.org/zap/zapcore"
 )
 
 const Driver = "clickhouse"
@@ -39,11 +39,12 @@ func New(config *Config, logger *zap.Logger) (*Clickhouse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse DSN: %w", err)
 	}
-	//nolint:gosec, exhaustruct_v5
-	options.TLS = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	options.Logger = slog.New(zapslog.NewHandler(log.Core()))
+
+	options.Logger = slog.New(
+		zapslog.NewHandler(
+			log.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)).Core(),
+		),
+	)
 	log = log.With(zap.Strings("addr", options.Addr))
 
 	db, err := clickhouse.Open(options)

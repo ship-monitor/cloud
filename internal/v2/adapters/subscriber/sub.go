@@ -1,3 +1,7 @@
+// Package subscriber subscribes to device events from the broker and
+// forwards them to handlers.
+//
+//nolint:varnamelen
 package subscriber
 
 import (
@@ -7,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"go.uber.org/zap"
@@ -38,12 +43,27 @@ type SensorService interface {
 	) error
 }
 
+type MetricsService interface {
+	IngestDeviceMetrics(
+		ctx context.Context,
+		deviceID uuid.UUID,
+		ms []metrics.Metric,
+	) error
+	IngestSensorMetrics(
+		ctx context.Context,
+		deviceID uuid.UUID,
+		sensorID string,
+		ms []metrics.Metric,
+	) error
+}
+
 type S struct {
 	controller *asyncapi.AppController
 	logger     *zap.Logger
 	handler    Handler
 	security   SecurityHandler
 	sensor     SensorService
+	metrics    MetricsService
 }
 
 func New(
@@ -52,6 +72,7 @@ func New(
 	handler Handler,
 	security SecurityHandler,
 	sensor SensorService,
+	metrics MetricsService,
 ) *S {
 	return &S{
 		controller: controller,
@@ -59,6 +80,7 @@ func New(
 		handler:    handler,
 		security:   security,
 		sensor:     sensor,
+		metrics:    metrics,
 	}
 }
 
@@ -151,6 +173,25 @@ func (s *S) HandleMetrics(
 	ctx context.Context,
 	msg asyncapi.MetricsMessage,
 ) error {
+	s.logger.Debug("Handling device metrics")
+
+	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	deviceID, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
+	}
+
+	ms := toDomainMetrics(msg.Payload.Metrics)
+
+	err = s.metrics.IngestDeviceMetrics(ctx, deviceID, ms)
+	if err != nil {
+		return fmt.Errorf("service: ingest device metrics: %w", err)
+	}
+
 	return nil
 }
 
@@ -158,7 +199,50 @@ func (s *S) HandleSensorMetrics(
 	ctx context.Context,
 	msg asyncapi.SensorMetricsMessage,
 ) error {
+	s.logger.Debug("Handling sensor metrics")
+
+	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	deviceID, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
+	}
+
+	ms := toDomainMetrics(msg.Payload.Metrics)
+
+	err = s.metrics.IngestSensorMetrics(
+		ctx,
+		deviceID,
+		string(msg.Payload.SensorID),
+		ms,
+	)
+	if err != nil {
+		return fmt.Errorf("service: ingest sensor metrics: %w", err)
+	}
+
 	return nil
+}
+
+// toDomainMetrics converts generated AsyncAPI metric schemas to domain
+// metrics.
+func toDomainMetrics(
+	in []asyncapi.MetricSchema,
+) []metrics.Metric {
+	ms := make([]metrics.Metric, 0, len(in))
+	for _, m := range in {
+		ms = append(ms, metrics.Metric{
+			Name:      m.Name,
+			Type:      metrics.Type(m.Type),
+			Unit:      m.Unit,
+			Value:     m.Value,
+			Timestamp: m.Timestamp,
+		})
+	}
+
+	return ms
 }
 
 func (s *S) HandleSensorDeclaration(

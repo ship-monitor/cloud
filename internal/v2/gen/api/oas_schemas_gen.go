@@ -418,6 +418,7 @@ func (s *MetricType) UnmarshalText(data []byte) error {
 type Metrics struct {
 	Name   string     `json:"name"`
 	Type   MetricType `json:"type"`
+	Unit   string     `json:"unit"`
 	Values []Metric   `json:"values"`
 }
 
@@ -429,6 +430,11 @@ func (s *Metrics) GetName() string {
 // GetType returns the value of Type.
 func (s *Metrics) GetType() MetricType {
 	return s.Type
+}
+
+// GetUnit returns the value of Unit.
+func (s *Metrics) GetUnit() string {
+	return s.Unit
 }
 
 // GetValues returns the value of Values.
@@ -444,6 +450,11 @@ func (s *Metrics) SetName(val string) {
 // SetType sets the value of Type.
 func (s *Metrics) SetType(val MetricType) {
 	s.Type = val
+}
+
+// SetUnit sets the value of Unit.
+func (s *Metrics) SetUnit(val string) {
+	s.Unit = val
 }
 
 // SetValues sets the value of Values.

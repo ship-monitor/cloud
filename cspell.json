@@ -7,7 +7,9 @@
     "goconst",
     "varnamelen",
     "clickhouse",
-    "exhaustruct"
+    "exhaustruct",
+    "gosec",
+    "zapslog"
   ],
   "userWords": ["healthnes"]
 }

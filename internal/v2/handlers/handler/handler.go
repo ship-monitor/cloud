@@ -22,6 +22,7 @@ type Handler struct {
 	users        UserService
 	devices      DeviceService
 	sensors      SensorService
+	metrics      MetricsService
 	logger       *zap.Logger
 }
 
@@ -47,6 +48,7 @@ func New(
 	users UserService,
 	devices DeviceService,
 	sensors SensorService,
+	metrics MetricsService,
 	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
@@ -54,6 +56,7 @@ func New(
 		users:        users,
 		devices:      devices,
 		sensors:      sensors,
+		metrics:      metrics,
 		logger:       logger,
 	}
 }
@@ -259,22 +262,6 @@ func (h *Handler) GetDeviceOnlineStatus(
 		Online:   online,
 		LastSeen: lastSeen.Unix(),
 	}, nil
-}
-
-// GetDeviceMetrics implements [api.Handler].
-func (h *Handler) GetDeviceMetrics(
-	ctx context.Context,
-	params api.GetDeviceMetricsParams,
-) (*api.Metrics, error) {
-	return nil, errUnknownError.WithDetail("Currently not implemented")
-}
-
-// GetSensorMetrics implements [api.Handler].
-func (h *Handler) GetSensorMetrics(
-	ctx context.Context,
-	params api.GetSensorMetricsParams,
-) (*api.Metrics, error) {
-	return nil, errUnknownError.WithDetail("Currently not implemented")
 }
 
 // GetHealth implements [api.Handler].

@@ -11,6 +11,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
 	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
+	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"github.com/ship-monitor/cloud/pkg/connector/common"
@@ -34,8 +35,16 @@ func newSubscriber(
 	handler *queue.Handler,
 	security *queuesecurity.Handler,
 	sensor *sensor.Service,
+	metrics *metricsservice.Service,
 ) *subscriber.S {
-	subs := subscriber.New(controller, logger, handler, security, sensor)
+	subs := subscriber.New(
+		controller,
+		logger,
+		handler,
+		security,
+		sensor,
+		metrics,
+	)
 
 	lc.Append(fx.StartStopHook(subs.Start, func(ctx context.Context) error {
 		err := subs.Stop(ctx)
