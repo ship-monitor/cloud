@@ -95,15 +95,15 @@ func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
 	return resp
 }
 
-func toApiProblem(p *problem.Error) api.Problem {
+func toApiProblem(problem *problem.Error) api.Problem {
 	apiP := api.Problem{
-		Type:   p.Type,
-		Title:  p.Title,
-		Status: p.Status,
+		Type:   problem.Type,
+		Title:  problem.Title,
+		Status: problem.Status,
 		Detail: api.OptString{Set: false, Value: ""},
 	}
-	if p.Detail != "" {
-		apiP.Detail = api.NewOptString(p.Detail)
+	if problem.Detail != "" {
+		apiP.Detail = api.NewOptString(problem.Detail)
 	}
 
 	return apiP
