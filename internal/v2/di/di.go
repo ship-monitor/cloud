@@ -34,38 +34,29 @@ import (
 func NewApp(config *config.Config) *fx.App {
 	return fx.New(
 		logger(config),
-
 		fx.Supply(config),
-
 		fx.Provide(newDB),
+		fx.Provide(newClickHouse),
 		fx.Provide(newNATS),
 		fx.Provide(newValkey),
-
 		fx.Provide(userrepo.New),
 		fx.Provide(devicerepo.New),
 		fx.Provide(aliverepo.New),
 		fx.Provide(connect.New),
 		fx.Provide(sensorrepo.New),
-
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
 		fx.Provide(newDeviceService),
 		fx.Provide(newSensorsService),
-
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),
-
 		fx.Provide(newQueueHandler),
 		fx.Provide(newQueueSecurityHandler),
-
 		fx.Provide(newServer),
 		fx.Provide(newHTTPServer),
 		fx.Provide(newPublisher),
-
 		provideConnector(),
-
 		deprecations(),
-
 		fx.Invoke(func(*http.Server) {}),
 	)
 }

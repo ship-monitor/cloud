@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/ship-monitor/cloud/internal/v2/adapters/clickhousedb"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/db"
 )
 
@@ -12,6 +13,7 @@ type Config struct {
 	devel       string
 	SecurityKey string
 	DB          db.Config
+	ClickHouse  clickhousedb.Config
 	NatsURL     string
 	ValkeyURL   string
 }
@@ -29,6 +31,9 @@ func New() *Config {
 		devel:       os.Getenv("DEVEL"),
 		DB: db.Config{
 			DSN: os.Getenv("DB_DSN"),
+		},
+		ClickHouse: clickhousedb.Config{
+			DSN: os.Getenv("CLICKHOUSE_DSN"),
 		},
 		NatsURL:   os.Getenv("NATS_URL"),
 		ValkeyURL: os.Getenv("VALKEY_URL"),
