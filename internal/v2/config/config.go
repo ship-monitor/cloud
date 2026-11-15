@@ -29,10 +29,10 @@ func New() *Config {
 	_ = godotenv.Load()
 
 	return &Config{
-		Host:        getOrDefault("HOST", "127.0.0.1"),
-		Port:        os.Getenv("PORT"),
+		Host:        GetOrDefault("HOST", "127.0.0.1"),
+		Port:        GetOrDefault("PORT", "6767"),
 		SecurityKey: os.Getenv("SECURITY_KEY"),
-		Mode:        getOrDefault("MODE", "DEVELOPMENT"),
+		Mode:        GetOrDefault("MODE", "DEVELOPMENT"),
 		DB: db.Config{
 			DSN: os.Getenv("DB_DSN"),
 		},
@@ -45,16 +45,19 @@ func New() *Config {
 	}
 }
 
-func getOrDefault(key, defaultValue string) string {
+func GetOrDefault(key, defaultValue string) string {
 	val := os.Getenv(key)
 
 	if val == "" {
 		return defaultValue
 	}
 
-	return defaultValue
+	return val
 }
 
+// TODO: add tests.
+//
+//nolint:godox
 func getStrings(key, separator string) []string {
 	val := os.Getenv(key)
 

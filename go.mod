@@ -5,7 +5,6 @@ go 1.27.0
 require (
 	charm.land/lipgloss/v2 v2.1.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
-	github.com/charmbracelet/x/term v0.2.2
 	github.com/go-faster/errors v0.8.0
 	github.com/go-faster/jx v1.2.0
 	github.com/go-playground/validator/v10 v10.30.1
@@ -55,6 +54,7 @@ require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
+	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect

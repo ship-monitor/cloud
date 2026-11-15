@@ -194,7 +194,7 @@ func getCORS(config *config.Config, logger *zap.Logger) *cors.Cors {
 		},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
-		Logger:           zap.NewStdLog(logger),
+		Logger:           zap.NewStdLog(logger.Named("CORS")),
 		Debug:            true,
 	})
 }
