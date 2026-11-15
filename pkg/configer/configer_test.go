@@ -1,9 +1,9 @@
-package config_test
+package configer_test
 
 import (
 	"testing"
 
-	"github.com/ship-monitor/cloud/internal/v2/config"
+	"github.com/ship-monitor/cloud/pkg/configer"
 )
 
 //nolint:goconst, paralleltest, varnamelen
@@ -38,7 +38,7 @@ func TestGetOrDefault(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setup(t)
 
-			value := config.GetOrDefault(tt.key, tt.defaultValue)
+			value := configer.GetOrDefault(tt.key, tt.defaultValue)
 			if value != tt.expectedValue {
 				t.Errorf(
 					"expected %q, but returned %q",

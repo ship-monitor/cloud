@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/clickhousedb"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/db"
+	"github.com/ship-monitor/cloud/pkg/configer"
 )
 
 type Config struct {
@@ -29,10 +30,10 @@ func New() *Config {
 	_ = godotenv.Load()
 
 	return &Config{
-		Host:        GetOrDefault("HOST", "127.0.0.1"),
-		Port:        GetOrDefault("PORT", "6767"),
+		Host:        configer.GetOrDefault("HOST", "127.0.0.1"),
+		Port:        configer.GetOrDefault("PORT", "6767"),
 		SecurityKey: os.Getenv("SECURITY_KEY"),
-		Mode:        GetOrDefault("MODE", "DEVELOPMENT"),
+		Mode:        configer.GetOrDefault("MODE", "DEVELOPMENT"),
 		DB: db.Config{
 			DSN: os.Getenv("DB_DSN"),
 		},
@@ -43,16 +44,6 @@ func New() *Config {
 		ValkeyURL:   os.Getenv("VALKEY_URL"),
 		CorsOrigins: getStrings("CORS_ORIGINS", ","),
 	}
-}
-
-func GetOrDefault(key, defaultValue string) string {
-	val := os.Getenv(key)
-
-	if val == "" {
-		return defaultValue
-	}
-
-	return val
 }
 
 // TODO: add tests.
