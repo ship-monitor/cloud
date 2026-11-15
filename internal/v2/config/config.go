@@ -22,7 +22,7 @@ type Config struct {
 }
 
 func (c *Config) IsDevelopment() bool {
-	return strings.Contains(c.Mode, "DEV")
+	return strings.Contains(strings.ToUpper(c.Mode), "DEV")
 }
 
 func New() *Config {
@@ -47,11 +47,12 @@ func New() *Config {
 
 func getOrDefault(key, defaultValue string) string {
 	val := os.Getenv(key)
+
 	if val == "" {
 		return defaultValue
 	}
 
-	return ""
+	return defaultValue
 }
 
 func getStrings(key, separator string) []string {
