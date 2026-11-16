@@ -42,26 +42,6 @@ func New() *Config {
 		},
 		NatsURL:     os.Getenv("NATS_URL"),
 		ValkeyURL:   os.Getenv("VALKEY_URL"),
-		CorsOrigins: getStrings("CORS_ORIGINS", ","),
+		CorsOrigins: configer.GetStrings("CORS_ORIGINS", ","),
 	}
-}
-
-// TODO: add tests.
-//
-//nolint:godox
-func getStrings(key, separator string) []string {
-	val := os.Getenv(key)
-
-	splitVal := strings.Split(val, separator)
-
-	valStrings := []string{}
-
-	for _, s := range splitVal {
-		s = strings.TrimSpace(s)
-		if s != "" {
-			valStrings = append(valStrings, s)
-		}
-	}
-
-	return valStrings
 }

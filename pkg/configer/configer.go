@@ -1,6 +1,9 @@
 package configer
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 func GetOrDefault(key, defaultValue string) string {
 	val := os.Getenv(key)
@@ -10,4 +13,21 @@ func GetOrDefault(key, defaultValue string) string {
 	}
 
 	return val
+}
+
+func GetStrings(key, separator string) []string {
+	val := os.Getenv(key)
+
+	splitVal := strings.Split(val, separator)
+
+	valStrings := []string{}
+
+	for _, s := range splitVal {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			valStrings = append(valStrings, s)
+		}
+	}
+
+	return valStrings
 }
