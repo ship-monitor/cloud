@@ -44,7 +44,7 @@ godotenv in `internal/v2/config/config.go`):
 | ---------------- | ----------------------------------------------------------------------------------------- |
 | `PORT`           | HTTP server port                                                                          |
 | `SECURITY_KEY`   | Security key                                                                              |
-| `DEVEL`          | Set to enable development mode                                                            |
+| `MODE`           | Set to `DEVELOPMENT` to enable development mode                                           |
 | `DB_DSN`         | Postgres DSN                                                                              |
 | `CLICKHOUSE_DSN` | ClickHouse DSN (e.g. `clickhouse://user:password@localhost:9000/metrics?dial_timeout=5s`) |
 | `NATS_URL`       | NATS connection URL                                                                       |

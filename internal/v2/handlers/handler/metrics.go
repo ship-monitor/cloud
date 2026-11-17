@@ -29,7 +29,7 @@ func (h *Handler) GetDeviceMetrics(
 			From:  &params.From,
 			To:    &params.To,
 			Limit: params.Limit.Value,
-			Names: []string{params.Metric},
+			Name:  params.Metric,
 		},
 	)
 	if errors.Is(err, deviceservice.ErrNotFound) {
@@ -91,9 +91,7 @@ func queryFromParams(params api.GetSensorMetricsParams) (metrics.Query, error) {
 		query.To = &to
 	}
 
-	if params.Metric != "" {
-		query.Names = []string{params.Metric}
-	}
+	query.Name = params.Metric
 
 	if limit, ok := params.Limit.Get(); ok {
 		if limit < 0 {

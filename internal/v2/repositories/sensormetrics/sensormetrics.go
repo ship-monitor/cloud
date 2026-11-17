@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 )
@@ -73,24 +74,28 @@ func (r *Repository) InsertBatch(
 	return nil
 }
 
-// List returns metric samples for the given sensor on the given device
-// matching the filter, ordered by recorded_at.
+// List returns samples of the metric named in the filter for the given
+// sensor on the given device, ordered by recorded_at. The metric name is
+// required.
 func (r *Repository) List(
 	ctx context.Context,
 	deviceID uuid.UUID,
 	sensorID string,
 	filter Query,
 ) ([]metrics.Metric, error) {
+	err := validator.New().Struct(&filter)
+	if err != nil {
+		return nil, fmt.Errorf("invalid query: %w", err)
+	}
+
 	query := strings.Builder{}
-	args := []any{}
+	args := []any{deviceID.String(), sensorID, filter.Name}
 
 	query.WriteString(
 		`SELECT metric_name, metric_type, unit, value, recorded_at
 		 FROM sensor_metrics
-		 WHERE device_id = ? AND sensor_id = ?`,
+		 WHERE device_id = ? AND sensor_id = ? AND metric_name = ?`,
 	)
-
-	args = append(args, deviceID.String(), sensorID)
 
 	if filter.From != nil {
 		query.WriteString(" AND recorded_at >= ?")
@@ -102,17 +107,6 @@ func (r *Repository) List(
 		query.WriteString(" AND recorded_at <= ?")
 
 		args = append(args, filter.To.UTC())
-	}
-
-	if len(filter.Names) > 0 {
-		placeholders := strings.TrimSuffix(
-			strings.Repeat("?, ", len(filter.Names)), ", ",
-		)
-		query.WriteString(" AND metric_name IN (" + placeholders + ")")
-
-		for _, name := range filter.Names {
-			args = append(args, name)
-		}
 	}
 
 	query.WriteString(" ORDER BY recorded_at")
