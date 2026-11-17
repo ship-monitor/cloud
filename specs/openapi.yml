@@ -269,6 +269,10 @@ paths:
       operationId: GetDeviceMetrics
       parameters:
         - $ref: "#/components/parameters/deviceId"
+        - $ref: "#/components/parameters/metricsFrom"
+        - $ref: "#/components/parameters/metricsTo"
+        - $ref: "#/components/parameters/metricsName"
+        - $ref: "#/components/parameters/metricsLimit"
       responses:
         "200":
           $ref: "#/components/responses/GetDeviceMetricsOK"
