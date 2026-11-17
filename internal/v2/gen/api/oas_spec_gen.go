@@ -546,17 +546,7 @@ const (
           "default": {
             "$ref": "#/components/responses/BadResponse"
           }
-        },
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          },
-          {
-            
-          }
-        ]
+        }
       }
     }
   },
@@ -1342,9 +1332,6 @@ paths:
                     $ref: '#/components/responses/HealthResponse'
                 default:
                     $ref: '#/components/responses/BadResponse'
-            security:
-                -   bearerToken: []
-                - {}
 components:
     schemas:
         Device:
@@ -1678,8 +1665,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"d8cc2b2a65df417c11a7c491a44e12f6\""
-	specYAMLETag = "\"8a4bbfd28e874828ac810a823cf2d464\""
+	specJSONETag = "\"bb7c8649d8411eef6aec7133e84a8767\""
+	specYAMLETag = "\"b74703f830242cf69a51dbbf9403bc57\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

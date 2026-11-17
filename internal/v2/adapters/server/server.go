@@ -51,12 +51,12 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 		r *http.Request,
 		err error,
 	) {
-		logger = logger.With(
+		log := logger.With(
 			zap.String("method", r.Method),
 			zap.String("url", r.RequestURI),
 		)
 
-		logger.Error("Error occurred while handling request",
+		log.Error("Error occurred while handling request",
 			zap.Error(err),
 		)
 
@@ -97,7 +97,7 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 
 		err = json.NewEncoder(w).Encode(&toBadResponse(problem).Response)
 		if err != nil {
-			logger.Error(
+			log.Error(
 				"Failed encode problem to response body",
 				zap.Error(err),
 			)

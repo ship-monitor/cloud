@@ -32,6 +32,7 @@ paths:
   "/api/v2/health":
     get:
       tags: [meta]
+      security: []
       operationId: GetHealth
       responses:
         "200":
