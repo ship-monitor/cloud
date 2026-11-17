@@ -365,6 +365,18 @@ const (
         "parameters": [
           {
             "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "$ref": "#/components/parameters/metricsFrom"
+          },
+          {
+            "$ref": "#/components/parameters/metricsTo"
+          },
+          {
+            "$ref": "#/components/parameters/metricsName"
+          },
+          {
+            "$ref": "#/components/parameters/metricsLimit"
           }
         ],
         "responses": {
@@ -1241,6 +1253,10 @@ paths:
             operationId: GetDeviceMetrics
             parameters:
                 -   $ref: '#/components/parameters/deviceId'
+                -   $ref: '#/components/parameters/metricsFrom'
+                -   $ref: '#/components/parameters/metricsTo'
+                -   $ref: '#/components/parameters/metricsName'
+                -   $ref: '#/components/parameters/metricsLimit'
             responses:
                 "200":
                     $ref: '#/components/responses/GetDeviceMetricsOK'
@@ -1662,8 +1678,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"6f0841b41d6258537fae9453d3752c62\""
-	specYAMLETag = "\"3b287857aa4f108847bf95e0d37d5f08\""
+	specJSONETag = "\"d8cc2b2a65df417c11a7c491a44e12f6\""
+	specYAMLETag = "\"8a4bbfd28e874828ac810a823cf2d464\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

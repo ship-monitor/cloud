@@ -25,7 +25,12 @@ func (h *Handler) GetDeviceMetrics(
 		ctx,
 		actor,
 		params.DeviceID,
-		metrics.Query{}, //nolint:exhaustruct_v5
+		metrics.Query{
+			From:  &params.From,
+			To:    &params.To,
+			Limit: params.Limit.Value,
+			Names: []string{params.Metric},
+		},
 	)
 	if errors.Is(err, deviceservice.ErrNotFound) {
 		return nil, errDeviceNotFound
@@ -95,7 +100,7 @@ func queryFromParams(params api.GetSensorMetricsParams) (metrics.Query, error) {
 			return metrics.Query{}, errInvalidLimit
 		}
 
-		query.Limit = uint64(limit)
+		query.Limit = limit
 	}
 
 	return query, nil

@@ -706,6 +706,22 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 					Name: "deviceId",
 					In:   "path",
 				}: params.DeviceID,
+				{
+					Name: "from",
+					In:   "query",
+				}: params.From,
+				{
+					Name: "to",
+					In:   "query",
+				}: params.To,
+				{
+					Name: "metric",
+					In:   "query",
+				}: params.Metric,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
 			},
 			Raw: r,
 		}

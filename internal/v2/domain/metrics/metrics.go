@@ -30,5 +30,5 @@ type Query struct {
 	// Names optionally restricts the query to these metric names.
 	Names []string
 	// Limit caps the number of returned samples; zero means no limit.
-	Limit uint64
+	Limit int64
 }
