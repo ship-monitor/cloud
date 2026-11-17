@@ -871,9 +871,6 @@ const (
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean"
-                },
                 "token": {
                   "type": "string"
                 },
@@ -882,7 +879,6 @@ const (
                 }
               },
               "required": [
-                "success",
                 "token",
                 "refreshToken"
               ]
@@ -897,9 +893,6 @@ const (
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean"
-                },
                 "token": {
                   "type": "string"
                 },
@@ -908,7 +901,6 @@ const (
                 }
               },
               "required": [
-                "success",
                 "token",
                 "refreshToken"
               ]
@@ -1552,14 +1544,11 @@ components:
                     schema:
                         type: object
                         properties:
-                            success:
-                                type: boolean
                             token:
                                 type: string
                             refreshToken:
                                 type: string
                         required:
-                            - success
                             - token
                             - refreshToken
         RefreshResponseOK:
@@ -1569,14 +1558,11 @@ components:
                     schema:
                         type: object
                         properties:
-                            success:
-                                type: boolean
                             token:
                                 type: string
                             refreshToken:
                                 type: string
                         required:
-                            - success
                             - token
                             - refreshToken
     parameters:
@@ -1665,8 +1651,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"bb7c8649d8411eef6aec7133e84a8767\""
-	specYAMLETag = "\"b74703f830242cf69a51dbbf9403bc57\""
+	specJSONETag = "\"7ac7dbda36ae2f55e0f70c64761e1ce0\""
+	specYAMLETag = "\"96588f498a36390035fcc3d51b05ae11\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

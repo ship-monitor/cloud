@@ -37,7 +37,6 @@ func (h *Handler) RefreshToken(
 	}
 
 	return &api.RefreshResponseOK{
-		Success:      true,
 		Token:        token,
 		RefreshToken: refresh,
 	}, nil
@@ -135,7 +134,6 @@ func (h *Handler) LoginUser(
 	}
 
 	return &api.LoginResponseOK{
-		Success:      true,
 		Token:        token,
 		RefreshToken: refresh,
 	}, nil

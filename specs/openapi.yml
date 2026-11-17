@@ -462,8 +462,6 @@ components:
             type: object
             required: [success, token, refreshToken]
             properties:
-              success:
-                type: boolean
               token:
                 type: string
               refreshToken:
@@ -476,8 +474,6 @@ components:
             type: object
             required: [success, token, refreshToken]
             properties:
-              success:
-                type: boolean
               token:
                 type: string
               refreshToken:

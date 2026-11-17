@@ -245,14 +245,8 @@ func (s *HealthResponse) SetStatus(val ServiceStatus) {
 }
 
 type LoginResponseOK struct {
-	Success      bool   `json:"success"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *LoginResponseOK) GetSuccess() bool {
-	return s.Success
 }
 
 // GetToken returns the value of Token.
@@ -263,11 +257,6 @@ func (s *LoginResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *LoginResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
-}
-
-// SetSuccess sets the value of Success.
-func (s *LoginResponseOK) SetSuccess(val bool) {
-	s.Success = val
 }
 
 // SetToken sets the value of Token.
@@ -605,14 +594,8 @@ func (s *Problem) SetDetail(val OptString) {
 func (*Problem) connectDeviceRes() {}
 
 type RefreshResponseOK struct {
-	Success      bool   `json:"success"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *RefreshResponseOK) GetSuccess() bool {
-	return s.Success
 }
 
 // GetToken returns the value of Token.
@@ -623,11 +606,6 @@ func (s *RefreshResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *RefreshResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
-}
-
-// SetSuccess sets the value of Success.
-func (s *RefreshResponseOK) SetSuccess(val bool) {
-	s.Success = val
 }
 
 // SetToken sets the value of Token.

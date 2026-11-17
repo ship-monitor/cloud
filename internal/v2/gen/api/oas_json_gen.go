@@ -970,10 +970,6 @@ func (s *LoginResponseOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *LoginResponseOK) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("success")
-		e.Bool(s.Success)
-	}
-	{
 		e.FieldStart("token")
 		e.Str(s.Token)
 	}
@@ -983,10 +979,9 @@ func (s *LoginResponseOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfLoginResponseOK = [3]string{
-	0: "success",
-	1: "token",
-	2: "refreshToken",
+var jsonFieldsNameOfLoginResponseOK = [2]string{
+	0: "token",
+	1: "refreshToken",
 }
 
 // Decode decodes LoginResponseOK from json.
@@ -998,20 +993,8 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "success":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Bool()
-				s.Success = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"success\"")
-			}
 		case "token":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Token = string(v)
@@ -1023,7 +1006,7 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"token\"")
 			}
 		case "refreshToken":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RefreshToken = string(v)
@@ -1044,7 +1027,7 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1754,10 +1737,6 @@ func (s *RefreshResponseOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RefreshResponseOK) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("success")
-		e.Bool(s.Success)
-	}
-	{
 		e.FieldStart("token")
 		e.Str(s.Token)
 	}
@@ -1767,10 +1746,9 @@ func (s *RefreshResponseOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRefreshResponseOK = [3]string{
-	0: "success",
-	1: "token",
-	2: "refreshToken",
+var jsonFieldsNameOfRefreshResponseOK = [2]string{
+	0: "token",
+	1: "refreshToken",
 }
 
 // Decode decodes RefreshResponseOK from json.
@@ -1782,20 +1760,8 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "success":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Bool()
-				s.Success = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"success\"")
-			}
 		case "token":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Token = string(v)
@@ -1807,7 +1773,7 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"token\"")
 			}
 		case "refreshToken":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RefreshToken = string(v)
@@ -1828,7 +1794,7 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
