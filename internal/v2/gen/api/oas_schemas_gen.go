@@ -653,13 +653,13 @@ func (*Problem) connectDeviceRes() {}
 
 type RefreshResponseOK struct {
 	// Deprecated: schema marks this property as deprecated.
-	Success      bool   `json:"success"`
-	Token        string `json:"token"`
-	RefreshToken string `json:"refreshToken"`
+	Success      OptBool `json:"success"`
+	Token        string  `json:"token"`
+	RefreshToken string  `json:"refreshToken"`
 }
 
 // GetSuccess returns the value of Success.
-func (s *RefreshResponseOK) GetSuccess() bool {
+func (s *RefreshResponseOK) GetSuccess() OptBool {
 	return s.Success
 }
 
@@ -674,7 +674,7 @@ func (s *RefreshResponseOK) GetRefreshToken() string {
 }
 
 // SetSuccess sets the value of Success.
-func (s *RefreshResponseOK) SetSuccess(val bool) {
+func (s *RefreshResponseOK) SetSuccess(val OptBool) {
 	s.Success = val
 }
 

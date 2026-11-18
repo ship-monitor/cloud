@@ -1789,8 +1789,10 @@ func (s *RefreshResponseOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RefreshResponseOK) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("success")
-		e.Bool(s.Success)
+		if s.Success.Set {
+			e.FieldStart("success")
+			s.Success.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("token")
@@ -1818,11 +1820,9 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "success":
-			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Bool()
-				s.Success = bool(v)
-				if err != nil {
+				s.Success.Reset()
+				if err := s.Success.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -1863,7 +1863,7 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

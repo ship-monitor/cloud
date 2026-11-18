@@ -889,7 +889,6 @@ const (
                 }
               },
               "required": [
-                "success",
                 "token",
                 "refreshToken"
               ]
@@ -1569,7 +1568,6 @@ components:
                             refreshToken:
                                 type: string
                         required:
-                            - success
                             - token
                             - refreshToken
     parameters:
@@ -1674,8 +1672,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"cbe118c552864d901ca311c385a5168d\""
-	specYAMLETag = "\"d84a7c8048e51dea48f1f88e51c13a6a\""
+	specJSONETag = "\"e8f804bb4148331500e0115f08be988a\""
+	specYAMLETag = "\"117d134c947ae97388145ae07fcd7863\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

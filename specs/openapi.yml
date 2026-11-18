@@ -481,7 +481,7 @@ components:
         "application/json":
           schema:
             type: object
-            required: [success, token, refreshToken]
+            required: [token, refreshToken]
             properties:
               success:
                 type: boolean
