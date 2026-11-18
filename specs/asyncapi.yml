@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
-  version: 1.1.2
+  version: 1.3.0
 servers:
   development:
     host: localhost:4222
@@ -39,14 +39,23 @@ channels:
       heartbeat:
         $ref: "#/components/messages/heartbeat"
 
-  metrics:
+  deviceMetrics:
     address: device.{deviceId}.metrics
     parameters:
       deviceId:
         $ref: "#/components/parameters/deviceId"
     messages:
-      device:
+      metrics:
         $ref: "#/components/messages/metrics"
+
+  sensorMetrics:
+    address: device.{deviceId}.metrics.sensor
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+    messages:
+      sensor:
+        $ref: "#/components/messages/sensorMetrics"
 
   sensorDeclarations:
     address: device.{deviceId}.sensors
@@ -79,13 +88,20 @@ operations:
     messages:
       - $ref: "#/components/messages/connectResponse"
 
-  metrics:
+  deviceMetrics:
     title: Device sends own metrics
     action: receive
     channel:
-      $ref: "#/channels/metrics"
+      $ref: "#/channels/deviceMetrics"
     messages:
       - $ref: "#/components/messages/metrics"
+
+  sensorMetrics:
+    title: Device sends own metrics
+    action: receive
+    channel:
+      $ref: "#/channels/sensorMetrics"
+    messages:
       - $ref: "#/components/messages/sensorMetrics"
 
   sensorDeclaration:
