@@ -59,18 +59,7 @@ paths:
       tags: [auth]
       operationId: LoginUser
       requestBody:
-        required: true
-        content:
-          "application/json":
-            schema:
-              type: object
-              required: [email, password]
-              properties:
-                email:
-                  type: string
-                  format: email
-                password:
-                  type: string
+        $ref: "#/components/requestBodies/LoginRequest"
       responses:
         "200":
           $ref: "#/components/responses/LoginResponseOK"
@@ -180,7 +169,7 @@ paths:
                   type: string
       responses:
         "200":
-          description: Updated successful
+          description: Successfully updated
         default:
           $ref: "#/components/responses/BadResponse"
     delete:
@@ -192,7 +181,7 @@ paths:
         - $ref: "#/components/parameters/deviceId"
       responses:
         "200":
-          description: Deleted successful
+          description: Successfully deleted
         default:
           $ref: "#/components/responses/BadResponse"
 
@@ -234,7 +223,7 @@ paths:
         - $ref: "#/components/parameters/sensorId"
 
       requestBody:
-        $ref: "#/components/requestBodies/EditSensor"
+        $ref: "#/components/requestBodies/EditSensorRequest"
 
       responses:
         "200":
@@ -389,11 +378,14 @@ components:
       properties:
         id:
           type: string
+          readOnly: true
         name:
           type: string
+          readOnly: true
         deviceId:
           type: string
           format: uuid
+          readOnly: true
         displayName:
           type: string
     MetricType:
@@ -436,7 +428,21 @@ components:
             $ref: "#/components/schemas/Metric"
 
   requestBodies:
-    EditSensor:
+    LoginRequest:
+      required: true
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [email, password]
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                format: password
+    EditSensorRequest:
       required: true
       content:
         "application/json":
@@ -455,25 +461,31 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
     LoginResponseOK:
-      description: Successful login
+      description: Successfully logged in
       content:
         "application/json":
           schema:
             type: object
-            required: [success, token, refreshToken]
+            required: [token, refreshToken]
             properties:
+              success:
+                type: boolean
+                deprecated: true
               token:
                 type: string
               refreshToken:
                 type: string
     RefreshResponseOK:
-      description: Successful refresh token
+      description: Successfully refreshed token
       content:
         "application/json":
           schema:
             type: object
             required: [success, token, refreshToken]
             properties:
+              success:
+                type: boolean
+                deprecated: true
               token:
                 type: string
               refreshToken:
@@ -500,8 +512,8 @@ components:
               online:
                 type: boolean
               lastSeen:
-                type: integer
-                format: int64
+                type: string
+                format: date-time
     GetDeviceResponseOK:
       description: Returns device
       content:
@@ -540,7 +552,7 @@ components:
                 items:
                   $ref: "#/components/schemas/Sensor"
     EditSensorOK:
-      description: Successful editing, returns new sensor data
+      description: Successfully edited
       content:
         "application/json":
           schema:

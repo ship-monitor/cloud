@@ -662,7 +662,7 @@ func (s *GetOnlineResponseOK) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("lastSeen")
-		e.Int64(s.LastSeen)
+		json.EncodeDateTime(e, s.LastSeen)
 	}
 }
 
@@ -695,8 +695,8 @@ func (s *GetOnlineResponseOK) Decode(d *jx.Decoder) error {
 		case "lastSeen":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := d.Int64()
-				s.LastSeen = int64(v)
+				v, err := json.DecodeDateTime(d)
+				s.LastSeen = v
 				if err != nil {
 					return err
 				}
@@ -970,6 +970,12 @@ func (s *LoginResponseOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *LoginResponseOK) encodeFields(e *jx.Encoder) {
 	{
+		if s.Success.Set {
+			e.FieldStart("success")
+			s.Success.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("token")
 		e.Str(s.Token)
 	}
@@ -979,9 +985,10 @@ func (s *LoginResponseOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfLoginResponseOK = [2]string{
-	0: "token",
-	1: "refreshToken",
+var jsonFieldsNameOfLoginResponseOK = [3]string{
+	0: "success",
+	1: "token",
+	2: "refreshToken",
 }
 
 // Decode decodes LoginResponseOK from json.
@@ -993,8 +1000,18 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "success":
+			if err := func() error {
+				s.Success.Reset()
+				if err := s.Success.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"success\"")
+			}
 		case "token":
-			requiredBitSet[0] |= 1 << 0
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Token = string(v)
@@ -1006,7 +1023,7 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"token\"")
 			}
 		case "refreshToken":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.RefreshToken = string(v)
@@ -1027,7 +1044,7 @@ func (s *LoginResponseOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1545,6 +1562,41 @@ func (s *Metrics) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes bool as json.
+func (o OptBool) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes bool from json.
+func (o *OptBool) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptBool to nil")
+	}
+	o.Set = true
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	o.Value = bool(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptBool) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptBool) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes string as json.
 func (o OptString) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -1737,6 +1789,10 @@ func (s *RefreshResponseOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RefreshResponseOK) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("success")
+		e.Bool(s.Success)
+	}
+	{
 		e.FieldStart("token")
 		e.Str(s.Token)
 	}
@@ -1746,9 +1802,10 @@ func (s *RefreshResponseOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRefreshResponseOK = [2]string{
-	0: "token",
-	1: "refreshToken",
+var jsonFieldsNameOfRefreshResponseOK = [3]string{
+	0: "success",
+	1: "token",
+	2: "refreshToken",
 }
 
 // Decode decodes RefreshResponseOK from json.
@@ -1760,8 +1817,20 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "token":
+		case "success":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Success = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"success\"")
+			}
+		case "token":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Token = string(v)
@@ -1773,7 +1842,7 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"token\"")
 			}
 		case "refreshToken":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.RefreshToken = string(v)
@@ -1794,7 +1863,7 @@ func (s *RefreshResponseOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

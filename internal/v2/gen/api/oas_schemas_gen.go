@@ -192,8 +192,8 @@ func (s *GetDevicesOK) SetDevices(val []Device) {
 }
 
 type GetOnlineResponseOK struct {
-	Online   bool  `json:"online"`
-	LastSeen int64 `json:"lastSeen"`
+	Online   bool      `json:"online"`
+	LastSeen time.Time `json:"lastSeen"`
 }
 
 // GetOnline returns the value of Online.
@@ -202,7 +202,7 @@ func (s *GetOnlineResponseOK) GetOnline() bool {
 }
 
 // GetLastSeen returns the value of LastSeen.
-func (s *GetOnlineResponseOK) GetLastSeen() int64 {
+func (s *GetOnlineResponseOK) GetLastSeen() time.Time {
 	return s.LastSeen
 }
 
@@ -212,7 +212,7 @@ func (s *GetOnlineResponseOK) SetOnline(val bool) {
 }
 
 // SetLastSeen sets the value of LastSeen.
-func (s *GetOnlineResponseOK) SetLastSeen(val int64) {
+func (s *GetOnlineResponseOK) SetLastSeen(val time.Time) {
 	s.LastSeen = val
 }
 
@@ -245,8 +245,15 @@ func (s *HealthResponse) SetStatus(val ServiceStatus) {
 }
 
 type LoginResponseOK struct {
-	Token        string `json:"token"`
-	RefreshToken string `json:"refreshToken"`
+	// Deprecated: schema marks this property as deprecated.
+	Success      OptBool `json:"success"`
+	Token        string  `json:"token"`
+	RefreshToken string  `json:"refreshToken"`
+}
+
+// GetSuccess returns the value of Success.
+func (s *LoginResponseOK) GetSuccess() OptBool {
+	return s.Success
 }
 
 // GetToken returns the value of Token.
@@ -257,6 +264,11 @@ func (s *LoginResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *LoginResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
+}
+
+// SetSuccess sets the value of Success.
+func (s *LoginResponseOK) SetSuccess(val OptBool) {
+	s.Success = val
 }
 
 // SetToken sets the value of Token.
@@ -451,6 +463,52 @@ func (s *Metrics) SetValues(val []Metric) {
 	s.Values = val
 }
 
+// NewOptBool returns new OptBool with value set to v.
+func NewOptBool(v bool) OptBool {
+	return OptBool{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBool is optional bool.
+type OptBool struct {
+	Value bool
+	Set   bool
+}
+
+// IsSet returns true if OptBool was set.
+func (o OptBool) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBool) Reset() {
+	var v bool
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBool) SetTo(v bool) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBool) Get() (v bool, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt64 returns new OptInt64 with value set to v.
 func NewOptInt64(v int64) OptInt64 {
 	return OptInt64{
@@ -594,8 +652,15 @@ func (s *Problem) SetDetail(val OptString) {
 func (*Problem) connectDeviceRes() {}
 
 type RefreshResponseOK struct {
+	// Deprecated: schema marks this property as deprecated.
+	Success      bool   `json:"success"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
+}
+
+// GetSuccess returns the value of Success.
+func (s *RefreshResponseOK) GetSuccess() bool {
+	return s.Success
 }
 
 // GetToken returns the value of Token.
@@ -606,6 +671,11 @@ func (s *RefreshResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *RefreshResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
+}
+
+// SetSuccess sets the value of Success.
+func (s *RefreshResponseOK) SetSuccess(val bool) {
+	s.Success = val
 }
 
 // SetToken sets the value of Token.

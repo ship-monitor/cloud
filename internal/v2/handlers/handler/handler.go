@@ -258,7 +258,7 @@ func (h *Handler) GetDeviceOnlineStatus(
 
 	return &api.GetOnlineResponseOK{
 		Online:   online,
-		LastSeen: lastSeen.Unix(),
+		LastSeen: lastSeen,
 	}, nil
 }
 

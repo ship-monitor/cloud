@@ -38,27 +38,7 @@ const (
         ],
         "operationId": "LoginUser",
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
-              }
-            }
-          },
-          "required": true
+          "$ref": "#/components/requestBodies/LoginRequest"
         },
         "responses": {
           "200": {
@@ -296,7 +276,7 @@ const (
         ],
         "responses": {
           "200": {
-            "description": "Deleted successful"
+            "description": "Successfully deleted"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -340,7 +320,7 @@ const (
         },
         "responses": {
           "200": {
-            "description": "Updated successful"
+            "description": "Successfully updated"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -469,7 +449,7 @@ const (
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/EditSensor"
+          "$ref": "#/components/requestBodies/EditSensorRequest"
         },
         "responses": {
           "200": {
@@ -734,7 +714,7 @@ const (
         }
       },
       "EditSensorOK": {
-        "description": "Successful editing, returns new sensor data",
+        "description": "Successfully edited",
         "content": {
           "application/json": {
             "schema": {
@@ -803,8 +783,8 @@ const (
                   "type": "boolean"
                 },
                 "lastSeen": {
-                  "type": "integer",
-                  "format": "int64"
+                  "type": "string",
+                  "format": "date-time"
                 }
               },
               "required": [
@@ -865,12 +845,16 @@ const (
         }
       },
       "LoginResponseOK": {
-        "description": "Successful login",
+        "description": "Successfully logged in",
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean",
+                  "deprecated": true
+                },
                 "token": {
                   "type": "string"
                 },
@@ -887,12 +871,16 @@ const (
         }
       },
       "RefreshResponseOK": {
-        "description": "Successful refresh token",
+        "description": "Successfully refreshed token",
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
               "properties": {
+                "success": {
+                  "type": "boolean",
+                  "deprecated": true
+                },
                 "token": {
                   "type": "string"
                 },
@@ -901,6 +889,7 @@ const (
                 }
               },
               "required": [
+                "success",
                 "token",
                 "refreshToken"
               ]
@@ -977,7 +966,7 @@ const (
       }
     },
     "requestBodies": {
-      "EditSensor": {
+      "EditSensorRequest": {
         "content": {
           "application/json": {
             "schema": {
@@ -989,6 +978,30 @@ const (
               },
               "required": [
                 "displayName"
+              ]
+            }
+          }
+        },
+        "required": true
+      },
+      "LoginRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "password": {
+                  "type": "string",
+                  "format": "password"
+                }
+              },
+              "required": [
+                "email",
+                "password"
               ]
             }
           }
@@ -1051,20 +1064,7 @@ paths:
                 - auth
             operationId: LoginUser
             requestBody:
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                email:
-                                    type: string
-                                    format: email
-                                password:
-                                    type: string
-                            required:
-                                - email
-                                - password
-                required: true
+                $ref: '#/components/requestBodies/LoginRequest'
             responses:
                 "200":
                     $ref: '#/components/responses/LoginResponseOK'
@@ -1198,7 +1198,7 @@ paths:
                 -   $ref: '#/components/parameters/deviceId'
             responses:
                 "200":
-                    description: Deleted successful
+                    description: Successfully deleted
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -1222,7 +1222,7 @@ paths:
                 required: true
             responses:
                 "200":
-                    description: Updated successful
+                    description: Successfully updated
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -1285,7 +1285,7 @@ paths:
                 -   $ref: '#/components/parameters/deviceId'
                 -   $ref: '#/components/parameters/sensorId'
             requestBody:
-                $ref: '#/components/requestBodies/EditSensor'
+                $ref: '#/components/requestBodies/EditSensorRequest'
             responses:
                 "200":
                     $ref: '#/components/responses/EditSensorOK'
@@ -1457,7 +1457,7 @@ components:
                     schema:
                         $ref: '#/components/schemas/Problem'
         EditSensorOK:
-            description: Successful editing, returns new sensor data
+            description: Successfully edited
             content:
                 application/json:
                     schema:
@@ -1502,8 +1502,8 @@ components:
                             online:
                                 type: boolean
                             lastSeen:
-                                type: integer
-                                format: int64
+                                type: string
+                                format: date-time
                         required:
                             - online
                             - lastSeen
@@ -1538,12 +1538,15 @@ components:
                         required:
                             - status
         LoginResponseOK:
-            description: Successful login
+            description: Successfully logged in
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
+                            success:
+                                type: boolean
+                                deprecated: true
                             token:
                                 type: string
                             refreshToken:
@@ -1552,17 +1555,21 @@ components:
                             - token
                             - refreshToken
         RefreshResponseOK:
-            description: Successful refresh token
+            description: Successfully refreshed token
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
+                            success:
+                                type: boolean
+                                deprecated: true
                             token:
                                 type: string
                             refreshToken:
                                 type: string
                         required:
+                            - success
                             - token
                             - refreshToken
     parameters:
@@ -1620,7 +1627,7 @@ components:
             schema:
                 type: string
     requestBodies:
-        EditSensor:
+        EditSensorRequest:
             content:
                 application/json:
                     schema:
@@ -1630,6 +1637,22 @@ components:
                                 type: string
                         required:
                             - displayName
+            required: true
+        LoginRequest:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            email:
+                                type: string
+                                format: email
+                            password:
+                                type: string
+                                format: password
+                        required:
+                            - email
+                            - password
             required: true
     securitySchemes:
         bearerToken:
@@ -1651,8 +1674,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"7ac7dbda36ae2f55e0f70c64761e1ce0\""
-	specYAMLETag = "\"96588f498a36390035fcc3d51b05ae11\""
+	specJSONETag = "\"cbe118c552864d901ca311c385a5168d\""
+	specYAMLETag = "\"d84a7c8048e51dea48f1f88e51c13a6a\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.
