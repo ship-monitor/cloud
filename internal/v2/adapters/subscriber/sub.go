@@ -96,15 +96,15 @@ func (s *S) Start(ctx context.Context) error {
 			asyncapi.ConnectResponsesChannelParameters{DeviceId: "*"},
 			s.HandleConnectResponse,
 		),
-		s.controller.SubscribeToMetricsOperationForMetrics(
+		s.controller.SubscribeToSensorMetricsOperation(
 			ctx,
-			asyncapi.MetricsChannelParameters{DeviceId: "*"},
-			s.HandleMetrics,
-		),
-		s.controller.SubscribeToMetricsOperationForSensorMetrics(
-			ctx,
-			asyncapi.MetricsChannelParameters{DeviceId: "*"},
+			asyncapi.SensorMetricsChannelParameters{DeviceId: "*"},
 			s.HandleSensorMetrics,
+		),
+		s.controller.SubscribeToDeviceMetricsOperation(
+			ctx,
+			asyncapi.DeviceMetricsChannelParameters{DeviceId: "*"},
+			s.HandleMetrics,
 		),
 		s.controller.SubscribeToSensorDeclarationOperation(
 			ctx,

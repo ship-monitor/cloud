@@ -14,7 +14,7 @@ import (
 // Embedded OpenAPI document (expanded: external references are resolved).
 const (
 	specJSON = `{
-  "openapi": "3.1.0",
+  "openapi": "3.1.1",
   "info": {
     "title": "Ship Monitor",
     "description": "OpenAPI specification of Ship Monitor cloud service.\n",
@@ -1045,7 +1045,7 @@ const (
     }
   ]
 }`
-	specYAML = `openapi: 3.1.0
+	specYAML = `openapi: 3.1.1
 info:
     title: Ship Monitor
     description: |
@@ -1672,8 +1672,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"e8f804bb4148331500e0115f08be988a\""
-	specYAMLETag = "\"117d134c947ae97388145ae07fcd7863\""
+	specJSONETag = "\"055dede15827a4d7403bbdf20fe1fbe7\""
+	specYAMLETag = "\"bfde89a5ccab2820f2c818871884691f\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

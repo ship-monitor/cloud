@@ -72,7 +72,7 @@ func New(
 		devices:    devices,
 		deviceRepo: deviceRepo,
 		sensorRepo: sensorRepo,
-		logger:     logger,
+		logger:     logger.Named("Metrics"),
 	}
 }
 
@@ -88,12 +88,6 @@ func (s *Service) IngestDeviceMetrics(
 	if err != nil {
 		return fmt.Errorf("insert device metrics: %w", err)
 	}
-
-	s.logger.Debug(
-		"Ingested device metrics",
-		zap.String("deviceId", deviceID.String()),
-		zap.Int("count", len(ms)),
-	)
 
 	return nil
 }
@@ -111,13 +105,6 @@ func (s *Service) IngestSensorMetrics(
 	if err != nil {
 		return fmt.Errorf("insert sensor metrics: %w", err)
 	}
-
-	s.logger.Debug(
-		"Ingested sensor metrics",
-		zap.String("deviceId", deviceID.String()),
-		zap.String("sensorId", sensorID),
-		zap.Int("count", len(ms)),
-	)
 
 	return nil
 }
@@ -140,6 +127,12 @@ func (s *Service) GetDeviceMetrics(
 		return nil, fmt.Errorf("list device metrics: %w", err)
 	}
 
+	s.logger.Debug(
+		"Get device metrics",
+		zap.String("metric", query.Name),
+		zap.Int("count", len(ms)),
+	)
+
 	return ms, nil
 }
 
@@ -161,6 +154,12 @@ func (s *Service) GetSensorMetrics(
 	if err != nil {
 		return nil, fmt.Errorf("list sensor metrics: %w", err)
 	}
+
+	s.logger.Debug(
+		"Get sensor metrics",
+		zap.String("metric", query.Name),
+		zap.Int("count", len(ms)),
+	)
 
 	return ms, nil
 }
