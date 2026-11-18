@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/pkg/problem"
 	"go.uber.org/zap"
@@ -75,6 +76,12 @@ var (
 		http.StatusInternalServerError,
 		"Unknown error occurred",
 	).WithDetail("Please contact support")
+
+	errBadRequest = problem.New(
+		"bad-request",
+		http.StatusBadRequest,
+		"Bad request",
+	)
 )
 
 func (h *Handler) NewError(
@@ -85,6 +92,24 @@ func (h *Handler) NewError(
 
 	if p, ok := errors.AsType[*problem.Error](err); ok {
 		return toBadResponse(p)
+	}
+
+	if decodeErr, ok := errors.AsType[*ogenerrors.DecodeRequestError](err); ok {
+		return toBadResponse(
+			errBadRequest.WithDetail(decodeErr.Error()),
+		)
+	}
+
+	if decodeErr, ok := errors.AsType[*ogenerrors.DecodeBodyError](err); ok {
+		return toBadResponse(
+			errBadRequest.WithDetail(decodeErr.Error()),
+		)
+	}
+
+	if securityErr, ok := errors.AsType[*ogenerrors.SecurityError](err); ok {
+		return toBadResponse(
+			errUnauthenticated.WithDetail(securityErr.Error()),
+		)
 	}
 
 	return toBadResponse(
