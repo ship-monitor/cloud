@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
@@ -61,7 +60,7 @@ func (h *Handler) HandleHeartbeat(
 	}
 
 	err := h.repo.InsertHeartbeat(ctx, id, device.Heartbeat{
-		Timestamp: time.Unix(msg.Payload.Timestamp, 0),
+		Timestamp: msg.Payload.Timestamp,
 	})
 	if err != nil {
 		return fmt.Errorf("insert heartbeat: %w", err)

@@ -38,31 +38,38 @@ func (r *Repository) WithTx(tx *sqlx.Tx) *Repository {
 
 // row mirrors the columns of the devices table.
 type row struct {
-	ID          uuid.UUID  `db:"id"`
-	OwnerID     uuid.UUID  `db:"owner_id"`
-	Name        string     `db:"name"`
-	SecurityKey string     `db:"security_key"`
-	CreatedAt   time.Time  `db:"created_at"`
-	UpdatedAt   *time.Time `db:"updated_at"`
+	ID           uuid.UUID  `db:"id"`
+	OwnerID      uuid.UUID  `db:"owner_id"`
+	Name         string     `db:"name"`
+	CreatedAt    time.Time  `db:"created_at"`
+	UpdatedAt    *time.Time `db:"updated_at"`
+	Manufacturer string     `db:"manufacturer"`
+	Model        string     `db:"model"`
+	Revision     string     `db:"revision"`
+	Software     string     `db:"software"`
 }
 
 func (r row) toDomain() domain.Device {
 	return domain.Device{
-		ID:          r.ID,
-		OwnerID:     r.OwnerID,
-		Name:        r.Name,
-		SecurityKey: r.SecurityKey,
+		ID:           r.ID,
+		OwnerID:      r.OwnerID,
+		Name:         r.Name,
+		Manufacturer: r.Manufacturer,
+		Model:        r.Model,
+		Revision:     r.Revision,
+		Software:     r.Software,
 	}
 }
 
-const columns = "id, owner_id, name, security_key, created_at, updated_at"
+const columns = "id, owner_id, name, created_at, updated_at, manufacturer, model, revision, software"
 
 // Create inserts a new device.
 func (r *Repository) Create(ctx context.Context, d domain.Device) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO devices (id, owner_id, name, security_key, created_at)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		d.ID, d.OwnerID, d.Name, d.SecurityKey, time.Now().UTC(),
+		`INSERT INTO devices (`+columns+`)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		d.ID, d.OwnerID, d.Name, time.Now().UTC(),
+		d.Manufacturer, d.Model, d.Revision, d.Software,
 	)
 	if err != nil {
 		return fmt.Errorf("insert device: %w", err)
@@ -159,21 +166,12 @@ func (r *Repository) Rename(
 	ownerID, id uuid.UUID,
 	name string,
 ) error {
-	res, err := r.db.ExecContext(ctx,
+	_, err := r.db.ExecContext(ctx,
 		`UPDATE devices SET name = $1 WHERE id = $2 AND owner_id = $3`,
 		name, id, ownerID,
 	)
 	if err != nil {
-		return fmt.Errorf("rename device: %w", err)
-	}
-
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rename device: %w", err)
-	}
-
-	if affected == 0 {
-		return ErrNotFound
+		return fmt.Errorf("execute update: %w", err)
 	}
 
 	return nil
@@ -197,6 +195,21 @@ func (r *Repository) Delete(ctx context.Context, ownerID, id uuid.UUID) error {
 
 	if affected == 0 {
 		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateFirmware(
+	ctx context.Context,
+	device domain.Device,
+) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE devices
+		SET manufacturer = $1, model = $2, revision = $3, software = $4
+		WHERE id = $5`, device.Manufacturer, device.Model, device.Revision, device.Software, device.ID)
+	if err != nil {
+		return fmt.Errorf("execute update: %w", err)
 	}
 
 	return nil

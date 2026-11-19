@@ -33,10 +33,13 @@ func (p Paging) Offset() int64 {
 
 // Device is a ship device owned by a user.
 type Device struct {
-	ID          uuid.UUID
-	OwnerID     uuid.UUID
-	Name        string
-	SecurityKey string
+	ID           uuid.UUID
+	OwnerID      uuid.UUID
+	Name         string
+	Manufacturer string `db:"manufacturer"`
+	Model        string `db:"model"`
+	Revision     string `db:"revision"`
+	Software     string `db:"software"`
 }
 
 type deviceIDkey struct{}

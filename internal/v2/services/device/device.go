@@ -14,6 +14,8 @@ import (
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 )
 
+const Unknown = "Unknown"
+
 var (
 	// ErrNotFound is returned when the device does not exist,
 	// or exists but is owned by another user.
@@ -39,6 +41,10 @@ type Repository interface {
 	) ([]domain.Device, error)
 	Rename(ctx context.Context, ownerID, id uuid.UUID, name string) error
 	Delete(ctx context.Context, ownerID, id uuid.UUID) error
+	UpdateFirmware(
+		ctx context.Context,
+		device domain.Device,
+	) error
 }
 
 type AliveRepository interface {
@@ -181,7 +187,16 @@ func (s *Service) Rename(
 	id uuid.UUID,
 	name string,
 ) error {
-	err := s.repo.Rename(ctx, actor.UserID, id, name)
+	exists, err := s.repo.Exists(ctx, id)
+	if err != nil {
+		return fmt.Errorf("check device exists: %w", err)
+	}
+
+	if !exists {
+		return ErrNotFound
+	}
+
+	err = s.repo.Rename(ctx, actor.UserID, id, name)
 	if errors.Is(err, devicerepo.ErrNotFound) {
 		return ErrNotFound
 	}
@@ -262,10 +277,13 @@ func (s *Service) ApproveConnection(
 	}
 
 	err = s.repo.Create(ctx, domain.Device{
-		ID:          request.DeviceID,
-		OwnerID:     request.UserID,
-		Name:        "NEW DEVICE " + request.DeviceID.String(),
-		SecurityKey: "",
+		ID:           request.DeviceID,
+		OwnerID:      request.UserID,
+		Name:         "NEW DEVICE " + request.DeviceID.String(),
+		Manufacturer: Unknown,
+		Model:        Unknown,
+		Revision:     Unknown,
+		Software:     Unknown,
 	})
 	if err != nil {
 		return fmt.Errorf("create new device: %w", err)
@@ -274,6 +292,37 @@ func (s *Service) ApproveConnection(
 	err = s.conn.SetApproved(ctx, requestID, true)
 	if err != nil {
 		return fmt.Errorf("approve connect request: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) SetFirmware(
+	ctx context.Context,
+	id uuid.UUID,
+	firmware asyncapi.FirmwareSchema,
+) error {
+	exists, err := s.repo.Exists(ctx, id)
+	if err != nil {
+		return fmt.Errorf("check device exists: %w", err)
+	}
+
+	if !exists {
+		return ErrNotFound
+	}
+
+	err = s.repo.UpdateFirmware(
+		ctx,
+		domain.Device{ //nolint:exhaustruct_v5
+			ID:           id,
+			Manufacturer: firmware.Manufacturer,
+			Model:        firmware.Model,
+			Revision:     firmware.Revision,
+			Software:     firmware.Software,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("update device: %w", err)
 	}
 
 	return nil

@@ -35,6 +35,14 @@ type Handler interface {
 	) error
 }
 
+type DeviceService interface {
+	SetFirmware(
+		ctx context.Context,
+		id uuid.UUID,
+		firmware asyncapi.FirmwareSchema,
+	) error
+}
+
 type SensorService interface {
 	DeclareSensors(
 		ctx context.Context,
@@ -64,6 +72,7 @@ type S struct {
 	security   SecurityHandler
 	sensor     SensorService
 	metrics    MetricsService
+	device     DeviceService
 }
 
 func New(
@@ -73,6 +82,7 @@ func New(
 	security SecurityHandler,
 	sensor SensorService,
 	metrics MetricsService,
+	device DeviceService,
 ) *S {
 	return &S{
 		controller: controller,
@@ -81,6 +91,7 @@ func New(
 		security:   security,
 		sensor:     sensor,
 		metrics:    metrics,
+		device:     device,
 	}
 }
 
@@ -110,6 +121,11 @@ func (s *S) Start(ctx context.Context) error {
 			ctx,
 			asyncapi.SensorDeclarationsChannelParameters{DeviceId: "*"},
 			s.HandleSensorDeclaration,
+		),
+		s.controller.SubscribeToFirmwareOperation(
+			ctx,
+			asyncapi.FirmwareChannelParameters{DeviceId: "*"},
+			s.HandleFirmware,
 		),
 	)
 	if err != nil {
@@ -263,13 +279,42 @@ func (s *S) HandleSensorDeclaration(
 	for _, s := range msg.Payload.Sensors {
 		sensors = append(
 			sensors,
-			sensor.SensorDecl{ID: string(s.Id), Name: s.Name},
+			sensor.SensorDecl{
+				ID:           string(s.Id),
+				Name:         s.Name,
+				Manufacturer: s.Firmware.Manufacturer,
+				Model:        s.Firmware.Model,
+				Revision:     s.Firmware.Revision,
+				Software:     s.Firmware.Software,
+			},
 		)
 	}
 
 	err = s.sensor.DeclareSensors(ctx, deviceID, sensors)
 	if err != nil {
 		return fmt.Errorf("service: declare sensors: %w", err)
+	}
+
+	return nil
+}
+
+func (s *S) HandleFirmware(
+	ctx context.Context,
+	msg asyncapi.FirmwareMessage,
+) error {
+	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	deviceID, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
+	}
+
+	err = s.device.SetFirmware(ctx, deviceID, msg.Payload)
+	if err != nil {
+		return fmt.Errorf("service: set firmware: %w", err)
 	}
 
 	return nil

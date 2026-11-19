@@ -20,24 +20,32 @@ type Repo struct {
 }
 
 type row struct {
-	ID          string     `db:"id"`
-	Name        string     `db:"name"`
-	DeviceID    uuid.UUID  `db:"device_id"`
-	DisplayName string     `db:"display_name"`
-	CreatedAt   time.Time  `db:"created_at"`
-	UpdatedAt   *time.Time `db:"updated_at"`
+	ID           string     `db:"id"`
+	Name         string     `db:"name"`
+	DeviceID     uuid.UUID  `db:"device_id"`
+	DisplayName  string     `db:"display_name"`
+	CreatedAt    time.Time  `db:"created_at"`
+	UpdatedAt    *time.Time `db:"updated_at"`
+	Manufacturer string     `db:"manufacturer"`
+	Model        string     `db:"model"`
+	Revision     string     `db:"revision"`
+	Software     string     `db:"software"`
 }
 
 func (r row) toDomain() sensor.Sensor {
 	return sensor.Sensor{
-		ID:          r.ID,
-		Name:        r.Name,
-		DeviceID:    r.DeviceID,
-		DisplayName: r.DisplayName,
+		ID:           r.ID,
+		Name:         r.Name,
+		DeviceID:     r.DeviceID,
+		DisplayName:  r.DisplayName,
+		Manufacturer: r.Manufacturer,
+		Model:        r.Model,
+		Revision:     r.Revision,
+		Software:     r.Software,
 	}
 }
 
-const columns = "id, name, device_id, display_name, created_at, updated_at"
+const columns = "id, name, device_id, display_name, created_at, updated_at, manufacturer, model, revision, software"
 
 func New(
 	db *sqlx.DB,
@@ -53,15 +61,19 @@ func (s *Repo) InsertSensor(
 ) error {
 	_, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO sensors (id, name, device_id, display_name, created_at) VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO sensors (`+columns+`) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		item.ID,
 		item.Name,
 		item.DeviceID,
 		item.DisplayName,
 		time.Now().UTC(),
+		item.Manufacturer,
+		item.Model,
+		item.Revision,
+		item.Software,
 	)
 	if err != nil {
-		return fmt.Errorf("insert sensor: %w", err)
+		return fmt.Errorf("execute insert: %w", err)
 	}
 
 	return nil
@@ -78,7 +90,7 @@ func (s *Repo) GetSensors(
 		`SELECT `+columns+` FROM sensors WHERE device_id = $1 ORDER BY id`,
 		deviceID,
 	); err != nil {
-		return nil, fmt.Errorf("select sensors by device: %w", err)
+		return nil, fmt.Errorf("execute select: %w", err)
 	}
 
 	sensors := make([]sensor.Sensor, len(rows))
