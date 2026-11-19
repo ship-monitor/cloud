@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lerenn/asyncapi-codegen/pkg/extensions"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/brokers/nats"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/middlewares"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
@@ -76,6 +77,7 @@ func newConnectorController(
 	c, err := asyncapi.NewAppController(
 		natsController,
 		asyncapi.WithLogger(qLog),
+		asyncapi.WithErrorHandler(extensions.DefaultErrorHandler()),
 		asyncapi.WithMiddlewares(
 			middlewares.Logging(qLog),
 			middlewares.Recovery(qLog),
