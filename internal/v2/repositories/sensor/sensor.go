@@ -67,6 +67,7 @@ func (s *Repo) InsertSensor(
 		item.DeviceID,
 		item.DisplayName,
 		time.Now().UTC(),
+		time.Now().UTC(),
 		item.Manufacturer,
 		item.Model,
 		item.Revision,
