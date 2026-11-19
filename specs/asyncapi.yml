@@ -63,6 +63,12 @@ channels:
       deviceId:
         $ref: "#/components/parameters/deviceId"
 
+  firmware:
+    address: device.{deviceId}.firmware
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+
 operations:
   onDeviceHeartbeat:
     title: Device sends heartbeat message
@@ -112,6 +118,14 @@ operations:
     messages:
       - $ref: "#/components/messages/sensorDeclaration"
 
+  firmware:
+    title: Device sends firmware information
+    action: receive
+    channel:
+      $ref: "#/channels/firmware"
+    messages:
+      - $ref: "#/components/messages/firmware"
+
 components:
   schemas:
     metric:
@@ -141,8 +155,25 @@ components:
       required: [timestamp]
       properties:
         timestamp:
-          type: integer
-          format: int64
+          type: string
+          format: date-time
+
+    firmware:
+      description: Information about hardware and software of device or sensor
+      type: object
+      required: [manufacturer, model, revision, software]
+      properties:
+        manufacturer:
+          type: string
+        model:
+          type: string
+        revision:
+          type: string
+        software:
+          type: string
+          description: Software name and version
+          example: "hub-service@v1.0"
+
     connectRequest:
       type: object
       required: [secretKey, requestId]
@@ -156,6 +187,7 @@ components:
           x-go-type: uuid.UUID
           x-go-type-imports:
             path: github.com/google/uuid
+
     connectResponse:
       type: object
       required: [approve, requestId]
@@ -186,12 +218,14 @@ components:
 
     sensorDeclarationItem:
       type: object
-      required: [id, name]
+      required: [id, name, firmware]
       properties:
         id:
           $ref: "#/components/schemas/sensorId"
         name:
           type: string
+        firmware:
+          $ref: "#/components/schemas/firmware"
 
     sensorDeclaration:
       type: object
@@ -258,15 +292,14 @@ components:
       payload:
         $ref: "#/components/schemas/sensorDeclaration"
 
+    firmware:
+      contentType: application/json
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
+      payload:
+        $ref: "#/components/schemas/firmware"
+
   parameters:
     deviceId:
       x-go-name: DeviceID
       description: Device identifier in UUID format.
-
-  # securitySchemes:
-  #   auth:
-  #     description: |
-  #       Authentication currently works via simple placing client ID in Authorization header
-  #     type: httpApiKey
-  #     in: header
-  #     name: Authorization

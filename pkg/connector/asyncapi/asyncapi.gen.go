@@ -60,6 +60,9 @@ type AppSubscriber interface {
 	// DeviceMetricsOperationReceived receive all Metrics messages from DeviceMetrics channel.
 	DeviceMetricsOperationReceived(ctx context.Context, msg MetricsMessage) error
 
+	// FirmwareOperationReceived receive all Firmware messages from Firmware channel.
+	FirmwareOperationReceived(ctx context.Context, msg FirmwareMessage) error
+
 	// OnConnectResponseOperationReceived receive all ConnectResponse messages from ConnectResponses channel.
 	OnConnectResponseOperationReceived(ctx context.Context, msg ConnectResponseMessage) error
 
@@ -304,6 +307,140 @@ func (c *AppController) UnsubscribeFromDeviceMetricsOperation(
 ) {
 	// Get channel address
 	addr := fmt.Sprintf("device.%s.metrics", params.DeviceId)
+
+	// Check if there receivers for this channel
+	sub, exists := c.subscriptions[addr]
+	if !exists {
+		return
+	}
+
+	// Set context
+	ctx = addAppContextValues(ctx, addr)
+
+	// Stop the subscription
+	sub.Cancel(ctx)
+
+	// Remove if from the receivers
+	delete(c.subscriptions, addr)
+
+	c.logger.Info(ctx, "Unsubscribed from channel", extensions.LogInfosFromContext(ctx)...)
+}
+
+// SubscribeToFirmwareOperation will receive Firmware messages from Firmware channel.
+//
+// Callback function 'fn' will be called each time a new message is received.
+//
+// NOTE: for now, this only support the first message from AsyncAPI list.
+//
+// NOTE: for now, this only support the first message from AsyncAPI list.
+// If you need support for other messages, please raise an issue.
+func (c *AppController) SubscribeToFirmwareOperation(
+	ctx context.Context,
+	params FirmwareChannelParameters,
+	fn func(ctx context.Context, msg FirmwareMessage) error,
+) error {
+	// Get channel address
+	addr := fmt.Sprintf("device.%s.firmware", params.DeviceId)
+
+	// Set context
+	ctx = addAppContextValues(ctx, addr)
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsDirection, "reception")
+
+	// Check if the controller is already subscribed
+	_, exists := c.subscriptions[addr]
+	if exists {
+		err := fmt.Errorf("%w: controller is already subscribed on channel %q", extensions.ErrAlreadySubscribedChannel, addr)
+		c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
+		return err
+	}
+
+	// Subscribe to broker channel
+	sub, err := c.broker.Subscribe(ctx, addr)
+	if err != nil {
+		c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
+		return err
+	}
+	c.logger.Info(ctx, "Subscribed to channel", extensions.LogInfosFromContext(ctx)...)
+
+	// Asynchronously listen to new messages and pass them to app receiver
+	go func() {
+		for {
+			// Listen to next message
+			stop, err := c.listenToFirmwareOperationNextMessage(addr, sub, fn)
+			if err != nil {
+				c.logger.Error(ctx, err.Error(), extensions.LogInfosFromContext(ctx)...)
+			}
+
+			// Stop if required
+			if stop {
+				return
+			}
+		}
+	}()
+
+	// Add the cancel channel to the inside map
+	c.subscriptions[addr] = sub
+
+	return nil
+}
+
+func (c *AppController) listenToFirmwareOperationNextMessage(
+	addr string,
+	sub extensions.BrokerChannelSubscription,
+	fn func(ctx context.Context, msg FirmwareMessage) error,
+) (stop bool, err error) {
+	// Create a context for the received response
+	msgCtx, cancel := context.WithCancel(context.Background())
+	msgCtx = addAppContextValues(msgCtx, addr)
+	msgCtx = context.WithValue(msgCtx, extensions.ContextKeyIsDirection, "reception")
+	defer cancel()
+
+	// Wait for next message
+	acknowledgeableBrokerMessage, open := <-sub.MessagesChannel()
+
+	// If subscription is closed and there is no more message
+	// (i.e. uninitialized message), then exit the function
+	if !open && acknowledgeableBrokerMessage.IsUninitialized() {
+		return true, nil
+	}
+
+	// Set broker message to context
+	msgCtx = context.WithValue(msgCtx, extensions.ContextKeyIsBrokerMessage, acknowledgeableBrokerMessage.String())
+
+	// Execute middlewares before handling the message
+	if err := c.executeMiddlewares(msgCtx, &acknowledgeableBrokerMessage.BrokerMessage, func(middlewareCtx context.Context) error {
+		// Process message
+		msg, err := brokerMessageToFirmwareMessage(acknowledgeableBrokerMessage.BrokerMessage)
+		if err != nil {
+			return err
+		}
+
+		// Execute the subscription function
+		if err := fn(middlewareCtx, msg); err != nil {
+			return err
+		}
+
+		acknowledgeableBrokerMessage.Ack()
+
+		return nil
+	}); err != nil {
+		c.errorHandler(msgCtx, addr, &acknowledgeableBrokerMessage, err)
+		// On error execute the acknowledgeableBrokerMessage nack() function and
+		// let the BrokerAcknowledgment decide what is the right nack behavior for the broker
+		acknowledgeableBrokerMessage.Nak()
+	}
+
+	return false, nil
+}
+
+// UnsubscribeFromFirmwareOperation will stop the reception of Firmware messages from Firmware channel.
+// A timeout can be set in context to avoid blocking operation, if needed.
+func (c *AppController) UnsubscribeFromFirmwareOperation(
+	ctx context.Context,
+	params FirmwareChannelParameters,
+) {
+	// Get channel address
+	addr := fmt.Sprintf("device.%s.firmware", params.DeviceId)
 
 	// Check if there receivers for this channel
 	sub, exists := c.subscriptions[addr]
@@ -1177,6 +1314,37 @@ func (c *UserController) SendToDeviceMetricsOperation(
 	})
 }
 
+// SendToFirmwareOperation will send a Firmware message on Firmware channel.
+//
+// NOTE: for now, this only support the first message from AsyncAPI list.
+// If you need support for other messages, please raise an issue.
+func (c *UserController) SendToFirmwareOperation(
+	ctx context.Context,
+	params FirmwareChannelParameters,
+	msg FirmwareMessage,
+) error {
+	// Set channel address
+	addr := fmt.Sprintf("device.%s.firmware", params.DeviceId)
+
+	// Set context
+	ctx = addUserContextValues(ctx, addr)
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsDirection, "publication")
+
+	// Convert to BrokerMessage
+	brokerMsg, err := msg.toBrokerMessage()
+	if err != nil {
+		return err
+	}
+
+	// Set broker message to context
+	ctx = context.WithValue(ctx, extensions.ContextKeyIsBrokerMessage, brokerMsg.String())
+
+	// Send the message on event-broker through middlewares
+	return c.executeMiddlewares(ctx, &brokerMsg, func(ctx context.Context) error {
+		return c.broker.Publish(ctx, addr, brokerMsg)
+	})
+}
+
 // SendToOnConnectResponseOperation will send a ConnectResponse message on ConnectResponses channel.
 //
 // NOTE: for now, this only support the first message from AsyncAPI list.
@@ -1365,6 +1533,12 @@ type DevicesAliveChannelParameters struct {
 // If you encounter this message, feel free to open an issue on this subject
 // to let know that you need this functionnality.
 
+// FirmwareChannelParameters represents FirmwareChannel channel parameters
+type FirmwareChannelParameters struct {
+	// DeviceId is a channel parameter.
+	DeviceId string
+}
+
 // SensorDeclarationsChannelParameters represents SensorDeclarationsChannel channel parameters
 type SensorDeclarationsChannelParameters struct {
 	// DeviceId is a channel parameter.
@@ -1472,6 +1646,69 @@ func brokerMessageToConnectResponseMessage(bMsg extensions.BrokerMessage) (Conne
 
 // toBrokerMessage will generate a generic broker message from ConnectResponseMessage data
 func (msg ConnectResponseMessage) toBrokerMessage() (extensions.BrokerMessage, error) {
+	// TODO: implement checks on message
+
+	// Marshal payload to JSON
+	payload, err := json.Marshal(msg.Payload)
+	if err != nil {
+		return extensions.BrokerMessage{}, err
+	}
+
+	// Add each headers to broker message
+	headers := make(map[string][]byte, 1)
+
+	// Adding Authorization header
+	headers["Authorization"] = []byte(msg.Headers.Authorization)
+
+	return extensions.BrokerMessage{
+		Headers: headers,
+		Payload: payload,
+	}, nil
+}
+
+// FirmwareMessage is the message expected for 'FirmwareMessage' channel.
+type FirmwareMessage struct {
+	// Headers will be used to fill the message headers
+	Headers IdentificationHeadersSchema
+
+	// Payload will be inserted in the message payload
+	Payload FirmwareSchema
+}
+
+// NewFirmwareMessage creates a new FirmwareMessage with default values if any.
+func NewFirmwareMessage() FirmwareMessage {
+	var msg FirmwareMessage
+
+	return msg
+}
+
+// brokerMessageToFirmwareMessage will fill a new FirmwareMessage with data from generic broker message
+func brokerMessageToFirmwareMessage(bMsg extensions.BrokerMessage) (FirmwareMessage, error) {
+	var msg FirmwareMessage
+
+	// Unmarshal payload to expected message payload format
+	err := json.Unmarshal(bMsg.Payload, &msg.Payload)
+	if err != nil {
+		return msg, err
+	}
+
+	// Get each headers from broker message
+	for k, v := range bMsg.Headers {
+		switch {
+		case k == "Authorization": // Retrieving Authorization header
+			msg.Headers.Authorization = string(v)
+		default:
+			// TODO: log unknown error
+		}
+	}
+
+	// TODO: run checks on msg type
+
+	return msg, nil
+}
+
+// toBrokerMessage will generate a generic broker message from FirmwareMessage data
+func (msg FirmwareMessage) toBrokerMessage() (extensions.BrokerMessage, error) {
 	// TODO: implement checks on message
 
 	// Marshal payload to JSON
@@ -1769,9 +2006,20 @@ type ConnectResponseSchema struct {
 	RequestID uuid.UUID `json:"requestId"`
 }
 
+// FirmwareSchema is a schema from the AsyncAPI specification required in messages
+// Description: Information about hardware and software of device or sensor
+type FirmwareSchema struct {
+	Manufacturer string `json:"manufacturer"`
+	Model        string `json:"model"`
+	Revision     string `json:"revision"`
+
+	// Description: Software name and version
+	Software string `json:"software"`
+}
+
 // HeartbeatSchema is a schema from the AsyncAPI specification required in messages
 type HeartbeatSchema struct {
-	Timestamp int64 `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // IdentificationHeadersSchema is a schema from the AsyncAPI specification required in messages
@@ -1810,6 +2058,9 @@ type SensorDeclarationSchema struct {
 
 // SensorDeclarationItemSchema is a schema from the AsyncAPI specification required in messages
 type SensorDeclarationItemSchema struct {
+	// Description: Information about hardware and software of device or sensor
+	Firmware FirmwareSchema `json:"firmware"`
+
 	// Description: Sensor identifier. It could be in non-UUID format.
 	Id   SensorID `json:"id"`
 	Name string   `json:"name"`
@@ -1828,6 +2079,8 @@ const (
 	DeviceMetricsChannelPath = "device.{deviceId}.metrics"
 	// DevicesAliveChannelPath is the constant representing the 'DevicesAliveChannel' channel path.
 	DevicesAliveChannelPath = "device.{deviceId}.health"
+	// FirmwareChannelPath is the constant representing the 'FirmwareChannel' channel path.
+	FirmwareChannelPath = "device.{deviceId}.firmware"
 	// SensorDeclarationsChannelPath is the constant representing the 'SensorDeclarationsChannel' channel path.
 	SensorDeclarationsChannelPath = "device.{deviceId}.sensors"
 	// SensorMetricsChannelPath is the constant representing the 'SensorMetricsChannel' channel path.
@@ -1840,6 +2093,7 @@ var ChannelsPaths = []string{
 	ConnectResponsesChannelPath,
 	DeviceMetricsChannelPath,
 	DevicesAliveChannelPath,
+	FirmwareChannelPath,
 	SensorDeclarationsChannelPath,
 	SensorMetricsChannelPath,
 }
