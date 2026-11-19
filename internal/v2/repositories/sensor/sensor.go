@@ -61,7 +61,7 @@ func (s *Repo) InsertSensor(
 ) error {
 	_, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO sensors (`+columns+`) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		`INSERT INTO sensors (`+columns+`) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		item.ID,
 		item.Name,
 		item.DeviceID,
