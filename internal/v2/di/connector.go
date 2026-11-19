@@ -72,12 +72,18 @@ func newConnectorController(
 		return nil, fmt.Errorf("new nats controller: %w", err)
 	}
 
-	qLog := common.LoggerFromZap(logger.Named("ConnectorController"))
+	logger = logger.Named("ConnectionController")
+
+	qLog := common.LoggerFromZap(logger)
 
 	c, err := asyncapi.NewAppController(
 		natsController,
 		asyncapi.WithLogger(qLog),
-		asyncapi.WithErrorHandler(extensions.DefaultErrorHandler()),
+		asyncapi.WithErrorHandler(
+			func(ctx context.Context, topic string, msg *extensions.AcknowledgeableBrokerMessage, err error) {
+				logger.Error("Error while handling message", zap.Error(err))
+			},
+		),
 		asyncapi.WithMiddlewares(
 			middlewares.Logging(qLog),
 			middlewares.Recovery(qLog),
