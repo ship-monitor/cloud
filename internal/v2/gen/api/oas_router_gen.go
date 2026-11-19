@@ -11,14 +11,14 @@ import (
 )
 
 var (
-	rn13AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn15AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
 	rn17AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+		"POST": "Content-Type",
+	}
+	rn19AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
+	}
+	rn21AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
 	}
 	rn1AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
@@ -32,16 +32,22 @@ var (
 	rn7AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn8AllowedHeaders = map[string]string{
+	rn9AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn12AllowedHeaders = map[string]string{
+	rn10AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn16AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 	rn5AllowedHeaders = map[string]string{
 		"PATCH": "Authorization,Content-Type",
 	}
-	rn11AllowedHeaders = map[string]string{
+	rn13AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn15AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 )
@@ -79,7 +85,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if d := s.cfg.Docs; d != nil && d.serve(w, r, elem) {
 		return
 	}
-	args := [2]string{}
+	args := [3]string{}
 
 	// Static code generated router with unwrapped path search.
 	switch {
@@ -128,7 +134,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn13AllowedHeaders,
+								allowedHeaders: rn17AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -165,7 +171,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn15AllowedHeaders,
+									allowedHeaders: rn19AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -190,7 +196,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn17AllowedHeaders,
+									allowedHeaders: rn21AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -293,7 +299,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							}
 
 							if len(elem) == 0 {
-								// Leaf node.
 								switch r.Method {
 								case "GET":
 									s.handleGetDeviceMetricsRequest([1]string{
@@ -309,6 +314,45 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								}
 
 								return
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								// Param: "metric"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[1] = elem
+								elem = ""
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "GET":
+										s.handleGetDeviceMetricsByNameRequest([2]string{
+											args[0],
+											args[1],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "GET",
+											allowedHeaders: rn9AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
 							}
 
 						case 'o': // Prefix: "online"
@@ -329,7 +373,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn8AllowedHeaders,
+										allowedHeaders: rn10AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -355,7 +399,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn12AllowedHeaders,
+										allowedHeaders: rn16AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -409,7 +453,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									}
 
 									if len(elem) == 0 {
-										// Leaf node.
 										switch r.Method {
 										case "GET":
 											s.handleGetSensorMetricsRequest([2]string{
@@ -419,13 +462,53 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET",
-												allowedHeaders: rn11AllowedHeaders,
+												allowedHeaders: rn13AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
 										}
 
 										return
+									}
+									switch elem[0] {
+									case '/': // Prefix: "/"
+
+										if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+											elem = elem[l:]
+										} else {
+											break
+										}
+
+										// Param: "metric"
+										// Leaf parameter, slashes are prohibited
+										idx := strings.IndexByte(elem, '/')
+										if idx >= 0 {
+											break
+										}
+										args[2] = elem
+										elem = ""
+
+										if len(elem) == 0 {
+											// Leaf node.
+											switch r.Method {
+											case "GET":
+												s.handleGetSensorMetricsByNameRequest([3]string{
+													args[0],
+													args[1],
+													args[2],
+												}, elemIsEscaped, w, r)
+											default:
+												s.notAllowed(w, r, notAllowedParams{
+													allowedMethods: "GET",
+													allowedHeaders: rn15AllowedHeaders,
+													acceptPost:     "",
+													acceptPatch:    "",
+												})
+											}
+
+											return
+										}
+
 									}
 
 								}
@@ -478,7 +561,7 @@ type Route struct {
 	operationGroup string
 	pathPattern    string
 	count          int
-	args           [2]string
+	args           [3]string
 }
 
 // Name returns ogen operation name.
@@ -771,7 +854,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							}
 
 							if len(elem) == 0 {
-								// Leaf node.
 								switch method {
 								case "GET":
 									r.name = GetDeviceMetricsOperation
@@ -785,6 +867,42 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								default:
 									return
 								}
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								// Param: "metric"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[1] = elem
+								elem = ""
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "GET":
+										r.name = GetDeviceMetricsByNameOperation
+										r.summary = ""
+										r.operationID = "GetDeviceMetricsByName"
+										r.operationGroup = ""
+										r.pathPattern = "/api/v2/devices/{deviceId}/metrics/{metric}"
+										r.args = args
+										r.count = 2
+										return r, true
+									default:
+										return
+									}
+								}
+
 							}
 
 						case 'o': // Prefix: "online"
@@ -878,7 +996,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									}
 
 									if len(elem) == 0 {
-										// Leaf node.
 										switch method {
 										case "GET":
 											r.name = GetSensorMetricsOperation
@@ -892,6 +1009,42 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 										default:
 											return
 										}
+									}
+									switch elem[0] {
+									case '/': // Prefix: "/"
+
+										if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+											elem = elem[l:]
+										} else {
+											break
+										}
+
+										// Param: "metric"
+										// Leaf parameter, slashes are prohibited
+										idx := strings.IndexByte(elem, '/')
+										if idx >= 0 {
+											break
+										}
+										args[2] = elem
+										elem = ""
+
+										if len(elem) == 0 {
+											// Leaf node.
+											switch method {
+											case "GET":
+												r.name = GetSensorMetricsByNameOperation
+												r.summary = ""
+												r.operationID = "GetSensorMetricsByName"
+												r.operationGroup = ""
+												r.pathPattern = "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}"
+												r.args = args
+												r.count = 3
+												return r, true
+											default:
+												return
+											}
+										}
+
 									}
 
 								}

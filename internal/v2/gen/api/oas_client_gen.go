@@ -40,8 +40,14 @@ type Invoker interface {
 	GetDevice(ctx context.Context, params GetDeviceParams) (*Device, error)
 	// GetDeviceMetrics invokes GetDeviceMetrics operation.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v2/devices/{deviceId}/metrics
 	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (*Metrics, error)
+	// GetDeviceMetricsByName invokes GetDeviceMetricsByName operation.
+	//
+	// GET /api/v2/devices/{deviceId}/metrics/{metric}
+	GetDeviceMetricsByName(ctx context.Context, params GetDeviceMetricsByNameParams) (*Metrics, error)
 	// GetDeviceOnlineStatus invokes GetDeviceOnlineStatus operation.
 	//
 	// GET /api/v2/devices/{deviceId}/online
@@ -56,8 +62,14 @@ type Invoker interface {
 	GetHealth(ctx context.Context) (*HealthResponse, error)
 	// GetSensorMetrics invokes GetSensorMetrics operation.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics
 	GetSensorMetrics(ctx context.Context, params GetSensorMetricsParams) (*Metrics, error)
+	// GetSensorMetricsByName invokes GetSensorMetricsByName operation.
+	//
+	// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}
+	GetSensorMetricsByName(ctx context.Context, params GetSensorMetricsByNameParams) (*Metrics, error)
 	// GetSensors invokes GetSensors operation.
 	//
 	// GET /api/v2/devices/{deviceId}/sensors
@@ -501,6 +513,8 @@ func (c *Client) sendGetDevice(ctx context.Context, params GetDeviceParams) (res
 
 // GetDeviceMetrics invokes GetDeviceMetrics operation.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v2/devices/{deviceId}/metrics
 func (c *Client) GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (*Metrics, error) {
 	res, err := c.sendGetDeviceMetrics(ctx, params)
@@ -543,7 +557,10 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.DateTimeToString(params.From))
+			if val, ok := params.From.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -557,7 +574,10 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.DateTimeToString(params.To))
+			if val, ok := params.To.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -647,6 +667,171 @@ func (c *Client) sendGetDeviceMetrics(ctx context.Context, params GetDeviceMetri
 	}()
 
 	result, err := decodeGetDeviceMetricsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetDeviceMetricsByName invokes GetDeviceMetricsByName operation.
+//
+// GET /api/v2/devices/{deviceId}/metrics/{metric}
+func (c *Client) GetDeviceMetricsByName(ctx context.Context, params GetDeviceMetricsByNameParams) (*Metrics, error) {
+	res, err := c.sendGetDeviceMetricsByName(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetDeviceMetricsByName(ctx context.Context, params GetDeviceMetricsByNameParams) (res *Metrics, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/api/v2/devices/"
+	{
+		// Encode "deviceId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "deviceId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/metrics/"
+	{
+		// Encode "metric" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "metric",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Metric))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "from" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "from",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.From.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "to" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "to",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.To.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int64ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityBearerToken(ctx, GetDeviceMetricsByNameOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	result, err := decodeGetDeviceMetricsByNameResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -901,6 +1086,8 @@ func (c *Client) sendGetHealth(ctx context.Context) (res *HealthResponse, err er
 
 // GetSensorMetrics invokes GetSensorMetrics operation.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics
 func (c *Client) GetSensorMetrics(ctx context.Context, params GetSensorMetricsParams) (*Metrics, error) {
 	res, err := c.sendGetSensorMetrics(ctx, params)
@@ -962,7 +1149,10 @@ func (c *Client) sendGetSensorMetrics(ctx context.Context, params GetSensorMetri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.DateTimeToString(params.From))
+			if val, ok := params.From.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -976,7 +1166,10 @@ func (c *Client) sendGetSensorMetrics(ctx context.Context, params GetSensorMetri
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.DateTimeToString(params.To))
+			if val, ok := params.To.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -1066,6 +1259,190 @@ func (c *Client) sendGetSensorMetrics(ctx context.Context, params GetSensorMetri
 	}()
 
 	result, err := decodeGetSensorMetricsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetSensorMetricsByName invokes GetSensorMetricsByName operation.
+//
+// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}
+func (c *Client) GetSensorMetricsByName(ctx context.Context, params GetSensorMetricsByNameParams) (*Metrics, error) {
+	res, err := c.sendGetSensorMetricsByName(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetSensorMetricsByName(ctx context.Context, params GetSensorMetricsByNameParams) (res *Metrics, err error) {
+
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [6]string
+	pathParts[0] = "/api/v2/devices/"
+	{
+		// Encode "deviceId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "deviceId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.DeviceID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/sensors/"
+	{
+		// Encode "sensorId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "sensorId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.SensorID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	pathParts[4] = "/metrics/"
+	{
+		// Encode "metric" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "metric",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.Metric))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[5] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "from" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "from",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.From.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "to" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "to",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.To.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int64ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+
+			switch err := c.securityBearerToken(ctx, GetSensorMetricsByNameOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	result, err := decodeGetSensorMetricsByNameResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -1189,40 +1566,6 @@ func (c *Client) sendLoginUser(ctx context.Context, request *LoginUserReq) (res 
 		return res, errors.Wrap(err, "encode request")
 	}
 
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-
-			switch err := c.securityBearerToken(ctx, LoginUserOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerToken\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
 	resp, err := c.cfg.Client.Do(r)
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
@@ -1267,40 +1610,6 @@ func (c *Client) sendRefreshToken(ctx context.Context, request *RefreshTokenReq)
 		return res, errors.Wrap(err, "encode request")
 	}
 
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-
-			switch err := c.securityBearerToken(ctx, RefreshTokenOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerToken\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
 	resp, err := c.cfg.Client.Do(r)
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
@@ -1343,40 +1652,6 @@ func (c *Client) sendRegisterUser(ctx context.Context, request *RegisterForm) (r
 	}
 	if err := encodeRegisterUserRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-
-			switch err := c.securityBearerToken(ctx, RegisterUserOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerToken\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
 	}
 
 	resp, err := c.cfg.Client.Do(r)

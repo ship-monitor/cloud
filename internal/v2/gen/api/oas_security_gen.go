@@ -34,19 +34,18 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // operationRolesBearerToken is a private map storing roles per operation.
 var operationRolesBearerToken = map[string][]string{
-	ConnectDeviceOperation:         []string{},
-	EditDeviceOperation:            []string{},
-	EditSensorOperation:            []string{},
-	GetDeviceOperation:             []string{},
-	GetDeviceMetricsOperation:      []string{},
-	GetDeviceOnlineStatusOperation: []string{},
-	GetDevicesOperation:            []string{},
-	GetSensorMetricsOperation:      []string{},
-	GetSensorsOperation:            []string{},
-	LoginUserOperation:             []string{},
-	RefreshTokenOperation:          []string{},
-	RegisterUserOperation:          []string{},
-	RemoveDeviceOperation:          []string{},
+	ConnectDeviceOperation:          []string{},
+	EditDeviceOperation:             []string{},
+	EditSensorOperation:             []string{},
+	GetDeviceOperation:              []string{},
+	GetDeviceMetricsOperation:       []string{},
+	GetDeviceMetricsByNameOperation: []string{},
+	GetDeviceOnlineStatusOperation:  []string{},
+	GetDevicesOperation:             []string{},
+	GetSensorMetricsOperation:       []string{},
+	GetSensorMetricsByNameOperation: []string{},
+	GetSensorsOperation:             []string{},
+	RemoveDeviceOperation:           []string{},
 }
 
 // GetRolesForBearerToken returns the required roles for the given operation.

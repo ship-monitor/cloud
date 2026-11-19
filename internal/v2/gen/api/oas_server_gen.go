@@ -26,8 +26,14 @@ type Handler interface {
 	GetDevice(ctx context.Context, params GetDeviceParams) (*Device, error)
 	// GetDeviceMetrics implements GetDeviceMetrics operation.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v2/devices/{deviceId}/metrics
 	GetDeviceMetrics(ctx context.Context, params GetDeviceMetricsParams) (*Metrics, error)
+	// GetDeviceMetricsByName implements GetDeviceMetricsByName operation.
+	//
+	// GET /api/v2/devices/{deviceId}/metrics/{metric}
+	GetDeviceMetricsByName(ctx context.Context, params GetDeviceMetricsByNameParams) (*Metrics, error)
 	// GetDeviceOnlineStatus implements GetDeviceOnlineStatus operation.
 	//
 	// GET /api/v2/devices/{deviceId}/online
@@ -42,8 +48,14 @@ type Handler interface {
 	GetHealth(ctx context.Context) (*HealthResponse, error)
 	// GetSensorMetrics implements GetSensorMetrics operation.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics
 	GetSensorMetrics(ctx context.Context, params GetSensorMetricsParams) (*Metrics, error)
+	// GetSensorMetricsByName implements GetSensorMetricsByName operation.
+	//
+	// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}
+	GetSensorMetricsByName(ctx context.Context, params GetSensorMetricsByNameParams) (*Metrics, error)
 	// GetSensors implements GetSensors operation.
 	//
 	// GET /api/v2/devices/{deviceId}/sensors

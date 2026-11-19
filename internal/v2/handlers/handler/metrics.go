@@ -12,25 +12,62 @@ import (
 )
 
 // GetDeviceMetrics implements [api.Handler].
+//
+// Deprecated: remove ASAP.
+//
+//nolint:wrapcheck
 func (h *Handler) GetDeviceMetrics(
 	ctx context.Context,
 	params api.GetDeviceMetricsParams,
+) (*api.Metrics, error) {
+	return h.GetDeviceMetricsByName(ctx,
+		api.GetDeviceMetricsByNameParams(params))
+}
+
+// GetSensorMetrics implements [api.Handler].
+//
+// Deprecated: remove ASAP.
+//
+//nolint:wrapcheck
+func (h *Handler) GetSensorMetrics(
+	ctx context.Context,
+	params api.GetSensorMetricsParams,
+) (*api.Metrics, error) {
+	return h.GetSensorMetricsByName(
+		ctx,
+		api.GetSensorMetricsByNameParams(params),
+	)
+}
+
+// GetDeviceMetricsByName implements [api.Handler].
+func (h *Handler) GetDeviceMetricsByName(
+	ctx context.Context,
+	params api.GetDeviceMetricsByNameParams,
 ) (*api.Metrics, error) {
 	actor, err := currentActor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
+	query := metrics.Query{
+		From:  nil,
+		To:    nil,
+		Limit: params.Limit.Value,
+		Name:  params.Metric,
+	}
+	if params.From.Set {
+		query.From = &params.From.Value
+	}
+
+	if params.To.Set {
+		query.To = &params.To.Value
+	}
+
 	ms, err := h.metrics.GetDeviceMetrics(
 		ctx,
 		actor,
 		params.DeviceID,
-		metrics.Query{
-			From:  &params.From,
-			To:    &params.To,
-			Limit: params.Limit.Value,
-			Name:  params.Metric,
-		},
+		query,
 	)
 	if errors.Is(err, deviceservice.ErrNotFound) {
 		return nil, errDeviceNotFound
@@ -43,20 +80,17 @@ func (h *Handler) GetDeviceMetrics(
 	return toAPIMetrics(ms), nil
 }
 
-// GetSensorMetrics implements [api.Handler].
-func (h *Handler) GetSensorMetrics(
+// GetSensorMetricsByName implements [api.Handler].
+func (h *Handler) GetSensorMetricsByName(
 	ctx context.Context,
-	params api.GetSensorMetricsParams,
+	params api.GetSensorMetricsByNameParams,
 ) (*api.Metrics, error) {
 	actor, err := currentActor(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get actor: %w", err)
 	}
 
-	query, err := queryFromParams(params)
-	if err != nil {
-		return nil, fmt.Errorf("query: %w", err)
-	}
+	query := queryFromParams(params)
 
 	ms, err := h.metrics.GetSensorMetrics(
 		ctx,
@@ -78,30 +112,24 @@ func (h *Handler) GetSensorMetrics(
 
 // queryFromParams maps the API query parameters to a domain metrics
 // query. Zero from/to values mean unbounded range.
-func queryFromParams(params api.GetSensorMetricsParams) (metrics.Query, error) {
+func queryFromParams(params api.GetSensorMetricsByNameParams) metrics.Query {
 	var query metrics.Query
 
-	if !params.From.IsZero() {
-		from := params.From
-		query.From = &from
+	if params.From.Set {
+		query.From = &params.From.Value
 	}
 
-	if !params.To.IsZero() {
-		to := params.To
-		query.To = &to
+	if params.To.Set {
+		query.To = &params.To.Value
 	}
 
 	query.Name = params.Metric
 
-	if limit, ok := params.Limit.Get(); ok {
-		if limit < 0 {
-			return metrics.Query{}, errInvalidLimit
-		}
-
-		query.Limit = limit
+	if params.Limit.Set {
+		query.Limit = params.Limit.Value
 	}
 
-	return query, nil
+	return query
 }
 
 // toAPIMetrics maps domain metric samples to the API response. The

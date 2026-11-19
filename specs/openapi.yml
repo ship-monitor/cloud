@@ -26,7 +26,6 @@ tags:
 
 security:
   - bearerToken: []
-  - {}
 
 paths:
   "/api/v2/health":
@@ -42,6 +41,7 @@ paths:
   "/api/v2/auth/register":
     post:
       tags: [auth]
+      security: []
       operationId: RegisterUser
       requestBody:
         required: true
@@ -57,6 +57,7 @@ paths:
   "/api/v2/auth/login":
     post:
       tags: [auth]
+      security: []
       operationId: LoginUser
       requestBody:
         $ref: "#/components/requestBodies/LoginRequest"
@@ -69,6 +70,7 @@ paths:
   "/api/v2/auth/refresh":
     post:
       tags: [auth]
+      security: []
       operationId: RefreshToken
       requestBody:
         required: true
@@ -118,18 +120,7 @@ paths:
         - bearerToken: []
       operationId: ConnectDevice
       requestBody:
-        required: true
-        content:
-          "application/json":
-            schema:
-              type: object
-              required: [deviceId, securityKey]
-              properties:
-                deviceId:
-                  type: string
-                  format: uuid
-                securityKey:
-                  type: string
+        $ref: "#/components/requestBodies/ConnectDeviceRequest"
       responses:
         "201":
           description: "Successfully added new device"
@@ -231,12 +222,30 @@ paths:
         default:
           $ref: "#/components/responses/BadResponse"
 
-  "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics":
+  "/api/v2/devices/{deviceId}/metrics/{metric}":
+    get:
+      tags: [devices, metrics]
+      security:
+        - bearerToken: []
+      operationId: GetDeviceMetricsByName
+      parameters:
+        - $ref: "#/components/parameters/deviceId"
+        - $ref: "#/components/parameters/metricsFrom"
+        - $ref: "#/components/parameters/metricsTo"
+        - $ref: "#/components/parameters/metricsName"
+        - $ref: "#/components/parameters/metricsLimit"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetDeviceMetricsOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
+
+  "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}":
     get:
       tags: [devices, sensors, metrics]
       security:
         - bearerToken: []
-      operationId: GetSensorMetrics
+      operationId: GetSensorMetricsByName
       parameters:
         - $ref: "#/components/parameters/deviceId"
         - $ref: "#/components/parameters/sensorId"
@@ -251,8 +260,30 @@ paths:
         default:
           $ref: "#/components/responses/BadResponse"
 
+  "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics":
+    get:
+      deprecated: true
+      tags: [devices, sensors, metrics]
+      security:
+        - bearerToken: []
+      operationId: GetSensorMetrics
+      parameters:
+        - $ref: "#/components/parameters/deviceId"
+        - $ref: "#/components/parameters/sensorId"
+        - $ref: "#/components/parameters/metricsFrom"
+        - $ref: "#/components/parameters/metricsTo"
+        - $ref: "#/components/parameters/metricsOldName"
+        - $ref: "#/components/parameters/metricsLimit"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/GetSensorMetricsOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
+
   "/api/v2/devices/{deviceId}/metrics":
     get:
+      deprecated: true
       tags: [devices, metrics]
       security:
         - bearerToken: []
@@ -261,7 +292,7 @@ paths:
         - $ref: "#/components/parameters/deviceId"
         - $ref: "#/components/parameters/metricsFrom"
         - $ref: "#/components/parameters/metricsTo"
-        - $ref: "#/components/parameters/metricsName"
+        - $ref: "#/components/parameters/metricsOldName"
         - $ref: "#/components/parameters/metricsLimit"
       responses:
         "200":
@@ -287,19 +318,24 @@ components:
     metricsFrom:
       in: query
       name: from
-      required: true
       schema:
         type: string
         format: date-time
     metricsTo:
       in: query
       name: to
-      required: true
       schema:
         type: string
         format: date-time
-    metricsName:
+    metricsOldName:
       in: query
+      deprecated: true
+      required: true
+      name: metric
+      schema:
+        type: string
+    metricsName:
+      in: path
       required: true
       name: metric
       schema:
@@ -330,6 +366,7 @@ components:
           format: email
         password:
           type: string
+          format: password
         name:
           type: string
 
@@ -440,6 +477,20 @@ components:
                 type: string
                 format: email
               password:
+                type: string
+                format: password
+    ConnectDeviceRequest:
+      required: true
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [deviceId, securityKey]
+            properties:
+              deviceId:
+                type: string
+                format: uuid
+              securityKey:
                 type: string
                 format: password
     EditSensorRequest:

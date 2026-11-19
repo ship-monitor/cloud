@@ -620,6 +620,8 @@ func (s *Server) handleGetDeviceRequest(args [1]string, argsEscaped bool, w http
 
 // handleGetDeviceMetricsRequest handles GetDeviceMetrics operation.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v2/devices/{deviceId}/metrics
 func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
@@ -765,6 +767,161 @@ func (s *Server) handleGetDeviceMetricsRequest(args [1]string, argsEscaped bool,
 	}
 
 	if err := encodeGetDeviceMetricsResponse(response, w); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleGetDeviceMetricsByNameRequest handles GetDeviceMetricsByName operation.
+//
+// GET /api/v2/devices/{deviceId}/metrics/{metric}
+func (s *Server) handleGetDeviceMetricsByNameRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	ctx := r.Context()
+
+	var (
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: GetDeviceMetricsByNameOperation,
+			ID:   "GetDeviceMetricsByName",
+		}
+	)
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			sctx, ok, err := s.securityBearerToken(ctx, GetDeviceMetricsByNameOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "BearerToken",
+					Err:              err,
+				}
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 0
+				ctx = sctx
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			err = &ogenerrors.SecurityError{
+				OperationContext: opErrContext,
+				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
+			}
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
+			return
+		}
+	}
+	params, err := decodeGetDeviceMetricsByNameParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response *Metrics
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetDeviceMetricsByNameOperation,
+			OperationSummary: "",
+			OperationID:      "GetDeviceMetricsByName",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "deviceId",
+					In:   "path",
+				}: params.DeviceID,
+				{
+					Name: "from",
+					In:   "query",
+				}: params.From,
+				{
+					Name: "to",
+					In:   "query",
+				}: params.To,
+				{
+					Name: "metric",
+					In:   "path",
+				}: params.Metric,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = GetDeviceMetricsByNameParams
+			Response = *Metrics
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackGetDeviceMetricsByNameParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetDeviceMetricsByName(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetDeviceMetricsByName(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetDeviceMetricsByNameResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -1131,6 +1288,8 @@ func (s *Server) handleGetHealthRequest(args [0]string, argsEscaped bool, w http
 
 // handleGetSensorMetricsRequest handles GetSensorMetrics operation.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics
 func (s *Server) handleGetSensorMetricsRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
@@ -1280,6 +1439,165 @@ func (s *Server) handleGetSensorMetricsRequest(args [2]string, argsEscaped bool,
 	}
 
 	if err := encodeGetSensorMetricsResponse(response, w); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleGetSensorMetricsByNameRequest handles GetSensorMetricsByName operation.
+//
+// GET /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}
+func (s *Server) handleGetSensorMetricsByNameRequest(args [3]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	ctx := r.Context()
+
+	var (
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: GetSensorMetricsByNameOperation,
+			ID:   "GetSensorMetricsByName",
+		}
+	)
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			sctx, ok, err := s.securityBearerToken(ctx, GetSensorMetricsByNameOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "BearerToken",
+					Err:              err,
+				}
+				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+					defer recordError("Security:BearerToken", err)
+				}
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 0
+				ctx = sctx
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			err = &ogenerrors.SecurityError{
+				OperationContext: opErrContext,
+				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
+			}
+			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
+				defer recordError("Security", err)
+			}
+			return
+		}
+	}
+	params, err := decodeGetSensorMetricsByNameParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response *Metrics
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetSensorMetricsByNameOperation,
+			OperationSummary: "",
+			OperationID:      "GetSensorMetricsByName",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "deviceId",
+					In:   "path",
+				}: params.DeviceID,
+				{
+					Name: "sensorId",
+					In:   "path",
+				}: params.SensorID,
+				{
+					Name: "from",
+					In:   "query",
+				}: params.From,
+				{
+					Name: "to",
+					In:   "query",
+				}: params.To,
+				{
+					Name: "metric",
+					In:   "path",
+				}: params.Metric,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = GetSensorMetricsByNameParams
+			Response = *Metrics
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackGetSensorMetricsByNameParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetSensorMetricsByName(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetSensorMetricsByName(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*BadResponseStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetSensorMetricsByNameResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -1442,53 +1760,6 @@ func (s *Server) handleLoginUserRequest(args [0]string, argsEscaped bool, w http
 			ID:   "LoginUser",
 		}
 	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerToken(ctx, LoginUserOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerToken",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-					defer recordError("Security:BearerToken", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeLoginUserRequest(r)
@@ -1582,53 +1853,6 @@ func (s *Server) handleRefreshTokenRequest(args [0]string, argsEscaped bool, w h
 			ID:   "RefreshToken",
 		}
 	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerToken(ctx, RefreshTokenOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerToken",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-					defer recordError("Security:BearerToken", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeRefreshTokenRequest(r)
@@ -1722,53 +1946,6 @@ func (s *Server) handleRegisterUserRequest(args [0]string, argsEscaped bool, w h
 			ID:   "RegisterUser",
 		}
 	)
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			sctx, ok, err := s.securityBearerToken(ctx, RegisterUserOperation, r)
-			if err != nil {
-				err = &ogenerrors.SecurityError{
-					OperationContext: opErrContext,
-					Security:         "BearerToken",
-					Err:              err,
-				}
-				if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-					defer recordError("Security:BearerToken", err)
-				}
-				return
-			}
-			if ok {
-				satisfied[0] |= 1 << 0
-				ctx = sctx
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			err = &ogenerrors.SecurityError{
-				OperationContext: opErrContext,
-				Err:              ogenerrors.ErrSecurityRequirementIsNotSatisfied,
-			}
-			if encodeErr := encodeErrorResponse(s.h.NewError(ctx, err), w); encodeErr != nil {
-				defer recordError("Security", err)
-			}
-			return
-		}
-	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeRegisterUserRequest(r)

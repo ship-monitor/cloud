@@ -14,7 +14,7 @@ import (
 // Embedded OpenAPI document (expanded: external references are resolved).
 const (
 	specJSON = `{
-  "openapi": "3.1.1",
+  "openapi": "3.1.2",
   "info": {
     "title": "Ship Monitor",
     "description": "OpenAPI specification of Ship Monitor cloud service.\n",
@@ -47,17 +47,7 @@ const (
           "default": {
             "$ref": "#/components/responses/BadResponse"
           }
-        },
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          },
-          {
-            
-          }
-        ]
+        }
       }
     },
     "/api/v2/auth/refresh": {
@@ -91,17 +81,7 @@ const (
           "default": {
             "$ref": "#/components/responses/BadResponse"
           }
-        },
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          },
-          {
-            
-          }
-        ]
+        }
       }
     },
     "/api/v2/auth/register": {
@@ -127,17 +107,7 @@ const (
           "default": {
             "$ref": "#/components/responses/BadResponse"
           }
-        },
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          },
-          {
-            
-          }
-        ]
+        }
       }
     },
     "/api/v2/devices": {
@@ -195,27 +165,7 @@ const (
         ],
         "operationId": "ConnectDevice",
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "deviceId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "securityKey": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "deviceId",
-                  "securityKey"
-                ]
-              }
-            }
-          },
-          "required": true
+          "$ref": "#/components/requestBodies/ConnectDeviceRequest"
         },
         "responses": {
           "201": {
@@ -353,6 +303,48 @@ const (
             "$ref": "#/components/parameters/metricsTo"
           },
           {
+            "$ref": "#/components/parameters/metricsOldName"
+          },
+          {
+            "$ref": "#/components/parameters/metricsLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetDeviceMetricsOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/metrics/{metric}": {
+      "get": {
+        "tags": [
+          "devices",
+          "metrics"
+        ],
+        "operationId": "GetDeviceMetricsByName",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "$ref": "#/components/parameters/metricsFrom"
+          },
+          {
+            "$ref": "#/components/parameters/metricsTo"
+          },
+          {
             "$ref": "#/components/parameters/metricsName"
           },
           {
@@ -476,6 +468,52 @@ const (
           "metrics"
         ],
         "operationId": "GetSensorMetrics",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "$ref": "#/components/parameters/sensorId"
+          },
+          {
+            "$ref": "#/components/parameters/metricsFrom"
+          },
+          {
+            "$ref": "#/components/parameters/metricsTo"
+          },
+          {
+            "$ref": "#/components/parameters/metricsOldName"
+          },
+          {
+            "$ref": "#/components/parameters/metricsLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetSensorMetricsOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}": {
+      "get": {
+        "tags": [
+          "devices",
+          "sensors",
+          "metrics"
+        ],
+        "operationId": "GetSensorMetricsByName",
         "parameters": [
           {
             "$ref": "#/components/parameters/deviceId"
@@ -646,7 +684,8 @@ const (
             "format": "email"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "format": "password"
           },
           "name": {
             "type": "string"
@@ -912,7 +951,6 @@ const (
       "metricsFrom": {
         "name": "from",
         "in": "query",
-        "required": true,
         "style": "form",
         "explode": true,
         "schema": {
@@ -934,8 +972,19 @@ const (
       },
       "metricsName": {
         "name": "metric",
+        "in": "path",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "metricsOldName": {
+        "name": "metric",
         "in": "query",
         "required": true,
+        "deprecated": true,
         "style": "form",
         "explode": true,
         "schema": {
@@ -945,7 +994,6 @@ const (
       "metricsTo": {
         "name": "to",
         "in": "query",
-        "required": true,
         "style": "form",
         "explode": true,
         "schema": {
@@ -965,6 +1013,30 @@ const (
       }
     },
     "requestBodies": {
+      "ConnectDeviceRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "deviceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "securityKey": {
+                  "type": "string",
+                  "format": "password"
+                }
+              },
+              "required": [
+                "deviceId",
+                "securityKey"
+              ]
+            }
+          }
+        },
+        "required": true
+      },
       "EditSensorRequest": {
         "content": {
           "application/json": {
@@ -1045,7 +1117,7 @@ const (
     }
   ]
 }`
-	specYAML = `openapi: 3.1.1
+	specYAML = `openapi: 3.1.2
 info:
     title: Ship Monitor
     description: |
@@ -1069,9 +1141,6 @@ paths:
                     $ref: '#/components/responses/LoginResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
-            security:
-                -   bearerToken: []
-                - {}
     /api/v2/auth/refresh:
         post:
             tags:
@@ -1093,9 +1162,6 @@ paths:
                     $ref: '#/components/responses/RefreshResponseOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
-            security:
-                -   bearerToken: []
-                - {}
     /api/v2/auth/register:
         post:
             tags:
@@ -1112,9 +1178,6 @@ paths:
                     description: New user successfully registered
                 default:
                     $ref: '#/components/responses/BadResponse'
-            security:
-                -   bearerToken: []
-                - {}
     /api/v2/devices:
         get:
             tags:
@@ -1152,20 +1215,7 @@ paths:
                 - devices
             operationId: ConnectDevice
             requestBody:
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                deviceId:
-                                    type: string
-                                    format: uuid
-                                securityKey:
-                                    type: string
-                            required:
-                                - deviceId
-                                - securityKey
-                required: true
+                $ref: '#/components/requestBodies/ConnectDeviceRequest'
             responses:
                 "201":
                     description: Successfully added new device
@@ -1236,6 +1286,26 @@ paths:
                 -   $ref: '#/components/parameters/deviceId'
                 -   $ref: '#/components/parameters/metricsFrom'
                 -   $ref: '#/components/parameters/metricsTo'
+                -   $ref: '#/components/parameters/metricsOldName'
+                -   $ref: '#/components/parameters/metricsLimit'
+            responses:
+                "200":
+                    $ref: '#/components/responses/GetDeviceMetricsOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            deprecated: true
+            security:
+                -   bearerToken: []
+    /api/v2/devices/{deviceId}/metrics/{metric}:
+        get:
+            tags:
+                - devices
+                - metrics
+            operationId: GetDeviceMetricsByName
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+                -   $ref: '#/components/parameters/metricsFrom'
+                -   $ref: '#/components/parameters/metricsTo'
                 -   $ref: '#/components/parameters/metricsName'
                 -   $ref: '#/components/parameters/metricsLimit'
             responses:
@@ -1299,6 +1369,28 @@ paths:
                 - sensors
                 - metrics
             operationId: GetSensorMetrics
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+                -   $ref: '#/components/parameters/sensorId'
+                -   $ref: '#/components/parameters/metricsFrom'
+                -   $ref: '#/components/parameters/metricsTo'
+                -   $ref: '#/components/parameters/metricsOldName'
+                -   $ref: '#/components/parameters/metricsLimit'
+            responses:
+                "200":
+                    $ref: '#/components/responses/GetSensorMetricsOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            deprecated: true
+            security:
+                -   bearerToken: []
+    /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}:
+        get:
+            tags:
+                - devices
+                - sensors
+                - metrics
+            operationId: GetSensorMetricsByName
             parameters:
                 -   $ref: '#/components/parameters/deviceId'
                 -   $ref: '#/components/parameters/sensorId'
@@ -1408,6 +1500,7 @@ components:
                     format: email
                 password:
                     type: string
+                    format: password
                 name:
                     type: string
             required:
@@ -1583,7 +1676,6 @@ components:
         metricsFrom:
             name: from
             in: query
-            required: true
             style: form
             explode: true
             schema:
@@ -1601,8 +1693,17 @@ components:
                 minimum: 10
         metricsName:
             name: metric
+            in: path
+            required: true
+            style: simple
+            explode: false
+            schema:
+                type: string
+        metricsOldName:
+            name: metric
             in: query
             required: true
+            deprecated: true
             style: form
             explode: true
             schema:
@@ -1610,7 +1711,6 @@ components:
         metricsTo:
             name: to
             in: query
-            required: true
             style: form
             explode: true
             schema:
@@ -1625,6 +1725,22 @@ components:
             schema:
                 type: string
     requestBodies:
+        ConnectDeviceRequest:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            deviceId:
+                                type: string
+                                format: uuid
+                            securityKey:
+                                type: string
+                                format: password
+                        required:
+                            - deviceId
+                            - securityKey
+            required: true
         EditSensorRequest:
             content:
                 application/json:
@@ -1672,8 +1788,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"055dede15827a4d7403bbdf20fe1fbe7\""
-	specYAMLETag = "\"bfde89a5ccab2820f2c818871884691f\""
+	specJSONETag = "\"342fbe2473b985a607c0d89b18d1dc3d\""
+	specYAMLETag = "\"9b5e9ed044fc58796f6cbb1150e330da\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.
