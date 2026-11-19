@@ -146,12 +146,32 @@ func (s *Device) encodeFields(e *jx.Encoder) {
 		e.FieldStart("ownerId")
 		json.EncodeUUID(e, s.OwnerID)
 	}
+	{
+		e.FieldStart("manufacturer")
+		e.Str(s.Manufacturer)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("revision")
+		e.Str(s.Revision)
+	}
+	{
+		e.FieldStart("software")
+		e.Str(s.Software)
+	}
 }
 
-var jsonFieldsNameOfDevice = [3]string{
+var jsonFieldsNameOfDevice = [7]string{
 	0: "id",
 	1: "name",
 	2: "ownerId",
+	3: "manufacturer",
+	4: "model",
+	5: "revision",
+	6: "software",
 }
 
 // Decode decodes Device from json.
@@ -199,6 +219,54 @@ func (s *Device) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"ownerId\"")
 			}
+		case "manufacturer":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.Manufacturer = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"manufacturer\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "revision":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Revision = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"revision\"")
+			}
+		case "software":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Software = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"software\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -209,7 +277,7 @@ func (s *Device) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2160,13 +2228,33 @@ func (s *Sensor) encodeFields(e *jx.Encoder) {
 		e.FieldStart("displayName")
 		e.Str(s.DisplayName)
 	}
+	{
+		e.FieldStart("manufacturer")
+		e.Str(s.Manufacturer)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("revision")
+		e.Str(s.Revision)
+	}
+	{
+		e.FieldStart("software")
+		e.Str(s.Software)
+	}
 }
 
-var jsonFieldsNameOfSensor = [4]string{
+var jsonFieldsNameOfSensor = [8]string{
 	0: "id",
 	1: "name",
 	2: "deviceId",
 	3: "displayName",
+	4: "manufacturer",
+	5: "model",
+	6: "revision",
+	7: "software",
 }
 
 // Decode decodes Sensor from json.
@@ -2226,6 +2314,54 @@ func (s *Sensor) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"displayName\"")
 			}
+		case "manufacturer":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Manufacturer = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"manufacturer\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "revision":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Revision = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"revision\"")
+			}
+		case "software":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Software = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"software\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -2236,7 +2372,7 @@ func (s *Sensor) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

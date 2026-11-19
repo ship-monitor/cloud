@@ -97,9 +97,14 @@ func (s *ConnectDeviceReq) SetSecurityKey(val string) {
 
 // Ref: #/components/schemas/Device
 type Device struct {
-	ID      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	OwnerID uuid.UUID `json:"ownerId"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	OwnerID      uuid.UUID `json:"ownerId"`
+	Manufacturer string    `json:"manufacturer"`
+	Model        string    `json:"model"`
+	Revision     string    `json:"revision"`
+	// Software name and version.
+	Software string `json:"software"`
 }
 
 // GetID returns the value of ID.
@@ -117,6 +122,26 @@ func (s *Device) GetOwnerID() uuid.UUID {
 	return s.OwnerID
 }
 
+// GetManufacturer returns the value of Manufacturer.
+func (s *Device) GetManufacturer() string {
+	return s.Manufacturer
+}
+
+// GetModel returns the value of Model.
+func (s *Device) GetModel() string {
+	return s.Model
+}
+
+// GetRevision returns the value of Revision.
+func (s *Device) GetRevision() string {
+	return s.Revision
+}
+
+// GetSoftware returns the value of Software.
+func (s *Device) GetSoftware() string {
+	return s.Software
+}
+
 // SetID sets the value of ID.
 func (s *Device) SetID(val uuid.UUID) {
 	s.ID = val
@@ -130,6 +155,26 @@ func (s *Device) SetName(val string) {
 // SetOwnerID sets the value of OwnerID.
 func (s *Device) SetOwnerID(val uuid.UUID) {
 	s.OwnerID = val
+}
+
+// SetManufacturer sets the value of Manufacturer.
+func (s *Device) SetManufacturer(val string) {
+	s.Manufacturer = val
+}
+
+// SetModel sets the value of Model.
+func (s *Device) SetModel(val string) {
+	s.Model = val
+}
+
+// SetRevision sets the value of Revision.
+func (s *Device) SetRevision(val string) {
+	s.Revision = val
+}
+
+// SetSoftware sets the value of Software.
+func (s *Device) SetSoftware(val string) {
+	s.Software = val
 }
 
 // EditDeviceOK is response for EditDevice operation.
@@ -793,10 +838,15 @@ type RemoveDeviceOK struct{}
 
 // Ref: #/components/schemas/Sensor
 type Sensor struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	DeviceID    uuid.UUID `json:"deviceId"`
-	DisplayName string    `json:"displayName"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	DeviceID     uuid.UUID `json:"deviceId"`
+	DisplayName  string    `json:"displayName"`
+	Manufacturer string    `json:"manufacturer"`
+	Model        string    `json:"model"`
+	Revision     string    `json:"revision"`
+	// Software name and version.
+	Software string `json:"software"`
 }
 
 // GetID returns the value of ID.
@@ -819,6 +869,26 @@ func (s *Sensor) GetDisplayName() string {
 	return s.DisplayName
 }
 
+// GetManufacturer returns the value of Manufacturer.
+func (s *Sensor) GetManufacturer() string {
+	return s.Manufacturer
+}
+
+// GetModel returns the value of Model.
+func (s *Sensor) GetModel() string {
+	return s.Model
+}
+
+// GetRevision returns the value of Revision.
+func (s *Sensor) GetRevision() string {
+	return s.Revision
+}
+
+// GetSoftware returns the value of Software.
+func (s *Sensor) GetSoftware() string {
+	return s.Software
+}
+
 // SetID sets the value of ID.
 func (s *Sensor) SetID(val string) {
 	s.ID = val
@@ -837,6 +907,26 @@ func (s *Sensor) SetDeviceID(val uuid.UUID) {
 // SetDisplayName sets the value of DisplayName.
 func (s *Sensor) SetDisplayName(val string) {
 	s.DisplayName = val
+}
+
+// SetManufacturer sets the value of Manufacturer.
+func (s *Sensor) SetManufacturer(val string) {
+	s.Manufacturer = val
+}
+
+// SetModel sets the value of Model.
+func (s *Sensor) SetModel(val string) {
+	s.Model = val
+}
+
+// SetRevision sets the value of Revision.
+func (s *Sensor) SetRevision(val string) {
+	s.Revision = val
+}
+
+// SetSoftware sets the value of Software.
+func (s *Sensor) SetSoftware(val string) {
+	s.Software = val
 }
 
 // Describes service status.

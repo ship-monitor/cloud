@@ -6,11 +6,15 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 )
 
-func toAPIDevice(d devicedomain.Device) *api.Device {
+func toAPIDevice(device devicedomain.Device) *api.Device {
 	return &api.Device{
-		ID:      d.ID,
-		Name:    d.Name,
-		OwnerID: d.OwnerID,
+		ID:           device.ID,
+		Name:         device.Name,
+		OwnerID:      device.OwnerID,
+		Manufacturer: device.Manufacturer,
+		Model:        device.Model,
+		Revision:     device.Revision,
+		Software:     device.Software,
 	}
 }
 
@@ -25,10 +29,14 @@ func toAPIDevices(devices []devicedomain.Device) []api.Device {
 
 func toApiSensor(sensor *sensor.Sensor) *api.Sensor {
 	return &api.Sensor{
-		ID:          sensor.ID,
-		Name:        sensor.Name,
-		DeviceID:    sensor.DeviceID,
-		DisplayName: sensor.DisplayName,
+		ID:           sensor.ID,
+		Name:         sensor.Name,
+		DeviceID:     sensor.DeviceID,
+		DisplayName:  sensor.DisplayName,
+		Manufacturer: sensor.Manufacturer,
+		Model:        sensor.Model,
+		Revision:     sensor.Revision,
+		Software:     sensor.Software,
 	}
 }
 

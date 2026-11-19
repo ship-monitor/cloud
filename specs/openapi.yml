@@ -372,7 +372,7 @@ components:
 
     Device:
       type: object
-      required: [id, name, ownerId]
+      required: [id, name, ownerId, manufacturer, model, revision, software]
       properties:
         id:
           type: string
@@ -382,6 +382,16 @@ components:
         ownerId:
           type: string
           format: uuid
+        manufacturer:
+          type: string
+        model:
+          type: string
+        revision:
+          type: string
+        software:
+          type: string
+          description: Software name and version
+          example: "hub-service@v1.0"
     Problem:
       type: object
       required: [type, title, status]
@@ -411,7 +421,17 @@ components:
         - fail
     Sensor:
       type: object
-      required: [id, name, deviceId, displayName]
+      required:
+        [
+          id,
+          name,
+          deviceId,
+          displayName,
+          manufacturer,
+          model,
+          revision,
+          software,
+        ]
       properties:
         id:
           type: string
@@ -425,6 +445,16 @@ components:
           readOnly: true
         displayName:
           type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        revision:
+          type: string
+        software:
+          type: string
+          description: Software name and version
+          example: "hub-service@v1.0"
     MetricType:
       type: string
       enum:

@@ -583,12 +583,29 @@ const (
           "ownerId": {
             "type": "string",
             "format": "uuid"
+          },
+          "manufacturer": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "software": {
+            "description": "Software name and version",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "ownerId"
+          "ownerId",
+          "manufacturer",
+          "model",
+          "revision",
+          "software"
         ]
       },
       "Metric": {
@@ -712,13 +729,30 @@ const (
           },
           "displayName": {
             "type": "string"
+          },
+          "manufacturer": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "software": {
+            "description": "Software name and version",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
           "deviceId",
-          "displayName"
+          "displayName",
+          "manufacturer",
+          "model",
+          "revision",
+          "software"
         ]
       },
       "ServiceStatus": {
@@ -1428,10 +1462,23 @@ components:
                 ownerId:
                     type: string
                     format: uuid
+                manufacturer:
+                    type: string
+                model:
+                    type: string
+                revision:
+                    type: string
+                software:
+                    description: Software name and version
+                    type: string
             required:
                 - id
                 - name
                 - ownerId
+                - manufacturer
+                - model
+                - revision
+                - software
         Metric:
             type: object
             properties:
@@ -1519,11 +1566,24 @@ components:
                     format: uuid
                 displayName:
                     type: string
+                manufacturer:
+                    type: string
+                model:
+                    type: string
+                revision:
+                    type: string
+                software:
+                    description: Software name and version
+                    type: string
             required:
                 - id
                 - name
                 - deviceId
                 - displayName
+                - manufacturer
+                - model
+                - revision
+                - software
         ServiceStatus:
             description: |
                 Describes service status.
@@ -1788,8 +1848,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"342fbe2473b985a607c0d89b18d1dc3d\""
-	specYAMLETag = "\"9b5e9ed044fc58796f6cbb1150e330da\""
+	specJSONETag = "\"a9c81d3a10ca1d8f2f6d821653d222e4\""
+	specYAMLETag = "\"765eeaabffe214d2ff0f5af925af10dd\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

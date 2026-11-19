@@ -210,10 +210,14 @@ func (s *Service) insertDeclared(
 		}
 
 		newSensor := sensor.Sensor{
-			ID:          item.ID,
-			Name:        item.Name,
-			DisplayName: item.Name,
-			DeviceID:    deviceID,
+			ID:           item.ID,
+			Name:         item.Name,
+			DisplayName:  item.Name,
+			DeviceID:     deviceID,
+			Manufacturer: item.Manufacturer,
+			Model:        item.Model,
+			Revision:     item.Revision,
+			Software:     item.Software,
 		}
 		if err := s.repo.InsertSensor(ctx, &newSensor); err != nil {
 			return fmt.Errorf("insert sensor %q: %w", item.ID, err)
