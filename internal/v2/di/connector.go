@@ -81,7 +81,11 @@ func newConnectorController(
 		asyncapi.WithLogger(qLog),
 		asyncapi.WithErrorHandler(
 			func(ctx context.Context, topic string, msg *extensions.AcknowledgeableBrokerMessage, err error) {
-				logger.Error("Error while handling message", zap.Error(err))
+				logger.Error(
+					"Error while handling message",
+					zap.Error(err),
+					zap.String("topic", topic),
+				)
 			},
 		),
 		asyncapi.WithMiddlewares(

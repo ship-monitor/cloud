@@ -76,9 +76,8 @@ func logger(config *config.Config) fx.Option {
 			logConf.DisableStacktrace = true
 
 			logConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			if config.IsDevelopment() {
-				logConf.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-			}
+
+			logConf.Level = zap.NewAtomicLevelAt(config.LogLevel)
 
 			logger, err := logConf.Build()
 			if err != nil {
@@ -181,6 +180,8 @@ func getCORS(config *config.Config, logger *zap.Logger) *cors.Cors {
 	if len(config.CorsOrigins) == 0 {
 		logger.Warn("No CORS origins specified")
 	}
+
+	logger = logger.WithOptions(zap.IncreaseLevel(zap.WarnLevel))
 
 	return cors.New(cors.Options{ //nolint:exhaustruct_v5
 		AllowedOrigins: config.CorsOrigins,
