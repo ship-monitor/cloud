@@ -61,14 +61,16 @@ func (r row) toDomain() domain.Device {
 	}
 }
 
-const columns = "id, owner_id, name, created_at, updated_at, manufacturer, model, revision, software"
+const Columns = "id, owner_id, name, created_at, updated_at, manufacturer, model, revision, software"
 
 // Create inserts a new device.
 func (r *Repository) Create(ctx context.Context, d domain.Device) error {
+	timestamp := time.Now().UTC()
+
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO devices (`+columns+`)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		d.ID, d.OwnerID, d.Name, time.Now().UTC(),
+		`INSERT INTO devices ( `+Columns+` )
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		d.ID, d.OwnerID, d.Name, timestamp, timestamp,
 		d.Manufacturer, d.Model, d.Revision, d.Software,
 	)
 	if err != nil {
@@ -90,7 +92,7 @@ func (r *Repository) Get(
 	err := r.db.
 		QueryRowxContext(
 			ctx,
-			`SELECT `+columns+` FROM devices WHERE id = $1 AND owner_id = $2`,
+			`SELECT `+Columns+` FROM devices WHERE id = $1 AND owner_id = $2`,
 			id, ownerID,
 		).
 		StructScan(&rw)
@@ -115,7 +117,7 @@ func (r *Repository) ListByOwner(
 	var rows []row
 
 	err := sqlx.SelectContext(ctx, r.db, &rows,
-		`SELECT `+columns+
+		`SELECT `+Columns+
 			` FROM devices WHERE owner_id = $1 ORDER BY id LIMIT $2 OFFSET $3`,
 		ownerID, paging.Size, paging.Offset(),
 	)
@@ -150,7 +152,7 @@ func (r *Repository) List(ctx context.Context) ([]domain.Device, error) {
 	var rows []row
 
 	err := sqlx.SelectContext(ctx, r.db, &rows,
-		`SELECT `+columns+` FROM devices ORDER BY id`,
+		`SELECT `+Columns+` FROM devices ORDER BY id`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("select devices: %w", err)

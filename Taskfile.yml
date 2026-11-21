@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+tasks:
+  test:
+    desc: Test all project
+    cmds:
+      - go test ./...
+      - go test -tags=integration ./...
+    silent: true
