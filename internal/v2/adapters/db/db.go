@@ -28,21 +28,17 @@ func New(config *Config) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("connect to postgres database: %w", err)
 	}
 
-	err = migrate(db)
-	if err != nil {
-		return nil, fmt.Errorf("migrate db: %w", err)
-	}
-
 	return db, nil
 }
 
-func migrate(db *sqlx.DB) error {
+func Migrate(ctx context.Context, db *sqlx.DB) error {
 	provider, err := goose.NewProvider(Driver, db.DB, postgres.Migrations)
 	if err != nil {
 		return fmt.Errorf("new provider: %w", err)
 	}
 
-	if _, err := provider.Up(context.Background()); err != nil {
+	_, err = provider.Up(ctx)
+	if err != nil {
 		return fmt.Errorf("up: %w", err)
 	}
 

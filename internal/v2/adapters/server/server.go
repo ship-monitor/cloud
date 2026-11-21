@@ -41,7 +41,7 @@ var errBadRequest = problem.New(
 	"Bad request",
 )
 
-//nolint:varnamelen
+//nolint:varnamelen, funlen
 func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 	logger = logger.Named("Error Handler")
 

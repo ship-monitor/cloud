@@ -145,7 +145,8 @@ func (r *Repo) SetApproved(
 		return fmt.Errorf("update connect request approval: %w", err)
 	}
 
-	if err := requireAffected(res); err != nil {
+	err = requireAffected(res)
+	if err != nil {
 		return fmt.Errorf("update connect request approval: %w", err)
 	}
 
@@ -163,7 +164,8 @@ func (r *Repo) Delete(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("delete connect request: %w", err)
 	}
 
-	if err := requireAffected(res); err != nil {
+	err = requireAffected(res)
+	if err != nil {
 		return fmt.Errorf("delete connect request: %w", err)
 	}
 

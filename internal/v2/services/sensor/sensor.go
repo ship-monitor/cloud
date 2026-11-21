@@ -96,16 +96,18 @@ func (s *Service) DeclareSensors(
 		return fmt.Errorf("check collisions: %w", err)
 	}
 
-	if err := s.insertDeclared(ctx, deviceID, sensors, storedByID); err != nil {
+	err = s.insertDeclared(ctx, deviceID, sensors, storedByID)
+	if err != nil {
 		return fmt.Errorf("insert declared sensors: %w", err)
 	}
 
-	if err := s.deleteUndeclared(
+	err = s.deleteUndeclared(
 		ctx,
 		deviceID,
 		stored,
 		declaredByID,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("delete undeclared sensors: %w", err)
 	}
 
@@ -219,7 +221,9 @@ func (s *Service) insertDeclared(
 			Revision:     item.Revision,
 			Software:     item.Software,
 		}
-		if err := s.repo.InsertSensor(ctx, &newSensor); err != nil {
+
+		err := s.repo.InsertSensor(ctx, &newSensor)
+		if err != nil {
 			return fmt.Errorf("insert sensor %q: %w", item.ID, err)
 		}
 
@@ -243,7 +247,8 @@ func (s *Service) deleteUndeclared(
 			continue
 		}
 
-		if err := s.repo.DeleteSensor(ctx, item.ID, deviceID); err != nil {
+		err := s.repo.DeleteSensor(ctx, item.ID, deviceID)
+		if err != nil {
 			return fmt.Errorf("delete sensor %q: %w", item.ID, err)
 		}
 

@@ -27,21 +27,30 @@ func newNATS(lc fx.Lifecycle, conf *config.Config) (*nats.Conn, error) {
 }
 
 func newDB(lc fx.Lifecycle, conf *config.Config) (*sqlx.DB, error) {
-	db, err := db.New(&conf.DB)
+	conn, err := db.New(&conf.DB)
 	if err != nil {
 		return nil, fmt.Errorf("new db: %w", err)
 	}
 
-	lc.Append(fx.StopHook(func() error {
-		err := db.Close()
-		if err != nil {
-			return fmt.Errorf("close db: %w", err)
-		}
+	lc.Append(fx.StartStopHook(
+		func(ctx context.Context) error {
+			err := db.Migrate(ctx, conn)
+			if err != nil {
+				return fmt.Errorf("migrate database: %w", err)
+			}
 
-		return nil
-	}))
+			return nil
+		},
+		func() error {
+			err := conn.Close()
+			if err != nil {
+				return fmt.Errorf("close db: %w", err)
+			}
 
-	return db, nil
+			return nil
+		}))
+
+	return conn, nil
 }
 
 // Named "clickhouse" to avoid fx conflict with the postgres *sqlx.DB provider.

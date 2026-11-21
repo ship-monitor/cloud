@@ -74,20 +74,11 @@ func (r *Repository) InsertBatch(
 	return nil
 }
 
-// List returns samples of the metric named in the filter for the given
-// sensor on the given device, ordered by recorded_at. The metric name is
-// required.
-func (r *Repository) List(
-	ctx context.Context,
+func buildQuery(
+	filter Query,
 	deviceID uuid.UUID,
 	sensorID string,
-	filter Query,
-) ([]metrics.Metric, error) {
-	err := validator.New().Struct(&filter)
-	if err != nil {
-		return nil, fmt.Errorf("invalid query: %w", err)
-	}
-
+) (string, []any) {
 	query := strings.Builder{}
 	args := []any{deviceID.String(), sensorID, filter.Name}
 
@@ -117,7 +108,26 @@ func (r *Repository) List(
 		args = append(args, filter.Limit)
 	}
 
-	rows, err := r.conn.Query(ctx, query.String(), args...)
+	return query.String(), args
+}
+
+// List returns samples of the metric named in the filter for the given
+// sensor on the given device, ordered by recorded_at. The metric name is
+// required.
+func (r *Repository) List(
+	ctx context.Context,
+	deviceID uuid.UUID,
+	sensorID string,
+	filter Query,
+) ([]metrics.Metric, error) {
+	err := validator.New().Struct(&filter)
+	if err != nil {
+		return nil, fmt.Errorf("invalid query: %w", err)
+	}
+
+	query, args := buildQuery(filter, deviceID, sensorID)
+
+	rows, err := r.conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("select sensor metrics: %w", err)
 	}

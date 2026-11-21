@@ -74,7 +74,8 @@ func (s *Service) Register(
 		PasswordHash: string(hash),
 	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
+	err = s.repo.Create(ctx, user)
+	if err != nil {
 		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
 
@@ -95,10 +96,11 @@ func (s *Service) Login(
 		return domain.User{}, fmt.Errorf("get user by email: %w", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword(
+	err = bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash),
 		[]byte(password),
-	); err != nil {
+	)
+	if err != nil {
 		return domain.User{}, ErrInvalidCredentials
 	}
 

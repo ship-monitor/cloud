@@ -7,7 +7,7 @@ import (
 	"github.com/ship-monitor/cloud/pkg/configer"
 )
 
-//nolint:goconst, paralleltest, varnamelen
+//nolint:goconst, paralleltest
 func TestGetOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -51,7 +51,7 @@ func TestGetOrDefault(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest, varnamelen
+//nolint:paralleltest
 func TestGetStrings(t *testing.T) {
 	testCases := []struct {
 		name          string

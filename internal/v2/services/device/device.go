@@ -237,7 +237,8 @@ func (s *Service) IsDeviceOnline(
 	actor auth.Actor,
 	id uuid.UUID,
 ) (bool, time.Time, error) {
-	if _, err := s.Get(ctx, actor, id); err != nil {
+	_, err := s.Get(ctx, actor, id)
+	if err != nil {
 		return false, time.Time{}, fmt.Errorf("get device: %w", err)
 	}
 

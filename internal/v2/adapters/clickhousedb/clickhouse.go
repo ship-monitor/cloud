@@ -65,7 +65,9 @@ func (c *Clickhouse) Conn() driver.Conn {
 
 func (c *Clickhouse) Migrate(ctx context.Context) error {
 	db := clickhouse.OpenDB(c.options)
-	if err := db.PingContext(ctx); err != nil {
+
+	err := db.PingContext(ctx)
+	if err != nil {
 		return fmt.Errorf("open db: ping db: %w", err)
 	}
 

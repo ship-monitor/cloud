@@ -85,12 +85,14 @@ func (s *Repo) GetSensors(
 	deviceID uuid.UUID,
 ) ([]sensor.Sensor, error) {
 	var rows []row
-	if err := s.db.SelectContext(
+
+	err := s.db.SelectContext(
 		ctx,
 		&rows,
 		`SELECT `+columns+` FROM sensors WHERE device_id = $1 ORDER BY id`,
 		deviceID,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, fmt.Errorf("execute select: %w", err)
 	}
 

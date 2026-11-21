@@ -1,20 +1,17 @@
 version: "2"
+
 linters:
   default: all
   disable:
     # deprecated
     - wsl
     - gomodguard
+    - exhaustruct
     # useless
     - tagalign
-    - ireturn
     # own style
     - revive
-    - noinlineerr
-    # temporary disabled
-    - cyclop
-    - exhaustruct
-    - funlen
+    - ireturn
 
   settings:
     wrapcheck:
@@ -34,6 +31,7 @@ linters:
     varnamelen:
       ignore-names:
         - ch
+        - tt
         - id
         - val
         - ok
@@ -94,3 +92,5 @@ formatters:
       shorten-comments: true
       reformat-tags: false
       chain-split-dots: true
+run:
+  build-tags: [integration]

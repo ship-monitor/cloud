@@ -1,5 +1,3 @@
-//go:build integration
-
 // Package device_test contains tests for the device repository.
 package device_test
 
@@ -52,6 +50,7 @@ func TestRepository_Create(t *testing.T) {
 	assert.Equal(t, "unique_violation", duplicateErr.Code.Name())
 }
 
+//nolint:funlen
 func TestRepository_Get(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +73,7 @@ func TestRepository_Get(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	//nolint:exhaustruct_v5
 	cases := []struct {
 		name    string
 		ownerID uuid.UUID
@@ -101,18 +101,18 @@ func TestRepository_Get(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := repo.Get(t.Context(), tc.ownerID, tc.id)
-			if tc.wantErr != nil {
-				require.ErrorIs(t, err, tc.wantErr)
+			got, err := repo.Get(t.Context(), tt.ownerID, tt.id)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}
 
-			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -121,17 +121,17 @@ func setupDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 
 	ctx := t.Context()
-	pg, err := postgres.Run(ctx,
+	container, err := postgres.Run(ctx,
 		"postgres:17-alpine",
 		postgres.WithDatabase("test"),
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),
 		postgres.BasicWaitStrategies(),
 	)
-	testcontainers.CleanupContainer(t, pg)
+	testcontainers.CleanupContainer(t, container)
 	require.NoError(t, err)
 
-	connStr, err := pg.ConnectionString(ctx, "sslmode=disable")
+	connStr, err := container.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err)
 
 	sqlDB, err := db.New(&db.Config{DSN: connStr})
