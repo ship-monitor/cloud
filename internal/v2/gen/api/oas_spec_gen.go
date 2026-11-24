@@ -26,7 +26,7 @@ const (
       "description": "Local development server"
     },
     {
-      "url": "https://api.ship-monitor.ru",
+      "url": "https://api.coldstat.ru",
       "description": "Production server"
     }
   ],
@@ -1160,7 +1160,7 @@ info:
 servers:
     -   url: http://localhost:8080
         description: Local development server
-    -   url: https://api.ship-monitor.ru
+    -   url: https://api.coldstat.ru
         description: Production server
 paths:
     /api/v2/auth/login:
@@ -1848,8 +1848,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"a9c81d3a10ca1d8f2f6d821653d222e4\""
-	specYAMLETag = "\"765eeaabffe214d2ff0f5af925af10dd\""
+	specJSONETag = "\"9109c4f764f730733ae00bf0f43ac7a7\""
+	specYAMLETag = "\"19457ed536d676500b90e55f4dd1a672\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

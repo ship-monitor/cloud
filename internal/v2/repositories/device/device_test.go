@@ -137,6 +137,9 @@ func setupDB(t *testing.T) *sqlx.DB {
 	sqlDB, err := db.New(&db.Config{DSN: connStr})
 	require.NoError(t, err)
 
+	err = db.Migrate(t.Context(), sqlDB)
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		assert.NoError(t, sqlDB.Close())
 	})

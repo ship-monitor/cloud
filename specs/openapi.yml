@@ -7,7 +7,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://api.ship-monitor.ru
+  - url: https://api.coldstat.ru
     description: Production server
 
 tags:

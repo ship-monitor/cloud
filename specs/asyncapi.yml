@@ -8,7 +8,7 @@ servers:
     description: Development NATS server
     protocol: nats
   production:
-    host: ship-monitor.ru:4222
+    host: coldstat.ru:4222
     description: Production NATS server
     protocol: nats
 channels:
