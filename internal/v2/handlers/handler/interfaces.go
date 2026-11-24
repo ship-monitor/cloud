@@ -71,13 +71,13 @@ type SensorService interface {
 	GetSensor(
 		ctx context.Context,
 		actor auth.Actor,
-		sensorID string,
+		sensorID sensor.ID,
 		deviceID uuid.UUID,
 	) (*sensor.Sensor, error)
 	Rename(
 		ctx context.Context,
 		actor auth.Actor,
-		id string,
+		id sensor.ID,
 		deviceID uuid.UUID,
 		displayName string,
 	) error
@@ -94,7 +94,7 @@ type MetricsService interface {
 		ctx context.Context,
 		actor auth.Actor,
 		deviceID uuid.UUID,
-		sensorID string,
+		sensorID sensor.ID,
 		query metrics.Query,
 	) ([]metrics.Metric, error)
 }

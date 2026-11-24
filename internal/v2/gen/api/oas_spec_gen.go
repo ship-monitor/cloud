@@ -718,7 +718,8 @@ const (
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -1042,7 +1043,8 @@ const (
         "style": "simple",
         "explode": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -1559,6 +1561,7 @@ components:
             properties:
                 id:
                     type: string
+                    format: uuid
                 name:
                     type: string
                 deviceId:
@@ -1784,6 +1787,7 @@ components:
             explode: false
             schema:
                 type: string
+                format: uuid
     requestBodies:
         ConnectDeviceRequest:
             content:
@@ -1848,8 +1852,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"9109c4f764f730733ae00bf0f43ac7a7\""
-	specYAMLETag = "\"19457ed536d676500b90e55f4dd1a672\""
+	specJSONETag = "\"08b4bc5dbf6e3aecc5f16f503f5eb9fc\""
+	specYAMLETag = "\"99ce71309fb751666d9813e2fd988631\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

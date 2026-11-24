@@ -315,6 +315,7 @@ components:
       required: true
       schema:
         type: string
+        format: uuid
     metricsFrom:
       in: query
       name: from
@@ -435,6 +436,7 @@ components:
       properties:
         id:
           type: string
+          format: uuid
           readOnly: true
         name:
           type: string

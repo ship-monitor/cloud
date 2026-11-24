@@ -9,11 +9,13 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	devicemetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/devicemetrics"
+	notificationrepo "github.com/ship-monitor/cloud/internal/v2/repositories/notification"
 	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	sensormetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensormetrics"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
+	"github.com/ship-monitor/cloud/internal/v2/services/notification"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
@@ -62,4 +64,8 @@ func newMetricsService(
 		sensorMetrics,
 		logger,
 	)
+}
+
+func newNotificationService(repo *notificationrepo.Repository) *notification.Service {
+	return notification.New(repo)
 }

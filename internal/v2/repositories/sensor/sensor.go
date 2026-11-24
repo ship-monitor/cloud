@@ -20,7 +20,7 @@ type Repo struct {
 }
 
 type row struct {
-	ID           string     `db:"id"`
+	ID           sensor.ID  `db:"id"`
 	Name         string     `db:"name"`
 	DeviceID     uuid.UUID  `db:"device_id"`
 	DisplayName  string     `db:"display_name"`
@@ -106,7 +106,7 @@ func (s *Repo) GetSensors(
 
 func (s *Repo) GetSensor(
 	ctx context.Context,
-	sensorID string,
+	sensorID sensor.ID,
 	deviceID uuid.UUID,
 ) (*sensor.Sensor, error) {
 	var record row
@@ -135,7 +135,7 @@ func (s *Repo) GetSensor(
 // It returns ErrNotFound if the sensor does not exist for that device.
 func (s *Repo) RenameSensor(
 	ctx context.Context,
-	sensorID string,
+	sensorID sensor.ID,
 	deviceID uuid.UUID,
 	displayName string,
 ) error {
@@ -163,7 +163,7 @@ func (s *Repo) RenameSensor(
 // It returns ErrNotFound if the sensor does not exist for that device.
 func (s *Repo) DeleteSensor(
 	ctx context.Context,
-	sensorID string,
+	sensorID sensor.ID,
 	deviceID uuid.UUID,
 ) error {
 	result, err := s.db.ExecContext(ctx,
@@ -190,7 +190,7 @@ func (s *Repo) DeleteSensor(
 // device.
 func (s *Repo) SensorExists(
 	ctx context.Context,
-	sensorID string,
+	sensorID sensor.ID,
 	deviceID uuid.UUID,
 ) (bool, error) {
 	var exists bool

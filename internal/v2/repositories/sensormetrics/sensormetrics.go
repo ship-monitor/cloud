@@ -14,6 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
+	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 )
 
 // Repository reads and writes sensor metrics in ClickHouse.
@@ -34,7 +35,7 @@ type Query = metrics.Query
 func (r *Repository) InsertBatch(
 	ctx context.Context,
 	deviceID uuid.UUID,
-	sensorID string,
+	sensorID sensor.ID,
 	ms []metrics.Metric,
 ) error {
 	if len(ms) == 0 {
@@ -77,7 +78,7 @@ func (r *Repository) InsertBatch(
 func buildQuery(
 	filter Query,
 	deviceID uuid.UUID,
-	sensorID string,
+	sensorID sensor.ID,
 ) (string, []any) {
 	query := strings.Builder{}
 	args := []any{deviceID.String(), sensorID, filter.Name}
@@ -117,7 +118,7 @@ func buildQuery(
 func (r *Repository) List(
 	ctx context.Context,
 	deviceID uuid.UUID,
-	sensorID string,
+	sensorID sensor.ID,
 	filter Query,
 ) ([]metrics.Metric, error) {
 	err := validator.New().Struct(&filter)

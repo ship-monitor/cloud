@@ -60,7 +60,7 @@ type MetricsService interface {
 	IngestSensorMetrics(
 		ctx context.Context,
 		deviceID uuid.UUID,
-		sensorID string,
+		sensorID uuid.UUID,
 		ms []metrics.Metric,
 	) error
 }
@@ -126,6 +126,10 @@ func (s *S) Start(ctx context.Context) error {
 			ctx,
 			asyncapi.FirmwareChannelParameters{DeviceId: "*"},
 			s.HandleFirmware,
+		),
+		s.controller.SubscribeToNotificationOperation(ctx,
+			asyncapi.NotificationsChannelParameters{DeviceId: "*"},
+			s.HandleNotification,
 		),
 	)
 	if err != nil {
@@ -232,7 +236,7 @@ func (s *S) HandleSensorMetrics(
 	err = s.metrics.IngestSensorMetrics(
 		ctx,
 		deviceID,
-		string(msg.Payload.SensorID),
+		msg.Payload.SensorID,
 		ms,
 	)
 	if err != nil {
@@ -280,7 +284,7 @@ func (s *S) HandleSensorDeclaration(
 		sensors = append(
 			sensors,
 			sensor.SensorDecl{
-				ID:           string(s.Id),
+				ID:           s.Id,
 				Name:         s.Name,
 				Manufacturer: s.Firmware.Manufacturer,
 				Model:        s.Firmware.Model,
@@ -317,5 +321,12 @@ func (s *S) HandleFirmware(
 		return fmt.Errorf("service: set firmware: %w", err)
 	}
 
+	return nil
+}
+
+func (s *S) HandleNotification(
+	ctx context.Context,
+	msg asyncapi.NotificationMessage,
+) error {
 	return nil
 }

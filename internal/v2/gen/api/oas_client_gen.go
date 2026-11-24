@@ -345,7 +345,7 @@ func (c *Client) sendEditSensor(ctx context.Context, request *EditSensorReq, par
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.SensorID))
+			return e.EncodeValue(conv.UUIDToString(params.SensorID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -1126,7 +1126,7 @@ func (c *Client) sendGetSensorMetrics(ctx context.Context, params GetSensorMetri
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.SensorID))
+			return e.EncodeValue(conv.UUIDToString(params.SensorID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -1306,7 +1306,7 @@ func (c *Client) sendGetSensorMetricsByName(ctx context.Context, params GetSenso
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.SensorID))
+			return e.EncodeValue(conv.UUIDToString(params.SensorID))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}

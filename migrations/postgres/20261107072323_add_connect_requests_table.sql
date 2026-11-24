@@ -1,11 +1,11 @@
 -- +goose Up
 CREATE TABLE connect_requests (
-    id varchar primary key,
-    device_id varchar not null,
-    user_id varchar not null,
+    id UUID primary key,
+    device_id UUID not null,
+    user_id UUID not null,
     approved BOOLEAN not null,
-    created_at TIMESTAMP WITH TIME ZONE not null,
-    approved_at TIMESTAMP WITH TIME ZONE default null
+    created_at TIMESTAMPTZ not null,
+    approved_at TIMESTAMPTZ default null
 );
 
 -- +goose Down

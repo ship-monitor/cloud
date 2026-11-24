@@ -1,11 +1,11 @@
 -- +goose Up
 CREATE TABLE sensors (
-    id varchar not null,
-    device_id varchar not null,
-    name varchar not null,
-    display_name varchar not null,
-    created_at TIMESTAMP WITH TIME ZONE not null,
-    updated_at TIMESTAMP WITH TIME ZONE default null,
+    id UUID not null,
+    device_id UUID not null,
+    name TEXT not null,
+    display_name TEXT not null,
+    created_at TIMESTAMPTZ not null,
+    updated_at TIMESTAMPTZ default null,
 
     primary key (id, device_id)
 );

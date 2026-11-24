@@ -838,7 +838,7 @@ type RemoveDeviceOK struct{}
 
 // Ref: #/components/schemas/Sensor
 type Sensor struct {
-	ID           string    `json:"id"`
+	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	DeviceID     uuid.UUID `json:"deviceId"`
 	DisplayName  string    `json:"displayName"`
@@ -850,7 +850,7 @@ type Sensor struct {
 }
 
 // GetID returns the value of ID.
-func (s *Sensor) GetID() string {
+func (s *Sensor) GetID() uuid.UUID {
 	return s.ID
 }
 
@@ -890,7 +890,7 @@ func (s *Sensor) GetSoftware() string {
 }
 
 // SetID sets the value of ID.
-func (s *Sensor) SetID(val string) {
+func (s *Sensor) SetID(val uuid.UUID) {
 	s.ID = val
 }
 

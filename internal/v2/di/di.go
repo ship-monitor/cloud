@@ -21,6 +21,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	devicemetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/devicemetrics"
+	notificationrepo "github.com/ship-monitor/cloud/internal/v2/repositories/notification"
 	sensorrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	sensormetricsrepo "github.com/ship-monitor/cloud/internal/v2/repositories/sensormetrics"
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
@@ -50,11 +51,13 @@ func NewApp(config *config.Config) *fx.App {
 		fx.Provide(sensorrepo.New),
 		fx.Provide(devicemetricsrepo.New),
 		fx.Provide(sensormetricsrepo.New),
+		fx.Provide(notificationrepo.New),
 		fx.Provide(newTokenSerice),
 		fx.Provide(newUserService),
 		fx.Provide(newDeviceService),
 		fx.Provide(newSensorsService),
 		fx.Provide(newMetricsService),
+		fx.Provide(newNotificationService),
 		fx.Provide(newHandler),
 		fx.Provide(newSecurityHandler),
 		fx.Provide(newQueueHandler),

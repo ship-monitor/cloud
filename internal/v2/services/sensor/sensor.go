@@ -27,22 +27,22 @@ type Repo interface {
 	) ([]sensor.Sensor, error)
 	GetSensor(
 		ctx context.Context,
-		sensorID string,
+		sensorID sensor.ID,
 		deviceID uuid.UUID,
 	) (*sensor.Sensor, error)
 	SensorExists(
 		ctx context.Context,
-		sensorID string,
+		sensorID sensor.ID,
 		deviceID uuid.UUID,
 	) (bool, error)
 	DeleteSensor(
 		ctx context.Context,
-		sensorID string,
+		sensorID sensor.ID,
 		deviceID uuid.UUID,
 	) error
 	RenameSensor(
 		ctx context.Context,
-		sensorID string,
+		sensorID sensor.ID,
 		deviceID uuid.UUID,
 		displayName string,
 	) error
@@ -120,13 +120,13 @@ func (s *Service) DeclareSensors(
 func checkCollisions(
 	stored []sensor.Sensor,
 	sensors []sensor.SensorDecl,
-) (map[string]sensor.Sensor, map[string]sensor.SensorDecl, error) {
-	storedByID := make(map[string]sensor.Sensor, len(stored))
+) (map[sensor.ID]sensor.Sensor, map[sensor.ID]sensor.SensorDecl, error) {
+	storedByID := make(map[sensor.ID]sensor.Sensor, len(stored))
 	for _, item := range stored {
 		storedByID[item.ID] = item
 	}
 
-	declaredByID := make(map[string]sensor.SensorDecl, len(sensors))
+	declaredByID := make(map[sensor.ID]sensor.SensorDecl, len(sensors))
 	for _, item := range sensors {
 		if _, dup := declaredByID[item.ID]; dup {
 			return nil, nil, fmt.Errorf(
@@ -163,7 +163,7 @@ func (s *Service) GetSensors(
 func (s *Service) GetSensor(
 	ctx context.Context,
 	actor auth.Actor,
-	sensorID string,
+	sensorID sensor.ID,
 	deviceID uuid.UUID,
 ) (*sensor.Sensor, error) {
 	_, err := s.devices.Get(ctx, actor, deviceID)
@@ -182,7 +182,7 @@ func (s *Service) GetSensor(
 func (s *Service) Rename(
 	ctx context.Context,
 	actor auth.Actor,
-	id string,
+	id sensor.ID,
 	deviceID uuid.UUID,
 	displayName string,
 ) error {
@@ -204,7 +204,7 @@ func (s *Service) insertDeclared(
 	ctx context.Context,
 	deviceID uuid.UUID,
 	sensors []sensor.SensorDecl,
-	storedByID map[string]sensor.Sensor,
+	storedByID map[uuid.UUID]sensor.Sensor,
 ) error {
 	for _, item := range sensors {
 		if _, found := storedByID[item.ID]; found {
@@ -240,7 +240,7 @@ func (s *Service) deleteUndeclared(
 	ctx context.Context,
 	deviceID uuid.UUID,
 	stored []sensor.Sensor,
-	declaredByID map[string]sensor.SensorDecl,
+	declaredByID map[uuid.UUID]sensor.SensorDecl,
 ) error {
 	for _, item := range stored {
 		if _, declared := declaredByID[item.ID]; declared {

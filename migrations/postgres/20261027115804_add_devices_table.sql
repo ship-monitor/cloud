@@ -1,11 +1,14 @@
 -- +goose Up
 CREATE TABLE devices (
-    id varchar primary key,
+    id UUID primary key,
     owner_id varchar not null,
-    name varchar not null,
-    security_key varchar not null,
-    created_at TIMESTAMP WITH TIME ZONE not null,
-    updated_at TIMESTAMP WITH TIME ZONE default null
+    name TEXT not null,
+    created_at TIMESTAMPTZ not null,
+    updated_at TIMESTAMPTZ default null,
+    manufacturer TEXT NOT NULL,
+    model TEXT NOT NULL,
+    revision TEXT NOT NULL,
+    software TEXT NOT NULL
 );
 
 -- +goose Down

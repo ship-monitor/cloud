@@ -84,7 +84,7 @@ func decodeEditDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (
 // EditSensorParams is parameters of EditSensor operation.
 type EditSensorParams struct {
 	DeviceID uuid.UUID
-	SensorID string
+	SensorID uuid.UUID
 }
 
 func unpackEditSensorParams(packed middleware.Parameters) (params EditSensorParams) {
@@ -100,7 +100,7 @@ func unpackEditSensorParams(packed middleware.Parameters) (params EditSensorPara
 			Name: "sensorId",
 			In:   "path",
 		}
-		params.SensorID = packed[key].(string)
+		params.SensorID = packed[key].(uuid.UUID)
 	}
 	return params
 }
@@ -175,7 +175,7 @@ func decodeEditSensorParams(args [2]string, argsEscaped bool, r *http.Request) (
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}
@@ -1095,7 +1095,7 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 // GetSensorMetricsParams is parameters of GetSensorMetrics operation.
 type GetSensorMetricsParams struct {
 	DeviceID uuid.UUID
-	SensorID string
+	SensorID uuid.UUID
 	From     OptDateTime `json:",omitempty,omitzero"`
 	To       OptDateTime `json:",omitempty,omitzero"`
 	// Deprecated: schema marks this parameter as deprecated.
@@ -1116,7 +1116,7 @@ func unpackGetSensorMetricsParams(packed middleware.Parameters) (params GetSenso
 			Name: "sensorId",
 			In:   "path",
 		}
-		params.SensorID = packed[key].(string)
+		params.SensorID = packed[key].(uuid.UUID)
 	}
 	{
 		key := middleware.ParameterKey{
@@ -1226,7 +1226,7 @@ func decodeGetSensorMetricsParams(args [2]string, argsEscaped bool, r *http.Requ
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}
@@ -1442,7 +1442,7 @@ func decodeGetSensorMetricsParams(args [2]string, argsEscaped bool, r *http.Requ
 // GetSensorMetricsByNameParams is parameters of GetSensorMetricsByName operation.
 type GetSensorMetricsByNameParams struct {
 	DeviceID uuid.UUID
-	SensorID string
+	SensorID uuid.UUID
 	From     OptDateTime `json:",omitempty,omitzero"`
 	To       OptDateTime `json:",omitempty,omitzero"`
 	Metric   string
@@ -1462,7 +1462,7 @@ func unpackGetSensorMetricsByNameParams(packed middleware.Parameters) (params Ge
 			Name: "sensorId",
 			In:   "path",
 		}
-		params.SensorID = packed[key].(string)
+		params.SensorID = packed[key].(uuid.UUID)
 	}
 	{
 		key := middleware.ParameterKey{
@@ -1572,7 +1572,7 @@ func decodeGetSensorMetricsByNameParams(args [3]string, argsEscaped bool, r *htt
 					return err
 				}
 
-				c, err := conv.ToString(val)
+				c, err := conv.ToUUID(val)
 				if err != nil {
 					return err
 				}

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: SHIP connection protocol
-  version: 1.3.0
+  version: 1.5.0
 servers:
   development:
     host: localhost:4222
@@ -69,6 +69,12 @@ channels:
       deviceId:
         $ref: "#/components/parameters/deviceId"
 
+  notifications:
+    address: device.{deviceId}.notifications
+    parameters:
+      deviceId:
+        $ref: "#/components/parameters/deviceId"
+
 operations:
   onDeviceHeartbeat:
     title: Device sends heartbeat message
@@ -125,6 +131,14 @@ operations:
       $ref: "#/channels/firmware"
     messages:
       - $ref: "#/components/messages/firmware"
+
+  notification:
+    title: Device sends notifications
+    action: receive
+    channel:
+      $ref: "#/channels/notifications"
+    messages:
+      - $ref: "#/components/messages/notification"
 
 components:
   schemas:
@@ -211,17 +225,16 @@ components:
           format: uuid
           description: Currently holding device identifier
 
-    sensorId:
-      type: string
-      x-go-name: SensorID
-      description: Sensor identifier. It could be in non-UUID format.
-
     sensorDeclarationItem:
       type: object
       required: [id, name, firmware]
       properties:
         id:
-          $ref: "#/components/schemas/sensorId"
+          type: string
+          format: uuid
+          x-go-type: uuid.UUID
+          x-go-type-imports:
+            path: github.com/google/uuid
         name:
           type: string
         firmware:
@@ -235,6 +248,49 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/sensorDeclarationItem"
+    severity:
+      type: string
+      enum:
+        - info
+        - warning
+        - critical
+
+    notificationSource:
+      type: string
+      enum:
+        - device
+        - sensor
+
+    notification:
+      type: object
+      required: [type, source, severity, occurredAt, reportedAt]
+      properties:
+        type:
+          type: string
+        source:
+          type: object
+          required: [type, id]
+          properties:
+            type:
+              $ref: "#/components/schemas/notificationSource"
+            id:
+              type: string
+              format: uuid
+              x-go-type: uuid.UUID
+              x-go-type-imports:
+                path: github.com/google/uuid
+        severity:
+          $ref: "#/components/schemas/severity"
+        occurredAt:
+          type: string
+          format: date-time
+        reportedAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+          description: Additional notification data
+          additionalProperties: true
 
   messages:
     heartbeat:
@@ -279,7 +335,11 @@ components:
         properties:
           sensorId:
             x-go-name: SensorID
-            $ref: "#/components/schemas/sensorId"
+            type: string
+            format: uuid
+            x-go-type: uuid.UUID
+            x-go-type-imports:
+              path: github.com/google/uuid
           metrics:
             type: array
             items:
@@ -298,6 +358,13 @@ components:
         $ref: "#/components/schemas/identificationHeaders"
       payload:
         $ref: "#/components/schemas/firmware"
+
+    notification:
+      contentType: application/json
+      headers:
+        $ref: "#/components/schemas/identificationHeaders"
+      payload:
+        $ref: "#/components/schemas/notification"
 
   parameters:
     deviceId:

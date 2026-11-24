@@ -12,6 +12,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
+	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"go.uber.org/zap"
 )
 
@@ -34,13 +35,13 @@ type SensorRepo interface {
 	InsertBatch(
 		ctx context.Context,
 		deviceID uuid.UUID,
-		sensorID string,
+		sensorID uuid.UUID,
 		ms []metrics.Metric,
 	) error
 	List(
 		ctx context.Context,
 		deviceID uuid.UUID,
-		sensorID string,
+		sensorID sensor.ID,
 		query metrics.Query,
 	) ([]metrics.Metric, error)
 }
@@ -98,7 +99,7 @@ func (s *Service) IngestDeviceMetrics(
 func (s *Service) IngestSensorMetrics(
 	ctx context.Context,
 	deviceID uuid.UUID,
-	sensorID string,
+	sensorID sensor.ID,
 	ms []metrics.Metric,
 ) error {
 	err := s.sensorRepo.InsertBatch(ctx, deviceID, sensorID, ms)
@@ -142,7 +143,7 @@ func (s *Service) GetSensorMetrics(
 	ctx context.Context,
 	actor auth.Actor,
 	deviceID uuid.UUID,
-	sensorID string,
+	sensorID sensor.ID,
 	query metrics.Query,
 ) ([]metrics.Metric, error) {
 	_, err := s.devices.Get(ctx, actor, deviceID)

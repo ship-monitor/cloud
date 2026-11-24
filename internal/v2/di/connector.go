@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lerenn/asyncapi-codegen/pkg/extensions"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/brokers/nats"
 	"github.com/lerenn/asyncapi-codegen/pkg/extensions/middlewares"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
@@ -79,15 +78,7 @@ func newConnectorController(
 	c, err := asyncapi.NewAppController(
 		natsController,
 		asyncapi.WithLogger(qLog),
-		asyncapi.WithErrorHandler(
-			func(ctx context.Context, topic string, msg *extensions.AcknowledgeableBrokerMessage, err error) {
-				logger.Error(
-					"Error while handling message",
-					zap.Error(err),
-					zap.String("topic", topic),
-				)
-			},
-		),
+		asyncapi.WithErrorHandler(common.ErrorHandler(logger)),
 		asyncapi.WithMiddlewares(
 			middlewares.Logging(qLog),
 			middlewares.Recovery(qLog),

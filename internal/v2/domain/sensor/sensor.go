@@ -5,7 +5,7 @@ import (
 )
 
 type Sensor struct {
-	ID           string    `json:"id" validate:"required"`
+	ID           ID        `json:"id" validate:"required"`
 	Name         string    `json:"name" validate:"required"`
 	DeviceID     uuid.UUID `json:"deviceId" validate:"required"`
 	DisplayName  string    `json:"displayName" validate:"required"`
@@ -17,10 +17,12 @@ type Sensor struct {
 
 // SensorDecl issensor declaration.
 type SensorDecl struct {
-	ID           string
+	ID           ID
 	Name         string
 	Manufacturer string
 	Model        string
 	Revision     string
 	Software     string
 }
+
+type ID = uuid.UUID
