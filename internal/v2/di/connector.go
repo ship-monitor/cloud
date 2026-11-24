@@ -10,9 +10,10 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/config"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
-	queuesecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
+	queueSecurity "github.com/ship-monitor/cloud/internal/v2/handlers/queue_security"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
-	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
+	metricsService "github.com/ship-monitor/cloud/internal/v2/services/metrics"
+	"github.com/ship-monitor/cloud/internal/v2/services/notification"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"github.com/ship-monitor/cloud/pkg/connector/common"
@@ -34,10 +35,11 @@ func newSubscriber(
 	controller *asyncapi.AppController,
 	logger *zap.Logger,
 	handler *queue.Handler,
-	security *queuesecurity.Handler,
+	security *queueSecurity.Handler,
 	sensor *sensor.Service,
-	metrics *metricsservice.Service,
+	metrics *metricsService.Service,
 	device *device.Service,
+	notify *notification.Service,
 ) *subscriber.S {
 	subs := subscriber.New(
 		controller,
@@ -47,6 +49,7 @@ func newSubscriber(
 		sensor,
 		metrics,
 		device,
+		notify,
 	)
 
 	lc.Append(fx.StartStopHook(subs.Start, func(ctx context.Context) error {

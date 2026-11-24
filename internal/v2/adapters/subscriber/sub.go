@@ -65,6 +65,14 @@ type MetricsService interface {
 	) error
 }
 
+type NotificationService interface {
+	IngestNotification(
+		ctx context.Context,
+		deviceID uuid.UUID,
+		msg asyncapi.NotificationSchema,
+	) error
+}
+
 type S struct {
 	controller *asyncapi.AppController
 	logger     *zap.Logger
@@ -73,6 +81,7 @@ type S struct {
 	sensor     SensorService
 	metrics    MetricsService
 	device     DeviceService
+	notify     NotificationService
 }
 
 func New(
@@ -83,6 +92,7 @@ func New(
 	sensor SensorService,
 	metrics MetricsService,
 	device DeviceService,
+	notify NotificationService,
 ) *S {
 	return &S{
 		controller: controller,
@@ -92,6 +102,7 @@ func New(
 		sensor:     sensor,
 		metrics:    metrics,
 		device:     device,
+		notify:     notify,
 	}
 }
 
@@ -328,5 +339,20 @@ func (s *S) HandleNotification(
 	ctx context.Context,
 	msg asyncapi.NotificationMessage,
 ) error {
+	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	if err != nil {
+		return fmt.Errorf("handle security: %w", err)
+	}
+
+	deviceID, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return fmt.Errorf("deviceID: %w", device.ErrNoIDInContext)
+	}
+
+	err = s.notify.IngestNotification(ctx, deviceID, msg.Payload)
+	if err != nil {
+		return fmt.Errorf("service: ingest notification: %w", err)
+	}
+
 	return nil
 }

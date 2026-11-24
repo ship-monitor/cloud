@@ -66,6 +66,8 @@ func newMetricsService(
 	)
 }
 
-func newNotificationService(repo *notificationrepo.Repository) *notification.Service {
+func newNotificationService(
+	repo *notificationrepo.Repository,
+) *notification.Service {
 	return notification.New(repo)
 }

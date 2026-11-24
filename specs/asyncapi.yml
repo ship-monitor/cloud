@@ -370,3 +370,9 @@ components:
     deviceId:
       x-go-name: DeviceID
       description: Device identifier in UUID format.
+
+  securitySchemes:
+    deviceAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: uuid

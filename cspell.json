@@ -10,7 +10,8 @@
     "clickhouse",
     "exhaustruct",
     "gosec",
-    "zapslog"
+    "zapslog",
+    "asyncapi"
   ],
   "userWords": ["healthnes"]
 }
