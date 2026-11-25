@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 )
 
 // ErrNotFound is returned when no device matches the given constraints.
@@ -161,6 +162,33 @@ func (r *Repository) List(ctx context.Context) ([]domain.Device, error) {
 	return toDomainAll(rows), nil
 }
 
+// ListPage returns devices after the cursor in ascending ID order.
+func (r *Repository) ListPage(
+	ctx context.Context,
+	req pagination.Request[uuid.UUID],
+) (pagination.Page[domain.Device, uuid.UUID], error) {
+	page, err := r.listPage(ctx, req, nil)
+	if err != nil {
+		return page, fmt.Errorf("list devices page: %w", err)
+	}
+
+	return page, nil
+}
+
+// ListByOwnerPage returns the owner's devices in ascending ID order.
+func (r *Repository) ListByOwnerPage(
+	ctx context.Context,
+	ownerID uuid.UUID,
+	req pagination.Request[uuid.UUID],
+) (pagination.Page[domain.Device, uuid.UUID], error) {
+	page, err := r.listPage(ctx, req, &ownerID)
+	if err != nil {
+		return page, fmt.Errorf("list devices by owner page: %w", err)
+	}
+
+	return page, nil
+}
+
 // Rename updates the name of the device with the given id if it is
 // owned by ownerID, or ErrNotFound.
 func (r *Repository) Rename(
@@ -215,6 +243,40 @@ func (r *Repository) UpdateFirmware(
 	}
 
 	return nil
+}
+
+func (r *Repository) listPage(
+	ctx context.Context,
+	req pagination.Request[uuid.UUID],
+	ownerID *uuid.UUID,
+) (pagination.Page[domain.Device, uuid.UUID], error) {
+	var page pagination.Page[domain.Device, uuid.UUID]
+
+	size, err := req.Size()
+	if err != nil {
+		return page, fmt.Errorf("device page size: %w", err)
+	}
+
+	query := `SELECT ` + Columns + ` FROM devices
+		WHERE ($1::uuid IS NULL OR id > $1)`
+	args := []any{req.After, size + 1}
+
+	if ownerID != nil {
+		query += ` AND owner_id = $3`
+
+		args = append(args, *ownerID)
+	}
+
+	var rows []row
+
+	err = sqlx.SelectContext(ctx, r.db, &rows,
+		query+` ORDER BY id LIMIT $2`, args...)
+	if err != nil {
+		return page, fmt.Errorf("select devices page: %w", err)
+	}
+
+	return pagination.FromRows(toDomainAll(rows), size,
+		func(d domain.Device) uuid.UUID { return d.ID }), nil
 }
 
 func toDomainAll(rows []row) []domain.Device {

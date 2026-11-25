@@ -112,7 +112,7 @@ func (r *Repo) ListByDevice(
 		ctx,
 		r.db,
 		&rows,
-		`SELECT `+columns+` FROM connect_requests WHERE device_id = ? ORDER BY id`,
+		`SELECT `+columns+` FROM connect_requests WHERE device_id = $1 ORDER BY id`,
 		deviceID,
 	)
 	if err != nil {

@@ -78,7 +78,7 @@ func newConnectorController(
 
 	qLog := common.LoggerFromZap(logger)
 
-	c, err := asyncapi.NewAppController(
+	controller, err := asyncapi.NewAppController(
 		natsController,
 		asyncapi.WithLogger(qLog),
 		asyncapi.WithErrorHandler(common.ErrorHandler(logger)),
@@ -91,9 +91,9 @@ func newConnectorController(
 		return nil, fmt.Errorf("new app controller: %w", err)
 	}
 
-	lc.Append(fx.StopHook(c.Close))
+	lc.Append(fx.StopHook(controller.Close))
 
-	return c, nil
+	return controller, nil
 }
 
 func newPublisher(

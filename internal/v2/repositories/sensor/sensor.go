@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 )
 
@@ -96,12 +97,44 @@ func (s *Repo) GetSensors(
 		return nil, fmt.Errorf("execute select: %w", err)
 	}
 
+	return toDomainAll(rows), nil
+}
+
+// GetSensorsPage returns sensors on deviceID in ascending sensor ID order.
+func (s *Repo) GetSensorsPage(
+	ctx context.Context,
+	deviceID uuid.UUID,
+	req pagination.Request[sensor.ID],
+) (pagination.Page[sensor.Sensor, sensor.ID], error) {
+	var page pagination.Page[sensor.Sensor, sensor.ID]
+
+	size, err := req.Size()
+	if err != nil {
+		return page, fmt.Errorf("sensor page size: %w", err)
+	}
+
+	var rows []row
+
+	err = s.db.SelectContext(ctx, &rows,
+		`SELECT `+columns+` FROM sensors WHERE device_id = $1
+		 AND ($2::uuid IS NULL OR id > $2) ORDER BY id LIMIT $3`,
+		deviceID, req.After, size+1,
+	)
+	if err != nil {
+		return page, fmt.Errorf("select sensors page: %w", err)
+	}
+
+	return pagination.FromRows(toDomainAll(rows), size,
+		func(item sensor.Sensor) sensor.ID { return item.ID }), nil
+}
+
+func toDomainAll(rows []row) []sensor.Sensor {
 	sensors := make([]sensor.Sensor, len(rows))
 	for i, r := range rows {
 		sensors[i] = r.toDomain()
 	}
 
-	return sensors, nil
+	return sensors
 }
 
 func (s *Repo) GetSensor(

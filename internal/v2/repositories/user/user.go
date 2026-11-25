@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
 
@@ -132,12 +133,43 @@ func (r *Repository) List(ctx context.Context) ([]domain.User, error) {
 		return nil, fmt.Errorf("select users: %w", err)
 	}
 
+	return toDomainAll(rows), nil
+}
+
+// ListPage returns users after the given email in ascending email order.
+func (r *Repository) ListPage(
+	ctx context.Context,
+	req pagination.Request[string],
+) (pagination.Page[domain.User, string], error) {
+	var page pagination.Page[domain.User, string]
+
+	size, err := req.Size()
+	if err != nil {
+		return page, fmt.Errorf("user page size: %w", err)
+	}
+
+	var rows []row
+
+	err = sqlx.SelectContext(ctx, r.db, &rows,
+		`SELECT `+columns+` FROM users
+		 WHERE ($1::varchar IS NULL OR email > $1) ORDER BY email LIMIT $2`,
+		req.After, size+1,
+	)
+	if err != nil {
+		return page, fmt.Errorf("select users page: %w", err)
+	}
+
+	return pagination.FromRows(toDomainAll(rows), size,
+		func(u domain.User) string { return u.Email }), nil
+}
+
+func toDomainAll(rows []row) []domain.User {
 	users := make([]domain.User, len(rows))
 	for i, rw := range rows {
 		users[i] = rw.toDomain()
 	}
 
-	return users, nil
+	return users
 }
 
 // EmailTaken reports whether a user with the given email exists.
