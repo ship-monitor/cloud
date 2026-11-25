@@ -107,6 +107,7 @@ func ErrorHandler(logger *zap.Logger) api.ErrorHandler {
 	}
 }
 
+//nolint:wrapcheck
 func Logging(logger *zap.Logger) api.Middleware {
 	return func(req middleware.Request, next middleware.Next) (middleware.Response, error) {
 		log := logger.Named("Logging").With(

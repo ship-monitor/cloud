@@ -2,6 +2,7 @@ package di
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ship-monitor/cloud/internal/v2/adapters/publisher"
 	"github.com/ship-monitor/cloud/internal/v2/config"
@@ -23,12 +24,25 @@ import (
 )
 
 func newTokenSerice(config *config.Config) (*token.Service, error) {
-	s, err := token.New(&token.Config{SecretKey: config.SecurityKey})
+	tokenTTL := time.Minute
+	refreshTTL := time.Hour * 48 //nolint:mnd
+
+	if config.IsDevelopment() {
+		tokenTTL = refreshTTL
+	}
+
+	service, err := token.New(
+		&token.Config{
+			SecretKey:       config.SecurityKey,
+			TokenTTL:        tokenTTL,
+			RefreshTokenTTL: refreshTTL,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("new token service: %w", err)
 	}
 
-	return s, nil
+	return service, nil
 }
 
 func newUserService(repo *userrepo.Repository) *user.Service {

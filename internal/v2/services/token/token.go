@@ -12,13 +12,10 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
 
-const (
-	TokenTTL        = time.Minute
-	RefreshTokenTTL = time.Hour * 2
-)
-
 type Config struct {
-	SecretKey string `validate:"required"`
+	SecretKey       string        `validate:"required"`
+	TokenTTL        time.Duration `validate:"required"`
+	RefreshTokenTTL time.Duration `validate:"required"`
 }
 
 type Service struct {
@@ -90,7 +87,7 @@ func (s *Service) RefreshTokens(
 func (s *Service) newTokens(userID uuid.UUID) (string, string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		auth.NewClaims(userID, TokenTTL),
+		auth.NewClaims(userID, s.conf.TokenTTL),
 	)
 
 	tokenStr, err := token.SignedString([]byte(s.conf.SecretKey))
@@ -100,7 +97,7 @@ func (s *Service) newTokens(userID uuid.UUID) (string, string, error) {
 
 	refreshToken := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
-		auth.NewRefreshClaims(userID, RefreshTokenTTL),
+		auth.NewRefreshClaims(userID, s.conf.RefreshTokenTTL),
 	)
 
 	refreshTokenStr, err := refreshToken.SignedString([]byte(s.conf.SecretKey))
