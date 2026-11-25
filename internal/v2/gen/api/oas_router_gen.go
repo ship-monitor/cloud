@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	rn17AllowedHeaders = map[string]string{
+	rn16AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn19AllowedHeaders = map[string]string{
+	rn18AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn21AllowedHeaders = map[string]string{
+	rn20AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 	rn1AllowedHeaders = map[string]string{
@@ -29,7 +29,7 @@ var (
 		"GET":    "Authorization",
 		"PATCH":  "Authorization,Content-Type",
 	}
-	rn7AllowedHeaders = map[string]string{
+	rn8AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 	rn9AllowedHeaders = map[string]string{
@@ -38,16 +38,13 @@ var (
 	rn10AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn16AllowedHeaders = map[string]string{
+	rn15AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 	rn5AllowedHeaders = map[string]string{
 		"PATCH": "Authorization,Content-Type",
 	}
-	rn13AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn15AllowedHeaders = map[string]string{
+	rn14AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
 )
@@ -134,7 +131,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn17AllowedHeaders,
+								allowedHeaders: rn16AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -171,7 +168,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn19AllowedHeaders,
+									allowedHeaders: rn18AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -196,7 +193,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn21AllowedHeaders,
+									allowedHeaders: rn20AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -290,24 +287,35 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							break
 						}
 						switch elem[0] {
-						case 'm': // Prefix: "metrics"
+						case 'm': // Prefix: "metrics/"
 
-							if l := len("metrics"); len(elem) >= l && elem[0:l] == "metrics" {
+							if l := len("metrics/"); len(elem) >= l && elem[0:l] == "metrics/" {
 								elem = elem[l:]
 							} else {
 								break
 							}
 
+							// Param: "metric"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[1] = elem
+							elem = ""
+
 							if len(elem) == 0 {
+								// Leaf node.
 								switch r.Method {
 								case "GET":
-									s.handleGetDeviceMetricsRequest([1]string{
+									s.handleGetDeviceMetricsByNameRequest([2]string{
 										args[0],
+										args[1],
 									}, elemIsEscaped, w, r)
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn7AllowedHeaders,
+										allowedHeaders: rn8AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -315,44 +323,32 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 								return
 							}
-							switch elem[0] {
-							case '/': // Prefix: "/"
 
-								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-									elem = elem[l:]
-								} else {
-									break
+						case 'n': // Prefix: "notifications"
+
+							if l := len("notifications"); len(elem) >= l && elem[0:l] == "notifications" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetDeviceNotificationsRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: rn9AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
 								}
 
-								// Param: "metric"
-								// Leaf parameter, slashes are prohibited
-								idx := strings.IndexByte(elem, '/')
-								if idx >= 0 {
-									break
-								}
-								args[1] = elem
-								elem = ""
-
-								if len(elem) == 0 {
-									// Leaf node.
-									switch r.Method {
-									case "GET":
-										s.handleGetDeviceMetricsByNameRequest([2]string{
-											args[0],
-											args[1],
-										}, elemIsEscaped, w, r)
-									default:
-										s.notAllowed(w, r, notAllowedParams{
-											allowedMethods: "GET",
-											allowedHeaders: rn9AllowedHeaders,
-											acceptPost:     "",
-											acceptPatch:    "",
-										})
-									}
-
-									return
-								}
-
+								return
 							}
 
 						case 'o': // Prefix: "online"
@@ -399,7 +395,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn16AllowedHeaders,
+										allowedHeaders: rn15AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -444,71 +440,42 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									return
 								}
 								switch elem[0] {
-								case '/': // Prefix: "/metrics"
+								case '/': // Prefix: "/metrics/"
 
-									if l := len("/metrics"); len(elem) >= l && elem[0:l] == "/metrics" {
+									if l := len("/metrics/"); len(elem) >= l && elem[0:l] == "/metrics/" {
 										elem = elem[l:]
 									} else {
 										break
 									}
 
+									// Param: "metric"
+									// Leaf parameter, slashes are prohibited
+									idx := strings.IndexByte(elem, '/')
+									if idx >= 0 {
+										break
+									}
+									args[2] = elem
+									elem = ""
+
 									if len(elem) == 0 {
+										// Leaf node.
 										switch r.Method {
 										case "GET":
-											s.handleGetSensorMetricsRequest([2]string{
+											s.handleGetSensorMetricsByNameRequest([3]string{
 												args[0],
 												args[1],
+												args[2],
 											}, elemIsEscaped, w, r)
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET",
-												allowedHeaders: rn13AllowedHeaders,
+												allowedHeaders: rn14AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
 										}
 
 										return
-									}
-									switch elem[0] {
-									case '/': // Prefix: "/"
-
-										if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-											elem = elem[l:]
-										} else {
-											break
-										}
-
-										// Param: "metric"
-										// Leaf parameter, slashes are prohibited
-										idx := strings.IndexByte(elem, '/')
-										if idx >= 0 {
-											break
-										}
-										args[2] = elem
-										elem = ""
-
-										if len(elem) == 0 {
-											// Leaf node.
-											switch r.Method {
-											case "GET":
-												s.handleGetSensorMetricsByNameRequest([3]string{
-													args[0],
-													args[1],
-													args[2],
-												}, elemIsEscaped, w, r)
-											default:
-												s.notAllowed(w, r, notAllowedParams{
-													allowedMethods: "GET",
-													allowedHeaders: rn15AllowedHeaders,
-													acceptPost:     "",
-													acceptPatch:    "",
-												})
-											}
-
-											return
-										}
-
 									}
 
 								}
@@ -845,64 +812,63 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							break
 						}
 						switch elem[0] {
-						case 'm': // Prefix: "metrics"
+						case 'm': // Prefix: "metrics/"
 
-							if l := len("metrics"); len(elem) >= l && elem[0:l] == "metrics" {
+							if l := len("metrics/"); len(elem) >= l && elem[0:l] == "metrics/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							// Param: "metric"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[1] = elem
+							elem = ""
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetDeviceMetricsByNameOperation
+									r.summary = ""
+									r.operationID = "GetDeviceMetricsByName"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v2/devices/{deviceId}/metrics/{metric}"
+									r.args = args
+									r.count = 2
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'n': // Prefix: "notifications"
+
+							if l := len("notifications"); len(elem) >= l && elem[0:l] == "notifications" {
 								elem = elem[l:]
 							} else {
 								break
 							}
 
 							if len(elem) == 0 {
+								// Leaf node.
 								switch method {
 								case "GET":
-									r.name = GetDeviceMetricsOperation
+									r.name = GetDeviceNotificationsOperation
 									r.summary = ""
-									r.operationID = "GetDeviceMetrics"
+									r.operationID = "GetDeviceNotifications"
 									r.operationGroup = ""
-									r.pathPattern = "/api/v2/devices/{deviceId}/metrics"
+									r.pathPattern = "/api/v2/devices/{deviceId}/notifications"
 									r.args = args
 									r.count = 1
 									return r, true
 								default:
 									return
 								}
-							}
-							switch elem[0] {
-							case '/': // Prefix: "/"
-
-								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-									elem = elem[l:]
-								} else {
-									break
-								}
-
-								// Param: "metric"
-								// Leaf parameter, slashes are prohibited
-								idx := strings.IndexByte(elem, '/')
-								if idx >= 0 {
-									break
-								}
-								args[1] = elem
-								elem = ""
-
-								if len(elem) == 0 {
-									// Leaf node.
-									switch method {
-									case "GET":
-										r.name = GetDeviceMetricsByNameOperation
-										r.summary = ""
-										r.operationID = "GetDeviceMetricsByName"
-										r.operationGroup = ""
-										r.pathPattern = "/api/v2/devices/{deviceId}/metrics/{metric}"
-										r.args = args
-										r.count = 2
-										return r, true
-									default:
-										return
-									}
-								}
-
 							}
 
 						case 'o': // Prefix: "online"
@@ -987,64 +953,38 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									}
 								}
 								switch elem[0] {
-								case '/': // Prefix: "/metrics"
+								case '/': // Prefix: "/metrics/"
 
-									if l := len("/metrics"); len(elem) >= l && elem[0:l] == "/metrics" {
+									if l := len("/metrics/"); len(elem) >= l && elem[0:l] == "/metrics/" {
 										elem = elem[l:]
 									} else {
 										break
 									}
 
+									// Param: "metric"
+									// Leaf parameter, slashes are prohibited
+									idx := strings.IndexByte(elem, '/')
+									if idx >= 0 {
+										break
+									}
+									args[2] = elem
+									elem = ""
+
 									if len(elem) == 0 {
+										// Leaf node.
 										switch method {
 										case "GET":
-											r.name = GetSensorMetricsOperation
+											r.name = GetSensorMetricsByNameOperation
 											r.summary = ""
-											r.operationID = "GetSensorMetrics"
+											r.operationID = "GetSensorMetricsByName"
 											r.operationGroup = ""
-											r.pathPattern = "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics"
+											r.pathPattern = "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}"
 											r.args = args
-											r.count = 2
+											r.count = 3
 											return r, true
 										default:
 											return
 										}
-									}
-									switch elem[0] {
-									case '/': // Prefix: "/"
-
-										if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-											elem = elem[l:]
-										} else {
-											break
-										}
-
-										// Param: "metric"
-										// Leaf parameter, slashes are prohibited
-										idx := strings.IndexByte(elem, '/')
-										if idx >= 0 {
-											break
-										}
-										args[2] = elem
-										elem = ""
-
-										if len(elem) == 0 {
-											// Leaf node.
-											switch method {
-											case "GET":
-												r.name = GetSensorMetricsByNameOperation
-												r.summary = ""
-												r.operationID = "GetSensorMetricsByName"
-												r.operationGroup = ""
-												r.pathPattern = "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}"
-												r.args = args
-												r.count = 3
-												return r, true
-											default:
-												return
-											}
-										}
-
 									}
 
 								}

@@ -21,6 +21,8 @@ tags:
     description: Sensors management
   - name: metrics
     description: Receiving metrics
+  - name: notifications
+    description: Manage notifications
   - name: meta
     description: Meta endpoints
 
@@ -203,6 +205,21 @@ paths:
           $ref: "#/components/responses/GetSensorsOK"
         default:
           $ref: "#/components/responses/BadResponse"
+
+  "/api/v2/devices/{deviceId}/notifications":
+    get:
+      tags: [devices, notifications]
+      security:
+        - bearerToken: []
+      operationId: GetDeviceNotifications
+      parameters:
+        - $ref: "#/components/parameters/deviceId"
+      responses:
+        "200":
+          $ref: "#/components/responses/GetDeviceNotificationsOK"
+        default:
+          $ref: "#/components/responses/BadResponse"
+
   "/api/v2/devices/{deviceId}/sensors/{sensorId}":
     patch:
       tags: [devices, sensors]
@@ -260,46 +277,6 @@ paths:
         default:
           $ref: "#/components/responses/BadResponse"
 
-  "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics":
-    get:
-      deprecated: true
-      tags: [devices, sensors, metrics]
-      security:
-        - bearerToken: []
-      operationId: GetSensorMetrics
-      parameters:
-        - $ref: "#/components/parameters/deviceId"
-        - $ref: "#/components/parameters/sensorId"
-        - $ref: "#/components/parameters/metricsFrom"
-        - $ref: "#/components/parameters/metricsTo"
-        - $ref: "#/components/parameters/metricsOldName"
-        - $ref: "#/components/parameters/metricsLimit"
-
-      responses:
-        "200":
-          $ref: "#/components/responses/GetSensorMetricsOK"
-        default:
-          $ref: "#/components/responses/BadResponse"
-
-  "/api/v2/devices/{deviceId}/metrics":
-    get:
-      deprecated: true
-      tags: [devices, metrics]
-      security:
-        - bearerToken: []
-      operationId: GetDeviceMetrics
-      parameters:
-        - $ref: "#/components/parameters/deviceId"
-        - $ref: "#/components/parameters/metricsFrom"
-        - $ref: "#/components/parameters/metricsTo"
-        - $ref: "#/components/parameters/metricsOldName"
-        - $ref: "#/components/parameters/metricsLimit"
-      responses:
-        "200":
-          $ref: "#/components/responses/GetDeviceMetricsOK"
-        default:
-          $ref: "#/components/responses/BadResponse"
-
 components:
   parameters:
     deviceId:
@@ -328,13 +305,6 @@ components:
       schema:
         type: string
         format: date-time
-    metricsOldName:
-      in: query
-      deprecated: true
-      required: true
-      name: metric
-      schema:
-        type: string
     metricsName:
       in: path
       required: true
@@ -496,6 +466,77 @@ components:
           items:
             $ref: "#/components/schemas/Metric"
 
+    Pagination:
+      type: object
+      required: [nextCursor, hasMore]
+      properties:
+        nextCursor:
+          type: string
+          format: uuid
+        hasMore:
+          type: boolean
+
+    NotificationSeverity:
+      type: string
+      enum:
+        - info
+        - warning
+        - critical
+
+    Notification:
+      type: object
+      required:
+        [
+          id,
+          deviceId,
+          type,
+          severity,
+          occurredAt,
+          reportedAt,
+          receivedAt,
+          isRead,
+        ]
+      properties:
+        id:
+          readOnly: true
+          type: string
+          format: uuid
+        deviceId:
+          readOnly: true
+          type: string
+          format: uuid
+        sensorId:
+          readOnly: true
+          type: string
+          format: uuid
+        type:
+          readOnly: true
+          type: string
+        severity:
+          readOnly: true
+          $ref: "#/components/schemas/NotificationSeverity"
+        occurredAt:
+          readOnly: true
+          description: Time event was occurred at
+          type: string
+          format: date-time
+        reportedAt:
+          readOnly: true
+          description: Time event was reported at by device
+          type: string
+          format: date-time
+        receivedAt:
+          readOnly: true
+          description: Time event notification war received by cloud server
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+        data:
+          readOnly: true
+          type: object
+          additionalProperties: true
+
   requestBodies:
     LoginRequest:
       required: true
@@ -551,9 +592,6 @@ components:
             type: object
             required: [token, refreshToken]
             properties:
-              success:
-                type: boolean
-                deprecated: true
               token:
                 type: string
               refreshToken:
@@ -566,9 +604,6 @@ components:
             type: object
             required: [token, refreshToken]
             properties:
-              success:
-                type: boolean
-                deprecated: true
               token:
                 type: string
               refreshToken:
@@ -656,3 +691,17 @@ components:
         "application/json":
           schema:
             $ref: "#/components/schemas/Metrics"
+    GetDeviceNotificationsOK:
+      description: Returns device notifications
+      content:
+        "application/json":
+          schema:
+            type: object
+            required: [notifications, pagination]
+            properties:
+              notifications:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+              pagination:
+                $ref: "#/components/schemas/Pagination"

@@ -285,48 +285,6 @@ const (
         ]
       }
     },
-    "/api/v2/devices/{deviceId}/metrics": {
-      "get": {
-        "tags": [
-          "devices",
-          "metrics"
-        ],
-        "operationId": "GetDeviceMetrics",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/deviceId"
-          },
-          {
-            "$ref": "#/components/parameters/metricsFrom"
-          },
-          {
-            "$ref": "#/components/parameters/metricsTo"
-          },
-          {
-            "$ref": "#/components/parameters/metricsOldName"
-          },
-          {
-            "$ref": "#/components/parameters/metricsLimit"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/GetDeviceMetricsOK"
-          },
-          "default": {
-            "$ref": "#/components/responses/BadResponse"
-          }
-        },
-        "deprecated": true,
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          }
-        ]
-      }
-    },
     "/api/v2/devices/{deviceId}/metrics/{metric}": {
       "get": {
         "tags": [
@@ -354,6 +312,35 @@ const (
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetDeviceMetricsOK"
+          },
+          "default": {
+            "$ref": "#/components/responses/BadResponse"
+          }
+        },
+        "security": [
+          {
+            "bearerToken": [
+              
+            ]
+          }
+        ]
+      }
+    },
+    "/api/v2/devices/{deviceId}/notifications": {
+      "get": {
+        "tags": [
+          "devices",
+          "notifications"
+        ],
+        "operationId": "GetDeviceNotifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/deviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetDeviceNotificationsOK"
           },
           "default": {
             "$ref": "#/components/responses/BadResponse"
@@ -451,52 +438,6 @@ const (
             "$ref": "#/components/responses/BadResponse"
           }
         },
-        "security": [
-          {
-            "bearerToken": [
-              
-            ]
-          }
-        ]
-      }
-    },
-    "/api/v2/devices/{deviceId}/sensors/{sensorId}/metrics": {
-      "get": {
-        "tags": [
-          "devices",
-          "sensors",
-          "metrics"
-        ],
-        "operationId": "GetSensorMetrics",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/deviceId"
-          },
-          {
-            "$ref": "#/components/parameters/sensorId"
-          },
-          {
-            "$ref": "#/components/parameters/metricsFrom"
-          },
-          {
-            "$ref": "#/components/parameters/metricsTo"
-          },
-          {
-            "$ref": "#/components/parameters/metricsOldName"
-          },
-          {
-            "$ref": "#/components/parameters/metricsLimit"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/GetSensorMetricsOK"
-          },
-          "default": {
-            "$ref": "#/components/responses/BadResponse"
-          }
-        },
-        "deprecated": true,
         "security": [
           {
             "bearerToken": [
@@ -671,6 +612,85 @@ const (
           "values"
         ]
       },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/NotificationSeverity"
+          },
+          "occurredAt": {
+            "description": "Time event was occurred at",
+            "type": "string",
+            "format": "date-time"
+          },
+          "reportedAt": {
+            "description": "Time event was reported at by device",
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedAt": {
+            "description": "Time event notification war received by cloud server",
+            "type": "string",
+            "format": "date-time"
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "deviceId",
+          "type",
+          "severity",
+          "occurredAt",
+          "reportedAt",
+          "receivedAt",
+          "isRead"
+        ]
+      },
+      "NotificationSeverity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "warning",
+          "critical"
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "Problem": {
         "type": "object",
         "properties": {
@@ -815,6 +835,31 @@ const (
           }
         }
       },
+      "GetDeviceNotificationsOK": {
+        "description": "Returns device notifications",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "notifications": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                },
+                "pagination": {
+                  "$ref": "#/components/schemas/Pagination"
+                }
+              },
+              "required": [
+                "notifications",
+                "pagination"
+              ]
+            }
+          }
+        }
+      },
       "GetDeviceResponseOK": {
         "description": "Returns device",
         "content": {
@@ -925,10 +970,6 @@ const (
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean",
-                  "deprecated": true
-                },
                 "token": {
                   "type": "string"
                 },
@@ -951,10 +992,6 @@ const (
             "schema": {
               "type": "object",
               "properties": {
-                "success": {
-                  "type": "boolean",
-                  "deprecated": true
-                },
                 "token": {
                   "type": "string"
                 },
@@ -1011,17 +1048,6 @@ const (
         "required": true,
         "style": "simple",
         "explode": false,
-        "schema": {
-          "type": "string"
-        }
-      },
-      "metricsOldName": {
-        "name": "metric",
-        "in": "query",
-        "required": true,
-        "deprecated": true,
-        "style": "form",
-        "explode": true,
         "schema": {
           "type": "string"
         }
@@ -1146,6 +1172,10 @@ const (
     {
       "name": "metrics",
       "description": "Receiving metrics"
+    },
+    {
+      "name": "notifications",
+      "description": "Manage notifications"
     },
     {
       "name": "meta",
@@ -1312,26 +1342,6 @@ paths:
                     $ref: '#/components/responses/BadResponse'
             security:
                 -   bearerToken: []
-    /api/v2/devices/{deviceId}/metrics:
-        get:
-            tags:
-                - devices
-                - metrics
-            operationId: GetDeviceMetrics
-            parameters:
-                -   $ref: '#/components/parameters/deviceId'
-                -   $ref: '#/components/parameters/metricsFrom'
-                -   $ref: '#/components/parameters/metricsTo'
-                -   $ref: '#/components/parameters/metricsOldName'
-                -   $ref: '#/components/parameters/metricsLimit'
-            responses:
-                "200":
-                    $ref: '#/components/responses/GetDeviceMetricsOK'
-                default:
-                    $ref: '#/components/responses/BadResponse'
-            deprecated: true
-            security:
-                -   bearerToken: []
     /api/v2/devices/{deviceId}/metrics/{metric}:
         get:
             tags:
@@ -1347,6 +1357,21 @@ paths:
             responses:
                 "200":
                     $ref: '#/components/responses/GetDeviceMetricsOK'
+                default:
+                    $ref: '#/components/responses/BadResponse'
+            security:
+                -   bearerToken: []
+    /api/v2/devices/{deviceId}/notifications:
+        get:
+            tags:
+                - devices
+                - notifications
+            operationId: GetDeviceNotifications
+            parameters:
+                -   $ref: '#/components/parameters/deviceId'
+            responses:
+                "200":
+                    $ref: '#/components/responses/GetDeviceNotificationsOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
             security:
@@ -1396,28 +1421,6 @@ paths:
                     $ref: '#/components/responses/EditSensorOK'
                 default:
                     $ref: '#/components/responses/BadResponse'
-            security:
-                -   bearerToken: []
-    /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics:
-        get:
-            tags:
-                - devices
-                - sensors
-                - metrics
-            operationId: GetSensorMetrics
-            parameters:
-                -   $ref: '#/components/parameters/deviceId'
-                -   $ref: '#/components/parameters/sensorId'
-                -   $ref: '#/components/parameters/metricsFrom'
-                -   $ref: '#/components/parameters/metricsTo'
-                -   $ref: '#/components/parameters/metricsOldName'
-                -   $ref: '#/components/parameters/metricsLimit'
-            responses:
-                "200":
-                    $ref: '#/components/responses/GetSensorMetricsOK'
-                default:
-                    $ref: '#/components/responses/BadResponse'
-            deprecated: true
             security:
                 -   bearerToken: []
     /api/v2/devices/{deviceId}/sensors/{sensorId}/metrics/{metric}:
@@ -1526,6 +1529,65 @@ components:
                 - type
                 - unit
                 - values
+        Notification:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                deviceId:
+                    type: string
+                    format: uuid
+                sensorId:
+                    type: string
+                    format: uuid
+                type:
+                    type: string
+                severity:
+                    $ref: '#/components/schemas/NotificationSeverity'
+                occurredAt:
+                    description: Time event was occurred at
+                    type: string
+                    format: date-time
+                reportedAt:
+                    description: Time event was reported at by device
+                    type: string
+                    format: date-time
+                receivedAt:
+                    description: Time event notification war received by cloud server
+                    type: string
+                    format: date-time
+                isRead:
+                    type: boolean
+                data:
+                    type: object
+                    additionalProperties: true
+            required:
+                - id
+                - deviceId
+                - type
+                - severity
+                - occurredAt
+                - reportedAt
+                - receivedAt
+                - isRead
+        NotificationSeverity:
+            type: string
+            enum:
+                - "info"
+                - "warning"
+                - "critical"
+        Pagination:
+            type: object
+            properties:
+                nextCursor:
+                    type: string
+                    format: uuid
+                hasMore:
+                    type: boolean
+            required:
+                - nextCursor
+                - hasMore
         Problem:
             type: object
             properties:
@@ -1628,6 +1690,22 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/Metrics'
+        GetDeviceNotificationsOK:
+            description: Returns device notifications
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            notifications:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Notification'
+                            pagination:
+                                $ref: '#/components/schemas/Pagination'
+                        required:
+                            - notifications
+                            - pagination
         GetDeviceResponseOK:
             description: Returns device
             content:
@@ -1699,9 +1777,6 @@ components:
                     schema:
                         type: object
                         properties:
-                            success:
-                                type: boolean
-                                deprecated: true
                             token:
                                 type: string
                             refreshToken:
@@ -1716,9 +1791,6 @@ components:
                     schema:
                         type: object
                         properties:
-                            success:
-                                type: boolean
-                                deprecated: true
                             token:
                                 type: string
                             refreshToken:
@@ -1760,15 +1832,6 @@ components:
             required: true
             style: simple
             explode: false
-            schema:
-                type: string
-        metricsOldName:
-            name: metric
-            in: query
-            required: true
-            deprecated: true
-            style: form
-            explode: true
             schema:
                 type: string
         metricsTo:
@@ -1848,12 +1911,14 @@ tags:
         description: Sensors management
     -   name: metrics
         description: Receiving metrics
+    -   name: notifications
+        description: Manage notifications
     -   name: meta
         description: Meta endpoints
 `
 
-	specJSONETag = "\"08b4bc5dbf6e3aecc5f16f503f5eb9fc\""
-	specYAMLETag = "\"99ce71309fb751666d9813e2fd988631\""
+	specJSONETag = "\"c31d29357ebd8d0db7a00fda5c66c515\""
+	specYAMLETag = "\"023e1c7d3822ce43a453ce804b7a0287\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

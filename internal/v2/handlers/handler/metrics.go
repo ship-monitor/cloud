@@ -11,34 +11,6 @@ import (
 	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 )
 
-// GetDeviceMetrics implements [api.Handler].
-//
-// Deprecated: remove ASAP.
-//
-//nolint:wrapcheck
-func (h *Handler) GetDeviceMetrics(
-	ctx context.Context,
-	params api.GetDeviceMetricsParams,
-) (*api.Metrics, error) {
-	return h.GetDeviceMetricsByName(ctx,
-		api.GetDeviceMetricsByNameParams(params))
-}
-
-// GetSensorMetrics implements [api.Handler].
-//
-// Deprecated: remove ASAP.
-//
-//nolint:wrapcheck
-func (h *Handler) GetSensorMetrics(
-	ctx context.Context,
-	params api.GetSensorMetricsParams,
-) (*api.Metrics, error) {
-	return h.GetSensorMetricsByName(
-		ctx,
-		api.GetSensorMetricsByNameParams(params),
-	)
-}
-
 // GetDeviceMetricsByName implements [api.Handler].
 func (h *Handler) GetDeviceMetricsByName(
 	ctx context.Context,

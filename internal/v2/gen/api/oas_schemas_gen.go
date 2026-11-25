@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-faster/errors"
+	"github.com/go-faster/jx"
 	"github.com/google/uuid"
 )
 
@@ -222,6 +223,31 @@ func (s *EditSensorReq) SetDisplayName(val string) {
 	s.DisplayName = val
 }
 
+type GetDeviceNotificationsOK struct {
+	Notifications []Notification `json:"notifications"`
+	Pagination    Pagination     `json:"pagination"`
+}
+
+// GetNotifications returns the value of Notifications.
+func (s *GetDeviceNotificationsOK) GetNotifications() []Notification {
+	return s.Notifications
+}
+
+// GetPagination returns the value of Pagination.
+func (s *GetDeviceNotificationsOK) GetPagination() Pagination {
+	return s.Pagination
+}
+
+// SetNotifications sets the value of Notifications.
+func (s *GetDeviceNotificationsOK) SetNotifications(val []Notification) {
+	s.Notifications = val
+}
+
+// SetPagination sets the value of Pagination.
+func (s *GetDeviceNotificationsOK) SetPagination(val Pagination) {
+	s.Pagination = val
+}
+
 type GetDevicesOK struct {
 	Devices []Device `json:"devices"`
 }
@@ -290,15 +316,8 @@ func (s *HealthResponse) SetStatus(val ServiceStatus) {
 }
 
 type LoginResponseOK struct {
-	// Deprecated: schema marks this property as deprecated.
-	Success      OptBool `json:"success"`
-	Token        string  `json:"token"`
-	RefreshToken string  `json:"refreshToken"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *LoginResponseOK) GetSuccess() OptBool {
-	return s.Success
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // GetToken returns the value of Token.
@@ -309,11 +328,6 @@ func (s *LoginResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *LoginResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
-}
-
-// SetSuccess sets the value of Success.
-func (s *LoginResponseOK) SetSuccess(val OptBool) {
-	s.Success = val
 }
 
 // SetToken sets the value of Token.
@@ -508,50 +522,181 @@ func (s *Metrics) SetValues(val []Metric) {
 	s.Values = val
 }
 
-// NewOptBool returns new OptBool with value set to v.
-func NewOptBool(v bool) OptBool {
-	return OptBool{
-		Value: v,
-		Set:   true,
+// Ref: #/components/schemas/Notification
+type Notification struct {
+	ID       uuid.UUID            `json:"id"`
+	DeviceID uuid.UUID            `json:"deviceId"`
+	SensorID OptUUID              `json:"sensorId"`
+	Type     string               `json:"type"`
+	Severity NotificationSeverity `json:"severity"`
+	// Time event was occurred at.
+	OccurredAt time.Time `json:"occurredAt"`
+	// Time event was reported at by device.
+	ReportedAt time.Time `json:"reportedAt"`
+	// Time event notification war received by cloud server.
+	ReceivedAt time.Time           `json:"receivedAt"`
+	IsRead     bool                `json:"isRead"`
+	Data       OptNotificationData `json:"data"`
+}
+
+// GetID returns the value of ID.
+func (s *Notification) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetDeviceID returns the value of DeviceID.
+func (s *Notification) GetDeviceID() uuid.UUID {
+	return s.DeviceID
+}
+
+// GetSensorID returns the value of SensorID.
+func (s *Notification) GetSensorID() OptUUID {
+	return s.SensorID
+}
+
+// GetType returns the value of Type.
+func (s *Notification) GetType() string {
+	return s.Type
+}
+
+// GetSeverity returns the value of Severity.
+func (s *Notification) GetSeverity() NotificationSeverity {
+	return s.Severity
+}
+
+// GetOccurredAt returns the value of OccurredAt.
+func (s *Notification) GetOccurredAt() time.Time {
+	return s.OccurredAt
+}
+
+// GetReportedAt returns the value of ReportedAt.
+func (s *Notification) GetReportedAt() time.Time {
+	return s.ReportedAt
+}
+
+// GetReceivedAt returns the value of ReceivedAt.
+func (s *Notification) GetReceivedAt() time.Time {
+	return s.ReceivedAt
+}
+
+// GetIsRead returns the value of IsRead.
+func (s *Notification) GetIsRead() bool {
+	return s.IsRead
+}
+
+// GetData returns the value of Data.
+func (s *Notification) GetData() OptNotificationData {
+	return s.Data
+}
+
+// SetID sets the value of ID.
+func (s *Notification) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetDeviceID sets the value of DeviceID.
+func (s *Notification) SetDeviceID(val uuid.UUID) {
+	s.DeviceID = val
+}
+
+// SetSensorID sets the value of SensorID.
+func (s *Notification) SetSensorID(val OptUUID) {
+	s.SensorID = val
+}
+
+// SetType sets the value of Type.
+func (s *Notification) SetType(val string) {
+	s.Type = val
+}
+
+// SetSeverity sets the value of Severity.
+func (s *Notification) SetSeverity(val NotificationSeverity) {
+	s.Severity = val
+}
+
+// SetOccurredAt sets the value of OccurredAt.
+func (s *Notification) SetOccurredAt(val time.Time) {
+	s.OccurredAt = val
+}
+
+// SetReportedAt sets the value of ReportedAt.
+func (s *Notification) SetReportedAt(val time.Time) {
+	s.ReportedAt = val
+}
+
+// SetReceivedAt sets the value of ReceivedAt.
+func (s *Notification) SetReceivedAt(val time.Time) {
+	s.ReceivedAt = val
+}
+
+// SetIsRead sets the value of IsRead.
+func (s *Notification) SetIsRead(val bool) {
+	s.IsRead = val
+}
+
+// SetData sets the value of Data.
+func (s *Notification) SetData(val OptNotificationData) {
+	s.Data = val
+}
+
+type NotificationData map[string]jx.Raw
+
+func (s *NotificationData) init() NotificationData {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/NotificationSeverity
+type NotificationSeverity string
+
+const (
+	NotificationSeverityInfo     NotificationSeverity = "info"
+	NotificationSeverityWarning  NotificationSeverity = "warning"
+	NotificationSeverityCritical NotificationSeverity = "critical"
+)
+
+// AllValues returns all NotificationSeverity values.
+func (NotificationSeverity) AllValues() []NotificationSeverity {
+	return []NotificationSeverity{
+		NotificationSeverityInfo,
+		NotificationSeverityWarning,
+		NotificationSeverityCritical,
 	}
 }
 
-// OptBool is optional bool.
-type OptBool struct {
-	Value bool
-	Set   bool
-}
-
-// IsSet returns true if OptBool was set.
-func (o OptBool) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptBool) Reset() {
-	var v bool
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptBool) SetTo(v bool) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptBool) Get() (v bool, ok bool) {
-	if !o.Set {
-		return v, false
+// MarshalText implements encoding.TextMarshaler.
+func (s NotificationSeverity) MarshalText() ([]byte, error) {
+	switch s {
+	case NotificationSeverityInfo:
+		return []byte(s), nil
+	case NotificationSeverityWarning:
+		return []byte(s), nil
+	case NotificationSeverityCritical:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
 	}
-	return o.Value, true
 }
 
-// Or returns value if set, or given parameter if does not.
-func (o OptBool) Or(d bool) bool {
-	if v, ok := o.Get(); ok {
-		return v
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *NotificationSeverity) UnmarshalText(data []byte) error {
+	switch NotificationSeverity(data) {
+	case NotificationSeverityInfo:
+		*s = NotificationSeverityInfo
+		return nil
+	case NotificationSeverityWarning:
+		*s = NotificationSeverityWarning
+		return nil
+	case NotificationSeverityCritical:
+		*s = NotificationSeverityCritical
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
 	}
-	return d
 }
 
 // NewOptDateTime returns new OptDateTime with value set to v.
@@ -646,6 +791,52 @@ func (o OptInt64) Or(d int64) int64 {
 	return d
 }
 
+// NewOptNotificationData returns new OptNotificationData with value set to v.
+func NewOptNotificationData(v NotificationData) OptNotificationData {
+	return OptNotificationData{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNotificationData is optional NotificationData.
+type OptNotificationData struct {
+	Value NotificationData
+	Set   bool
+}
+
+// IsSet returns true if OptNotificationData was set.
+func (o OptNotificationData) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNotificationData) Reset() {
+	var v NotificationData
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptNotificationData) SetTo(v NotificationData) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNotificationData) Get() (v NotificationData, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNotificationData) Or(d NotificationData) NotificationData {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -690,6 +881,78 @@ func (o OptString) Or(d string) string {
 		return v
 	}
 	return d
+}
+
+// NewOptUUID returns new OptUUID with value set to v.
+func NewOptUUID(v uuid.UUID) OptUUID {
+	return OptUUID{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUUID is optional uuid.UUID.
+type OptUUID struct {
+	Value uuid.UUID
+	Set   bool
+}
+
+// IsSet returns true if OptUUID was set.
+func (o OptUUID) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUUID) Reset() {
+	var v uuid.UUID
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUUID) SetTo(v uuid.UUID) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUUID) Get() (v uuid.UUID, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// Ref: #/components/schemas/Pagination
+type Pagination struct {
+	NextCursor uuid.UUID `json:"nextCursor"`
+	HasMore    bool      `json:"hasMore"`
+}
+
+// GetNextCursor returns the value of NextCursor.
+func (s *Pagination) GetNextCursor() uuid.UUID {
+	return s.NextCursor
+}
+
+// GetHasMore returns the value of HasMore.
+func (s *Pagination) GetHasMore() bool {
+	return s.HasMore
+}
+
+// SetNextCursor sets the value of NextCursor.
+func (s *Pagination) SetNextCursor(val uuid.UUID) {
+	s.NextCursor = val
+}
+
+// SetHasMore sets the value of HasMore.
+func (s *Pagination) SetHasMore(val bool) {
+	s.HasMore = val
 }
 
 // Ref: #/components/schemas/Problem
@@ -743,15 +1006,8 @@ func (s *Problem) SetDetail(val OptString) {
 func (*Problem) connectDeviceRes() {}
 
 type RefreshResponseOK struct {
-	// Deprecated: schema marks this property as deprecated.
-	Success      OptBool `json:"success"`
-	Token        string  `json:"token"`
-	RefreshToken string  `json:"refreshToken"`
-}
-
-// GetSuccess returns the value of Success.
-func (s *RefreshResponseOK) GetSuccess() OptBool {
-	return s.Success
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 // GetToken returns the value of Token.
@@ -762,11 +1018,6 @@ func (s *RefreshResponseOK) GetToken() string {
 // GetRefreshToken returns the value of RefreshToken.
 func (s *RefreshResponseOK) GetRefreshToken() string {
 	return s.RefreshToken
-}
-
-// SetSuccess sets the value of Success.
-func (s *RefreshResponseOK) SetSuccess(val OptBool) {
-	s.Success = val
 }
 
 // SetToken sets the value of Token.

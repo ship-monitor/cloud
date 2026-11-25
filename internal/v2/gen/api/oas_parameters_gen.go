@@ -264,300 +264,6 @@ func decodeGetDeviceParams(args [1]string, argsEscaped bool, r *http.Request) (p
 	return params, nil
 }
 
-// GetDeviceMetricsParams is parameters of GetDeviceMetrics operation.
-type GetDeviceMetricsParams struct {
-	DeviceID uuid.UUID
-	From     OptDateTime `json:",omitempty,omitzero"`
-	To       OptDateTime `json:",omitempty,omitzero"`
-	// Deprecated: schema marks this parameter as deprecated.
-	Metric string
-	Limit  OptInt64 `json:",omitempty,omitzero"`
-}
-
-func unpackGetDeviceMetricsParams(packed middleware.Parameters) (params GetDeviceMetricsParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "deviceId",
-			In:   "path",
-		}
-		params.DeviceID = packed[key].(uuid.UUID)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "from",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.From = v.(OptDateTime)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "to",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.To = v.(OptDateTime)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "metric",
-			In:   "query",
-		}
-		params.Metric = packed[key].(string)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "limit",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Limit = v.(OptInt64)
-		}
-	}
-	return params
-}
-
-func decodeGetDeviceMetricsParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDeviceMetricsParams, _ error) {
-	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode path: deviceId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "deviceId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.DeviceID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "deviceId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode query: from.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "from",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotFromVal time.Time
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToDateTime(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotFromVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.From.SetTo(paramsDotFromVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "from",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: to.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "to",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotToVal time.Time
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToDateTime(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotToVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.To.SetTo(paramsDotToVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "to",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: metric.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "metric",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToString(val)
-				if err != nil {
-					return err
-				}
-
-				params.Metric = c
-				return nil
-			}); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "metric",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Set default value for query: limit.
-	{
-		val := int64(100)
-		params.Limit.SetTo(val)
-	}
-	// Decode query: limit.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "limit",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotLimitVal int64
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToInt64(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotLimitVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Limit.SetTo(paramsDotLimitVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Limit.Get(); ok {
-					if err := func() error {
-						if err := (validate.Int{
-							MinSet:        true,
-							Min:           10,
-							MaxSet:        true,
-							Max:           1000,
-							MinExclusive:  false,
-							MaxExclusive:  false,
-							MultipleOfSet: false,
-							MultipleOf:    0,
-							Pattern:       nil,
-						}).Validate(int64(value)); err != nil {
-							return errors.Wrap(err, "int")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "limit",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // GetDeviceMetricsByNameParams is parameters of GetDeviceMetricsByName operation.
 type GetDeviceMetricsByNameParams struct {
 	DeviceID uuid.UUID
@@ -860,6 +566,71 @@ func decodeGetDeviceMetricsByNameParams(args [2]string, argsEscaped bool, r *htt
 	return params, nil
 }
 
+// GetDeviceNotificationsParams is parameters of GetDeviceNotifications operation.
+type GetDeviceNotificationsParams struct {
+	DeviceID uuid.UUID
+}
+
+func unpackGetDeviceNotificationsParams(packed middleware.Parameters) (params GetDeviceNotificationsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "deviceId",
+			In:   "path",
+		}
+		params.DeviceID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDeviceNotificationsParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDeviceNotificationsParams, _ error) {
+	// Decode path: deviceId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "deviceId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DeviceID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "deviceId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetDeviceOnlineStatusParams is parameters of GetDeviceOnlineStatus operation.
 type GetDeviceOnlineStatusParams struct {
 	DeviceID uuid.UUID
@@ -1085,353 +856,6 @@ func decodeGetDevicesParams(args [0]string, argsEscaped bool, r *http.Request) (
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "pageSize",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// GetSensorMetricsParams is parameters of GetSensorMetrics operation.
-type GetSensorMetricsParams struct {
-	DeviceID uuid.UUID
-	SensorID uuid.UUID
-	From     OptDateTime `json:",omitempty,omitzero"`
-	To       OptDateTime `json:",omitempty,omitzero"`
-	// Deprecated: schema marks this parameter as deprecated.
-	Metric string
-	Limit  OptInt64 `json:",omitempty,omitzero"`
-}
-
-func unpackGetSensorMetricsParams(packed middleware.Parameters) (params GetSensorMetricsParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "deviceId",
-			In:   "path",
-		}
-		params.DeviceID = packed[key].(uuid.UUID)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "sensorId",
-			In:   "path",
-		}
-		params.SensorID = packed[key].(uuid.UUID)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "from",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.From = v.(OptDateTime)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "to",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.To = v.(OptDateTime)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "metric",
-			In:   "query",
-		}
-		params.Metric = packed[key].(string)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "limit",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Limit = v.(OptInt64)
-		}
-	}
-	return params
-}
-
-func decodeGetSensorMetricsParams(args [2]string, argsEscaped bool, r *http.Request) (params GetSensorMetricsParams, _ error) {
-	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode path: deviceId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "deviceId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.DeviceID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "deviceId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode path: sensorId.
-	if err := func() error {
-		param := args[1]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[1])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "sensorId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.SensorID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "sensorId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode query: from.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "from",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotFromVal time.Time
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToDateTime(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotFromVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.From.SetTo(paramsDotFromVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "from",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: to.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "to",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotToVal time.Time
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToDateTime(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotToVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.To.SetTo(paramsDotToVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "to",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: metric.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "metric",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToString(val)
-				if err != nil {
-					return err
-				}
-
-				params.Metric = c
-				return nil
-			}); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "metric",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Set default value for query: limit.
-	{
-		val := int64(100)
-		params.Limit.SetTo(val)
-	}
-	// Decode query: limit.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "limit",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotLimitVal int64
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToInt64(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotLimitVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Limit.SetTo(paramsDotLimitVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Limit.Get(); ok {
-					if err := func() error {
-						if err := (validate.Int{
-							MinSet:        true,
-							Min:           10,
-							MaxSet:        true,
-							Max:           1000,
-							MinExclusive:  false,
-							MaxExclusive:  false,
-							MultipleOfSet: false,
-							MultipleOf:    0,
-							Pattern:       nil,
-						}).Validate(int64(value)); err != nil {
-							return errors.Wrap(err, "int")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "limit",
 			In:   "query",
 			Err:  err,
 		}

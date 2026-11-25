@@ -66,7 +66,7 @@ func encodeGetDeviceResponse(response *Device, w http.ResponseWriter) error {
 	return nil
 }
 
-func encodeGetDeviceMetricsResponse(response *Metrics, w http.ResponseWriter) error {
+func encodeGetDeviceMetricsByNameResponse(response *Metrics, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -79,7 +79,7 @@ func encodeGetDeviceMetricsResponse(response *Metrics, w http.ResponseWriter) er
 	return nil
 }
 
-func encodeGetDeviceMetricsByNameResponse(response *Metrics, w http.ResponseWriter) error {
+func encodeGetDeviceNotificationsResponse(response *GetDeviceNotificationsOK, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -120,19 +120,6 @@ func encodeGetDevicesResponse(response *GetDevicesOK, w http.ResponseWriter) err
 
 func encodeGetHealthResponse(response *HealthResponse, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/health+json")
-	w.WriteHeader(200)
-
-	e := new(jx.Encoder)
-	response.Encode(e)
-	if _, err := e.WriteTo(w); err != nil {
-		return errors.Wrap(err, "write")
-	}
-
-	return nil
-}
-
-func encodeGetSensorMetricsResponse(response *Metrics, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
 	e := new(jx.Encoder)
