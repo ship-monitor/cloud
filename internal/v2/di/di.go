@@ -27,6 +27,7 @@ import (
 	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
+	notificationservice "github.com/ship-monitor/cloud/internal/v2/services/notification"
 	"github.com/ship-monitor/cloud/internal/v2/services/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/services/token"
 	"github.com/ship-monitor/cloud/internal/v2/services/user"
@@ -103,9 +104,12 @@ func newHandler(
 	devices *device.Service,
 	sensors *sensor.Service,
 	metrics *metricsservice.Service,
+	notifications *notificationservice.Service,
 	logger *zap.Logger,
 ) *handler.Handler {
-	return handler.New(tokens, users, devices, sensors, metrics, logger)
+	return handler.New(
+		tokens, users, devices, sensors, metrics, notifications, logger,
+	)
 }
 
 func newSecurityHandler(t *token.Service) *security.Handler {

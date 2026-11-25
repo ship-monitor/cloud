@@ -336,6 +336,31 @@ const (
         "parameters": [
           {
             "$ref": "#/components/parameters/deviceId"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Opaque nextCursor from a previous response",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "minLength": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of notifications to return (default 20)",
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1
+            }
           }
         ],
         "responses": {
@@ -679,15 +704,14 @@ const (
         "type": "object",
         "properties": {
           "nextCursor": {
-            "type": "string",
-            "format": "uuid"
+            "description": "Opaque cursor for the next page; omitted on the last page",
+            "type": "string"
           },
           "hasMore": {
             "type": "boolean"
           }
         },
         "required": [
-          "nextCursor",
           "hasMore"
         ]
       },
@@ -1369,6 +1393,25 @@ paths:
             operationId: GetDeviceNotifications
             parameters:
                 -   $ref: '#/components/parameters/deviceId'
+                -   name: cursor
+                    in: query
+                    description: Opaque nextCursor from a previous response
+                    style: form
+                    explode: true
+                    schema:
+                        type: string
+                        maxLength: 256
+                        minLength: 1
+                -   name: limit
+                    in: query
+                    description: Maximum number of notifications to return (default 20)
+                    style: form
+                    explode: true
+                    schema:
+                        type: integer
+                        format: int64
+                        maximum: 100
+                        minimum: 1
             responses:
                 "200":
                     $ref: '#/components/responses/GetDeviceNotificationsOK'
@@ -1581,12 +1624,11 @@ components:
             type: object
             properties:
                 nextCursor:
+                    description: Opaque cursor for the next page; omitted on the last page
                     type: string
-                    format: uuid
                 hasMore:
                     type: boolean
             required:
-                - nextCursor
                 - hasMore
         Problem:
             type: object
@@ -1917,8 +1959,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"c31d29357ebd8d0db7a00fda5c66c515\""
-	specYAMLETag = "\"023e1c7d3822ce43a453ce804b7a0287\""
+	specJSONETag = "\"5440d05c53a41c78542aa0ce07b75c07\""
+	specYAMLETag = "\"35528dd667c24e52f6c2559a1d3bf674\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

@@ -861,6 +861,14 @@ func (s *Server) handleGetDeviceNotificationsRequest(args [1]string, argsEscaped
 					Name: "deviceId",
 					In:   "path",
 				}: params.DeviceID,
+				{
+					Name: "cursor",
+					In:   "query",
+				}: params.Cursor,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
 			},
 			Raw: r,
 		}

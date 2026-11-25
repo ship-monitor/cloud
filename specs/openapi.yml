@@ -214,6 +214,21 @@ paths:
       operationId: GetDeviceNotifications
       parameters:
         - $ref: "#/components/parameters/deviceId"
+        - name: cursor
+          in: query
+          description: Opaque nextCursor from a previous response
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 256
+        - name: limit
+          in: query
+          description: Maximum number of notifications to return (default 20)
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 100
       responses:
         "200":
           $ref: "#/components/responses/GetDeviceNotificationsOK"
@@ -468,11 +483,11 @@ components:
 
     Pagination:
       type: object
-      required: [nextCursor, hasMore]
+      required: [hasMore]
       properties:
         nextCursor:
           type: string
-          format: uuid
+          description: Opaque cursor for the next page; omitted on the last page
         hasMore:
           type: boolean
 

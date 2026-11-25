@@ -8,6 +8,8 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
+	"github.com/ship-monitor/cloud/internal/v2/domain/notification"
+	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
@@ -81,6 +83,15 @@ type SensorService interface {
 		deviceID uuid.UUID,
 		displayName string,
 	) error
+}
+
+type NotificationService interface {
+	ListByDevicePage(
+		ctx context.Context,
+		actor auth.Actor,
+		deviceID uuid.UUID,
+		req pagination.Request[notification.Cursor],
+	) (pagination.Page[notification.Notification, notification.Cursor], error)
 }
 
 type MetricsService interface {

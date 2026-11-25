@@ -931,12 +931,13 @@ func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 
 // Ref: #/components/schemas/Pagination
 type Pagination struct {
-	NextCursor uuid.UUID `json:"nextCursor"`
+	// Opaque cursor for the next page; omitted on the last page.
+	NextCursor OptString `json:"nextCursor"`
 	HasMore    bool      `json:"hasMore"`
 }
 
 // GetNextCursor returns the value of NextCursor.
-func (s *Pagination) GetNextCursor() uuid.UUID {
+func (s *Pagination) GetNextCursor() OptString {
 	return s.NextCursor
 }
 
@@ -946,7 +947,7 @@ func (s *Pagination) GetHasMore() bool {
 }
 
 // SetNextCursor sets the value of NextCursor.
-func (s *Pagination) SetNextCursor(val uuid.UUID) {
+func (s *Pagination) SetNextCursor(val OptString) {
 	s.NextCursor = val
 }
 

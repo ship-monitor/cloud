@@ -18,12 +18,13 @@ import (
 var _ api.Handler = (*Handler)(nil)
 
 type Handler struct {
-	tokenService TokenService
-	users        UserService
-	devices      DeviceService
-	sensors      SensorService
-	metrics      MetricsService
-	logger       *zap.Logger
+	tokenService  TokenService
+	users         UserService
+	devices       DeviceService
+	sensors       SensorService
+	metrics       MetricsService
+	notifications NotificationService
+	logger        *zap.Logger
 }
 
 // RefreshToken implements [api.Handler].
@@ -48,15 +49,17 @@ func New(
 	devices DeviceService,
 	sensors SensorService,
 	metrics MetricsService,
+	notifications NotificationService,
 	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
-		tokenService: tokenService,
-		users:        users,
-		devices:      devices,
-		sensors:      sensors,
-		metrics:      metrics,
-		logger:       logger,
+		tokenService:  tokenService,
+		users:         users,
+		devices:       devices,
+		sensors:       sensors,
+		metrics:       metrics,
+		notifications: notifications,
+		logger:        logger,
 	}
 }
 

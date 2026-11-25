@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domainnotification "github.com/ship-monitor/cloud/internal/v2/domain/notification"
+	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 )
 
@@ -16,16 +19,60 @@ type Repo interface {
 		ctx context.Context,
 		n domainnotification.Notification,
 	) error
+	ListByDevicePageForUser(
+		ctx context.Context,
+		deviceID, userID uuid.UUID,
+		req pagination.Request[domainnotification.Cursor],
+	) (
+		pagination.Page[domainnotification.Notification, domainnotification.Cursor],
+		error,
+	)
+}
+
+// DeviceService authorizes access to devices on behalf of the actor.
+type DeviceService interface {
+	Get(
+		ctx context.Context,
+		actor auth.Actor,
+		id uuid.UUID,
+	) (device.Device, error)
 }
 
 // Service handles notification business logic.
 type Service struct {
-	repo Repo
+	repo    Repo
+	devices DeviceService
 }
 
 // New creates a new notification service.
-func New(repo Repo) *Service {
-	return &Service{repo: repo}
+func New(repo Repo, devices DeviceService) *Service {
+	return &Service{repo: repo, devices: devices}
+}
+
+// ListByDevicePage returns notifications and read state for the actor's device.
+// Devices owned by other users are reported as not found by the device service.
+func (s *Service) ListByDevicePage(
+	ctx context.Context,
+	actor auth.Actor,
+	deviceID uuid.UUID,
+	req pagination.Request[domainnotification.Cursor],
+) (
+	pagination.Page[domainnotification.Notification, domainnotification.Cursor],
+	error,
+) {
+	var page pagination.Page[domainnotification.Notification, domainnotification.Cursor]
+
+	_, err := s.devices.Get(ctx, actor, deviceID)
+	if err != nil {
+		return page, fmt.Errorf("get device: %w", err)
+	}
+
+	page, err = s.repo.ListByDevicePageForUser(ctx, deviceID, actor.UserID, req)
+	if err != nil {
+		return page, fmt.Errorf("list device notifications: %w", err)
+	}
+
+	return page, nil
 }
 
 var (
@@ -74,6 +121,7 @@ func (s *Service) IngestSensorNotification(
 		OccurredAt: msg.OccurredAt,
 		ReportedAt: msg.ReportedAt,
 		ReceivedAt: time.Now().UTC(),
+		IsRead:     false,
 		Data:       msg.Data.AdditionalProperties,
 	}
 
@@ -110,6 +158,7 @@ func (s *Service) IngestDeviceNotification(
 		OccurredAt: msg.OccurredAt,
 		ReportedAt: msg.ReportedAt,
 		ReceivedAt: time.Now().UTC(),
+		IsRead:     false,
 		Data:       msg.Data.AdditionalProperties,
 	}
 
