@@ -76,6 +76,11 @@ var (
 		http.StatusBadRequest,
 		"Bad request",
 	)
+	errSensorsNotFound = problem.New(
+		"sensors-not-found",
+		http.StatusNotFound,
+		"Sensors not found",
+	)
 )
 
 func (h *Handler) NewError(
@@ -106,9 +111,7 @@ func (h *Handler) NewError(
 		)
 	}
 
-	return toBadResponse(
-		errUnknownError.WithDetail("Error message: " + err.Error()),
-	)
+	return toBadResponse(errUnknownError)
 }
 
 func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {

@@ -52,6 +52,36 @@ func (s *Service) ParseToken(
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
 
+	err = validator.New().Struct(&claims)
+	if err != nil {
+		return nil, fmt.Errorf("invalid claims: %w", err)
+	}
+
+	return &claims, nil
+}
+
+func (s *Service) ParseRefreshToken(
+	ctx context.Context,
+	token string,
+) (*auth.RefreshClaims, error) {
+	var claims auth.RefreshClaims
+
+	_, err := jwt.ParseWithClaims(
+		token,
+		&claims,
+		func(t *jwt.Token) (any, error) {
+			return []byte(s.conf.SecretKey), nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("parse token: %w", err)
+	}
+
+	err = validator.New().Struct(&claims)
+	if err != nil {
+		return nil, fmt.Errorf("invalid claims: %w", err)
+	}
+
 	return &claims, nil
 }
 
@@ -71,7 +101,7 @@ func (s *Service) RefreshTokens(
 	ctx context.Context,
 	refreshToken string,
 ) (string, string, error) {
-	claims, err := s.ParseToken(ctx, refreshToken)
+	claims, err := s.ParseRefreshToken(ctx, refreshToken)
 	if err != nil {
 		return "", "", fmt.Errorf("parse token: %w", err)
 	}

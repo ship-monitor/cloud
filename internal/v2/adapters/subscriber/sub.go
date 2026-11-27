@@ -151,7 +151,34 @@ func (s *S) Start(ctx context.Context) error {
 }
 
 func (s *S) Stop(ctx context.Context) error {
-	s.controller.UnsubscribeFromAllChannels(ctx)
+	s.controller.UnsubscribeFromOnDeviceHeartbeatOperation(
+		ctx,
+		asyncapi.DevicesAliveChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromOnConnectResponseOperation(
+		ctx,
+		asyncapi.ConnectResponsesChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromSensorMetricsOperation(
+		ctx,
+		asyncapi.SensorMetricsChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromDeviceMetricsOperation(
+		ctx,
+		asyncapi.DeviceMetricsChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromSensorDeclarationOperation(
+		ctx,
+		asyncapi.SensorDeclarationsChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromFirmwareOperation(
+		ctx,
+		asyncapi.FirmwareChannelParameters{DeviceId: "*"},
+	)
+	s.controller.UnsubscribeFromNotificationOperation(
+		ctx,
+		asyncapi.NotificationsChannelParameters{DeviceId: "*"},
+	)
 
 	return nil
 }

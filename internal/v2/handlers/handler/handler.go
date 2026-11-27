@@ -10,6 +10,7 @@ import (
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
+	"github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	deviceService "github.com/ship-monitor/cloud/internal/v2/services/device"
 	userservice "github.com/ship-monitor/cloud/internal/v2/services/user"
 	"go.uber.org/zap"
@@ -284,6 +285,10 @@ func (h *Handler) GetSensors(
 
 	sensors, err := h.sensors.GetSensors(ctx, actor, params.DeviceID)
 	if err != nil {
+		if errors.Is(err, sensor.ErrNotFound) {
+			return nil, errSensorsNotFound
+		}
+
 		return nil, fmt.Errorf("get sensors: %w", err)
 	}
 

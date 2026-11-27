@@ -158,17 +158,33 @@ func newHTTPServer(
 		Host:   server.Addr,
 	}
 
-	lc.Append(fx.StartHook(func() {
-		go func() {
+	lc.Append(fx.StartHook(func(ctx context.Context) error {
+		ch := make(chan error)
+
+		ctx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+
+		go func(ch chan error) {
 			logger.Info("Starting", zap.String("addr", url.String()))
 
 			err := server.ListenAndServe()
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Error("Failed serve", zap.Error(err))
+				ch <- err
 			} else {
-				logger.Info("Stopped")
+				ch <- nil
 			}
-		}()
+		}(ch)
+
+		select {
+		case err := <-ch:
+			if err != nil {
+				return fmt.Errorf("start http server: %w", err)
+			}
+
+			return nil
+		case <-ctx.Done():
+			return nil
+		}
 	}))
 
 	lc.Append(fx.StopHook(func(ctx context.Context) error {

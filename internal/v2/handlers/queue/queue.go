@@ -73,9 +73,16 @@ func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
 	response *asyncapi.ConnectResponseMessage,
 ) error {
-	err := h.device.ApproveConnection(ctx, response.Payload.RequestID)
-	if err != nil {
-		return fmt.Errorf("approve connection: %w", err)
+	if response.Payload.Approve {
+		err := h.device.ApproveConnection(ctx, response.Payload.RequestID)
+		if err != nil {
+			return fmt.Errorf("approve connection: %w", err)
+		}
+	} else {
+		h.logger.Warn(
+			"Connection not approved",
+			zap.String("requestId", response.Payload.RequestID.String()),
+		)
 	}
 
 	return nil

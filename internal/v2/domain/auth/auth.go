@@ -11,7 +11,15 @@ import (
 type Claims struct {
 	jwt.RegisteredClaims
 
-	UserID uuid.UUID `json:"userId"`
+	Purpose string    `json:"refresh" validate:"required,oneof='AUTH'"`
+	UserID  uuid.UUID `json:"userId"`
+}
+
+type RefreshClaims struct {
+	jwt.RegisteredClaims
+
+	Purpose string    `json:"refresh" validate:"required,oneof='REFRESH'"`
+	UserID  uuid.UUID `json:"userId" validate:"required"`
 }
 
 func NewClaims(userID uuid.UUID, ttl time.Duration) *Claims {
@@ -20,18 +28,20 @@ func NewClaims(userID uuid.UUID, ttl time.Duration) *Claims {
 	c.ID = uuid.NewString()
 	c.IssuedAt = jwt.NewNumericDate(time.Now())
 	c.ExpiresAt = jwt.NewNumericDate(time.Now().Add(ttl))
+	c.Purpose = "AUTH"
 
 	c.UserID = userID
 
 	return &c
 }
 
-func NewRefreshClaims(userID uuid.UUID, ttl time.Duration) *Claims {
-	var c Claims
+func NewRefreshClaims(userID uuid.UUID, ttl time.Duration) *RefreshClaims {
+	var c RefreshClaims
 
 	c.ID = uuid.NewString()
 	c.IssuedAt = jwt.NewNumericDate(time.Now())
 	c.ExpiresAt = jwt.NewNumericDate(time.Now().Add(ttl))
+	c.Purpose = "REFRESH"
 
 	c.UserID = userID
 

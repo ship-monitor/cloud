@@ -269,10 +269,6 @@ func (s *Service) ApproveConnection(
 		return fmt.Errorf("get connect request: %w", err)
 	}
 
-	if request.Approved {
-		return nil
-	}
-
 	if !request.CreatedAt.Add(ApproveDuration).After(time.Now()) {
 		return errRequestExpired
 	}

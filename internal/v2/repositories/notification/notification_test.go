@@ -22,38 +22,68 @@ func TestRepository_InsertNotification(t *testing.T) {
 
 	sqlDB := setupDB(t)
 	repo := notification.New(sqlDB)
-	ctx := t.Context()
-	want := newNotification()
 
-	require.NoError(t, repo.InsertNotification(ctx, want))
+	testCases := []struct {
+		name string
+		want domain.Notification
+	}{
+		{
+			name: "ok",
+			want: newNotification(),
+		},
+		{
+			name: "ok/empty data",
+			want: domain.Notification{
+				ID:         uuid.New(),
+				DeviceID:   uuid.New(),
+				SensorID:   nil,
+				Type:       "engine_overheat",
+				Severity:   "warning",
+				OccurredAt: time.Now().UTC(),
+				ReportedAt: time.Now().UTC(),
+				ReceivedAt: time.Now().UTC(),
+				Data:       map[string]any{},
+				IsRead:     false,
+			},
+		},
+	}
 
-	var row notification.Row
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
 
-	err := sqlDB.QueryRowxContext(ctx, `
-		SELECT id, device_id, sensor_id, type, severity, occurred_at,
-			reported_at, received_at, data
-		FROM device_notifications WHERE id = $1`, want.ID).
-		Scan(
-			&row.ID,
-			&row.DeviceID,
-			&row.SensorID,
-			&row.Type,
-			&row.Severity,
-			&row.OccurredAt,
-			&row.ReportedAt,
-			&row.ReceivedAt,
-			&row.Data,
-		)
-	require.NoError(t, err)
+			require.NoError(t, repo.InsertNotification(ctx, tt.want))
 
-	got := row.ToDomain()
-	assert.Equal(t, want, got)
+			var row notification.Row
 
-	var duplicateErr *pq.Error
+			err := sqlDB.QueryRowxContext(ctx, `
+				SELECT id, device_id, sensor_id, type, severity, occurred_at,
+					reported_at, received_at, data
+				FROM device_notifications WHERE id = $1`, tt.want.ID).
+				Scan(
+					&row.ID,
+					&row.DeviceID,
+					&row.SensorID,
+					&row.Type,
+					&row.Severity,
+					&row.OccurredAt,
+					&row.ReportedAt,
+					&row.ReceivedAt,
+					&row.Data,
+				)
+			require.NoError(t, err)
 
-	err = repo.InsertNotification(ctx, want)
-	require.ErrorAs(t, err, &duplicateErr)
-	assert.Equal(t, "unique_violation", duplicateErr.Code.Name())
+			got := row.ToDomain()
+			assert.Equal(t, tt.want, got)
+
+			var duplicateErr *pq.Error
+
+			err = repo.InsertNotification(ctx, tt.want)
+			require.ErrorAs(t, err, &duplicateErr)
+			assert.Equal(t, "unique_violation", duplicateErr.Code.Name())
+		})
+	}
 }
 
 func TestRepository_Get(t *testing.T) {
@@ -274,5 +304,6 @@ func newNotification() domain.Notification {
 				"some": 123.0,
 			},
 		},
+		IsRead: false,
 	}
 }
