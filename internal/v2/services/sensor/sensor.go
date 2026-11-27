@@ -188,7 +188,16 @@ func (s *Service) Rename(
 ) error {
 	_, err := s.devices.Get(ctx, actor, deviceID)
 	if err != nil {
-		return fmt.Errorf("get device: %w", err)
+		return fmt.Errorf("get device: %w: %w", sensor.ErrNotFound, err)
+	}
+
+	_, err = s.repo.GetSensor(ctx, deviceID, id)
+	if errors.Is(err, sensor.ErrNotFound) {
+		return fmt.Errorf("service: %w", err)
+	}
+
+	if err != nil {
+		return fmt.Errorf("get sensor: %w", err)
 	}
 
 	err = s.repo.RenameSensor(ctx, id, deviceID, displayName)

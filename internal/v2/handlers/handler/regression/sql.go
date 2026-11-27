@@ -75,7 +75,7 @@ type ExistsRows struct {
 	done bool
 }
 
-func (*ExistsRows) Columns() []string { return []string{"exists"} }
+func (*ExistsRows) Columns() []string { return []string{"not exists"} }
 func (*ExistsRows) Close() error      { return nil }
 
 func (r *ExistsRows) Next(dest []driver.Value) error {

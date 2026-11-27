@@ -108,7 +108,10 @@ func queryFromParams(params api.GetSensorMetricsByNameParams) metrics.Query {
 // top-level name, type and unit are taken from the first sample; every
 // sample keeps its own values in Values.
 func toAPIMetrics(ms []metrics.Metric) *api.Metrics {
-	res := &api.Metrics{ //nolint:exhaustruct_v5
+	res := &api.Metrics{
+		Type:   api.MetricTypeCOUNTER,
+		Unit:   "1",
+		Name:   "",
 		Values: make([]api.Metric, 0, len(ms)),
 	}
 

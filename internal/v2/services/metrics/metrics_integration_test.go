@@ -13,7 +13,7 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/adapters/clickhousedb"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/db"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
-	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
+	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 	connectrepo "github.com/ship-monitor/cloud/internal/v2/repositories/connect"
 	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
@@ -137,14 +137,14 @@ func TestMetricsIsolationAfterDeviceReconnectionIntegration(t *testing.T) {
 			connect := func(owner auth.Actor) {
 				t.Helper()
 
-				request := devicedomain.ConnectRequest{
+				request := domain.ConnectRequest{
 					ID: uuid.New(), DeviceID: deviceID,
 					UserID: owner.UserID, CreatedAt: time.Now(),
 				}
 				require.NoError(t, requests.Create(ctx, request))
 				require.NoError(
 					t,
-					deviceService.ApproveConnection(ctx, request.ID),
+					deviceService.ApproveConnection(ctx, deviceID, request.ID),
 				)
 			}
 			query := metrics.Query{Name: "temperature", Limit: 10}
@@ -200,18 +200,18 @@ func TestMetricsIsolationAfterDeviceReconnectionIntegration(t *testing.T) {
 			require.Equal(t, []metrics.Metric{oldSample}, got)
 
 			_, err = get(newOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, domain.ErrNotFound)
 
 			require.NoError(t, deviceService.Remove(ctx, oldOwner, deviceID))
 			_, err = get(oldOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, domain.ErrNotFound)
 			_, err = get(newOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, domain.ErrNotFound)
 
 			connect(newOwner)
 
 			_, err = get(oldOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, domain.ErrNotFound)
 			got, err = get(newOwner)
 			require.NoError(t, err)
 			assert.Empty(
@@ -228,7 +228,7 @@ func TestMetricsIsolationAfterDeviceReconnectionIntegration(t *testing.T) {
 				"new owner must see only metrics from the new ownership")
 
 			_, err = get(oldOwner)
-			assert.ErrorIs(t, err, deviceservice.ErrNotFound)
+			assert.ErrorIs(t, err, domain.ErrNotFound)
 		})
 	}
 }

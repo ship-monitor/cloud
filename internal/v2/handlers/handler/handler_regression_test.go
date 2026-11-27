@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	devicedomain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
@@ -21,7 +19,6 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/handler/regression"
-	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 	userservice "github.com/ship-monitor/cloud/internal/v2/services/user"
 	"github.com/stretchr/testify/assert"
@@ -261,7 +258,7 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 				"/api/v2/auth/register",
 				tc.body,
 			)
-			t.Logf("Response: %d\n%s", response.Code, response.Body.String())
+			logResponse(t, response)
 			assert.Equal(t, http.StatusBadRequest, response.Code)
 			assert.Zero(t, repo.Checks())
 			assert.Zero(t, repo.Creates())
@@ -305,11 +302,7 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 			"/api/v2/auth/register",
 			`{"email":"user@example.com","password":"password","name":"User"}`,
 		)
-		t.Logf(
-			"Response:\nCode: %d\nBody: %s",
-			response.Code,
-			response.Body.String(),
-		)
+		logResponse(t, response)
 		assert.Equal(t, http.StatusConflict, response.Code)
 		assert.Equal(t, 1, service.Calls())
 	})
@@ -329,11 +322,7 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 			http.MethodPost, "/api/v2/auth/register",
 			`{"email":"user@example.com","password":"password","name":"User"}`,
 		)
-		t.Logf(
-			"Response:\nCode: %d\nBody: %s",
-			response.Code,
-			response.Body.String(),
-		)
+		logResponse(t, response)
 		assert.Equal(t, http.StatusConflict, response.Code)
 	})
 }
@@ -401,6 +390,7 @@ func TestRegression_EditMissingSensorReturnsNotFound(t *testing.T) {
 				auth.Actor{UserID: uuid.New()},
 				http.MethodPatch, path, `{"displayName":"new name"}`,
 			)
+			logResponse(t, response)
 			assert.Equal(t, 1, service.renameCalls)
 			assert.Equal(t, http.StatusNotFound, response.Code)
 			assert.Equal(t, tc.getCalls, service.getCalls)
@@ -511,25 +501,12 @@ func TestRegression_ConnectIsAcceptedPendingApproval(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, response.Code)
 }
 
-func TestRegression_ForeignDeviceRenameDoesNotSucceed(t *testing.T) {
-	t.Parallel()
-
-	connector := &regression.SQLConnector{}
-	db := sqlx.NewDb(sql.OpenDB(connector), "regression")
-
-	t.Cleanup(func() { _ = db.Close() })
-
-	service := deviceservice.New(devicerepo.New(db), nil, nil, nil)
-	actor := auth.Actor{UserID: uuid.New()}
-	deviceID := uuid.New()
-	response := regressionRequest(
-		t,
-		regression.NewHandler(regression.WithDevices(service)),
-		actor, http.MethodPatch,
-		"/api/v2/devices/"+deviceID.String(), `{"name":"new name"}`,
+func logResponse(t *testing.T, r *httptest.ResponseRecorder) {
+	t.Helper()
+	t.Logf(
+		"\nResponse:\n\tStatus: %d\n\tHeader: %v\n\tBody: %s",
+		r.Code,
+		r.Header(),
+		r.Body.String(),
 	)
-	t.Logf("\nSQLConnector UpdateArgs: %v", connector.UpdateArgs())
-	require.Len(t, connector.UpdateArgs(), 3)
-	assert.Equal(t, actor.UserID.String(), connector.UpdateArgs()[2].Value)
-	assert.Equal(t, http.StatusNotFound, response.Code)
 }

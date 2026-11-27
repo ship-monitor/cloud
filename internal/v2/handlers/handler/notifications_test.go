@@ -380,11 +380,11 @@ func TestGetDeviceNotifications_Errors(t *testing.T) {
 			require.Error(t, err)
 
 			if tc.wantErr != nil {
-				assert.ErrorIs(t, err, tc.wantErr)
+				require.ErrorIs(t, err, tc.wantErr)
 			}
 
 			if tc.invalidData {
-				assert.ErrorContains(t, err, "encode data field")
+				require.ErrorContains(t, err, "encode data field")
 			}
 
 			assert.Nil(t, response)

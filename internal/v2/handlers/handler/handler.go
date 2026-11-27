@@ -323,21 +323,31 @@ func (h *Handler) EditSensor(
 		params.DeviceID,
 		req.DisplayName,
 	)
+	if errors.Is(err, sensor.ErrNotFound) ||
+		errors.Is(err, device.ErrNotFound) {
+		return nil, errSensorsNotFound
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("rename: %w", err)
 	}
 
-	sensor, err := h.sensors.GetSensor(
+	s, err := h.sensors.GetSensor(
 		ctx,
 		actor,
 		params.SensorID,
 		params.DeviceID,
 	)
+	if errors.Is(err, sensor.ErrNotFound) ||
+		errors.Is(err, device.ErrNotFound) {
+		return nil, errSensorsNotFound
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get updated sensor: %w", err)
 	}
 
 	return &api.EditSensorOK{
-		Sensor: *toApiSensor(sensor),
+		Sensor: *toApiSensor(s),
 	}, nil
 }

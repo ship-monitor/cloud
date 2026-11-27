@@ -181,6 +181,10 @@ func (s *Service) Rename(
 		return fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
+	if err != nil {
+		return fmt.Errorf("get device: %w", err)
+	}
+
 	err = s.repo.Rename(ctx, actor.UserID, device.ID, name)
 	if errors.Is(err, domain.ErrNotFound) {
 		return fmt.Errorf("service: %w", domain.ErrNotFound)
@@ -242,8 +246,10 @@ func (s *Service) IsDeviceOnline(
 // ApproveDuration represents time in which request can be approved.
 const ApproveDuration = time.Minute
 
-var errRequestExpired = errors.New("connect request expired")
-var errUnauthAccess = errors.New("unauthorizad access")
+var (
+	errRequestExpired = errors.New("connect request expired")
+	errUnauthAccess   = errors.New("unauthorizad access")
+)
 
 // ApproveConnection approves connection by connect request ID.
 func (s *Service) ApproveConnection(
@@ -255,8 +261,12 @@ func (s *Service) ApproveConnection(
 	if err != nil {
 		return fmt.Errorf("get connect request: %w", err)
 	}
+
 	if request.DeviceID != deviceID {
-		return fmt.Errorf("%w: try to approve not own connect request", errUnauthAccess)
+		return fmt.Errorf(
+			"%w: try to approve not own connect request",
+			errUnauthAccess,
+		)
 	}
 
 	if !request.CreatedAt.Add(ApproveDuration).After(time.Now()) {

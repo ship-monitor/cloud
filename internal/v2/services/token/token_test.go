@@ -34,11 +34,11 @@ func TestService_TokenPurposeSeparation(t *testing.T) {
 	assert.Equal(t, userID, refreshClaims.UserID)
 
 	_, err = service.ParseToken(t.Context(), refresh)
-	assert.Error(t, err, "refresh tokens must not authorize access")
+	require.Error(t, err, "refresh tokens must not authorize access")
 	_, err = service.ParseRefreshToken(t.Context(), access)
-	assert.Error(t, err, "access tokens must not be parsed as refresh tokens")
+	require.Error(t, err, "access tokens must not be parsed as refresh tokens")
 	_, _, err = service.RefreshTokens(t.Context(), access)
-	assert.Error(t, err, "access tokens must not mint new token pairs")
+	require.Error(t, err, "access tokens must not mint new token pairs")
 
 	newAccess, newRefresh, err := service.RefreshTokens(t.Context(), refresh)
 	require.NoError(t, err)

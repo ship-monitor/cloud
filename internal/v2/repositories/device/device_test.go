@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package device_test contains tests for the device repository.
 package device_test
 

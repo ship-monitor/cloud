@@ -35,7 +35,7 @@ func TestReadStateRejectsMissingReferences(t *testing.T) {
 			}
 
 			err := repo.SetRead(ctx, userID, item.ID, true)
-			assert.Error(
+			require.Error(
 				t,
 				err,
 				"read state must not reference a missing %s",

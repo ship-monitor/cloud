@@ -78,14 +78,14 @@ func TestService_RenameOwnerIsolation(t *testing.T) {
 
 	err := service.Rename(t.Context(), auth.Actor{UserID: otherUserID},
 		stored.ID, "foreign rename")
-	assert.ErrorIs(t, err, device.ErrNotFound)
+	require.ErrorIs(t, err, domain.ErrNotFound)
 	got, err := repo.Get(t.Context(), stored.OwnerID, stored.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "original", got.Name)
 
 	err = service.Rename(t.Context(), auth.Actor{UserID: stored.OwnerID},
 		uuid.New(), "missing")
-	assert.ErrorIs(t, err, device.ErrNotFound)
+	require.ErrorIs(t, err, domain.ErrNotFound)
 	require.NoError(t, service.Rename(
 		t.Context(), auth.Actor{UserID: stored.OwnerID}, stored.ID, "renamed",
 	))
@@ -109,15 +109,18 @@ func TestService_ApproveConnectionIdempotent(t *testing.T) {
 	require.NoError(t, requests.Create(ctx, request))
 	service := device.New(repo, nil, nil, requests)
 
-	require.NoError(t, service.ApproveConnection(ctx, request.ID))
+	require.NoError(
+		t,
+		service.ApproveConnection(ctx, request.DeviceID, request.ID),
+	)
 	created, err := repo.Get(ctx, request.UserID, request.DeviceID)
 	require.NoError(t, err)
 	gotRequest, err := requests.Get(ctx, request.ID)
 	require.NoError(t, err)
 	require.True(t, gotRequest.Approved)
 
-	err = service.ApproveConnection(ctx, request.ID)
-	assert.NoError(t, err, "a duplicate approval should be harmless")
+	err = service.ApproveConnection(ctx, request.DeviceID, request.ID)
+	require.NoError(t, err, "a duplicate approval should be harmless")
 	got, err := repo.Get(ctx, request.UserID, request.DeviceID)
 	require.NoError(t, err)
 	assert.Equal(t, created, got)
@@ -137,6 +140,7 @@ func TestService_ApproveConnectionAtomicOnFailure(t *testing.T) {
 		ID: uuid.New(), DeviceID: uuid.New(),
 		UserID:    createDeviceTestUser(t, sqlDB),
 		CreatedAt: time.Now(),
+		Approved:  false,
 	}
 	ctx := domain.WithDeviceID(t.Context(), request.DeviceID)
 	require.NoError(t, requests.Create(ctx, request))
@@ -153,21 +157,21 @@ func TestService_ApproveConnectionAtomicOnFailure(t *testing.T) {
 
 	service := device.New(repo, nil, nil, requests)
 
-	err = service.ApproveConnection(ctx, request.ID)
-	assert.ErrorContains(t, err, "injected approval failure")
+	err = service.ApproveConnection(ctx, request.DeviceID, request.ID)
+	require.ErrorContains(t, err, "injected approval failure")
 	gotRequest, err := requests.Get(ctx, request.ID)
 	require.NoError(t, err)
 	assert.False(t, gotRequest.Approved)
 
 	_, err = repo.Get(ctx, request.UserID, request.DeviceID)
-	assert.ErrorIs(t, err, devicerepo.ErrNotFound,
+	require.ErrorIs(t, err, domain.ErrNotFound,
 		"failed approval must not leave a device")
 
 	_, err = sqlDB.ExecContext(ctx,
 		`DROP TRIGGER reject_approval ON connect_requests`)
 	require.NoError(t, err)
-	err = service.ApproveConnection(ctx, request.ID)
-	assert.NoError(t, err, "retry after a storage failure should succeed")
+	err = service.ApproveConnection(ctx, request.DeviceID, request.ID)
+	require.NoError(t, err, "retry after a storage failure should succeed")
 	gotRequest, err = requests.Get(ctx, request.ID)
 	require.NoError(t, err)
 	assert.True(t, gotRequest.Approved)

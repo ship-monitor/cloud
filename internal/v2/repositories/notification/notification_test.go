@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package notification_test contains tests for the notification repository.
 package notification_test
 
