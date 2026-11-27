@@ -124,8 +124,8 @@ paths:
       requestBody:
         $ref: "#/components/requestBodies/ConnectDeviceRequest"
       responses:
-        "201":
-          description: "Successfully added new device"
+        "202":
+          description: Successfully sended new connect request to device
         "409":
           $ref: "#/components/responses/ConnectDeviceConflict"
         default:
@@ -350,11 +350,15 @@ components:
         email:
           type: string
           format: email
+          minLength: 1
         password:
           type: string
           format: password
+          minLength: 1
+          maxLength: 72
         name:
           type: string
+          minLength: 1
 
     Device:
       type: object

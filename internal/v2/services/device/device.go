@@ -19,11 +19,15 @@ const Unknown = "Unknown"
 var (
 	// ErrNotFound is returned when the device does not exist,
 	// or exists but is owned by another user.
-	ErrNotFound = errors.New("device not found")
+	//
+	// TODO: make private or remove.
+	ErrNotFound = domain.ErrNotFound
 
 	// ErrAlreadyExists is returned when a device with the given id
 	// was already added.
-	ErrAlreadyExists = errors.New("device already exists")
+	//
+	// TODO: make private or remove.
+	ErrAlreadyExists = domain.ErrAlreadyExists
 )
 
 // Repository is the persistence interface of the Service.
@@ -187,16 +191,12 @@ func (s *Service) Rename(
 	id uuid.UUID,
 	name string,
 ) error {
-	exists, err := s.repo.Exists(ctx, id)
-	if err != nil {
-		return fmt.Errorf("check device exists: %w", err)
-	}
-
-	if !exists {
+	device, err := s.repo.Get(ctx, actor.UserID, id)
+	if errors.Is(err, devicerepo.ErrNotFound) {
 		return ErrNotFound
 	}
 
-	err = s.repo.Rename(ctx, actor.UserID, id, name)
+	err = s.repo.Rename(ctx, actor.UserID, device.ID, name)
 	if errors.Is(err, devicerepo.ErrNotFound) {
 		return ErrNotFound
 	}
@@ -258,15 +258,20 @@ func (s *Service) IsDeviceOnline(
 const ApproveDuration = time.Minute
 
 var errRequestExpired = errors.New("connect request expired")
+var errUnauthAccess = errors.New("unauthorizad access")
 
 // ApproveConnection approves connection by connect request ID.
 func (s *Service) ApproveConnection(
 	ctx context.Context,
+	deviceID uuid.UUID,
 	requestID uuid.UUID,
 ) error {
 	request, err := s.conn.Get(ctx, requestID)
 	if err != nil {
 		return fmt.Errorf("get connect request: %w", err)
+	}
+	if request.DeviceID != deviceID {
+		return fmt.Errorf("%w: try to approve not own connect request", errUnauthAccess)
 	}
 
 	if !request.CreatedAt.Add(ApproveDuration).After(time.Now()) {

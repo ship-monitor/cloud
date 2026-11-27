@@ -66,10 +66,10 @@ func (s *BearerToken) SetRoles(val []string) {
 	s.Roles = val
 }
 
-// ConnectDeviceCreated is response for ConnectDevice operation.
-type ConnectDeviceCreated struct{}
+// ConnectDeviceAccepted is response for ConnectDevice operation.
+type ConnectDeviceAccepted struct{}
 
-func (*ConnectDeviceCreated) connectDeviceRes() {}
+func (*ConnectDeviceAccepted) connectDeviceRes() {}
 
 type ConnectDeviceReq struct {
 	DeviceID    uuid.UUID `json:"deviceId"`

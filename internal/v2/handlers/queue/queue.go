@@ -25,6 +25,7 @@ type AliveRepo interface {
 type DeviceService interface {
 	ApproveConnection(
 		ctx context.Context,
+		deviceID uuid.UUID,
 		requestID uuid.UUID,
 	) error
 }
@@ -73,8 +74,12 @@ func (h *Handler) HandleConnectResponse(
 	ctx context.Context,
 	response *asyncapi.ConnectResponseMessage,
 ) error {
+	id, ok := device.DeviceIDFromContext(ctx)
+	if !ok {
+		return errNoID
+	}
 	if response.Payload.Approve {
-		err := h.device.ApproveConnection(ctx, response.Payload.RequestID)
+		err := h.device.ApproveConnection(ctx, id, response.Payload.RequestID)
 		if err != nil {
 			return fmt.Errorf("approve connection: %w", err)
 		}

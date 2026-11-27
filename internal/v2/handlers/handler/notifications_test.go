@@ -49,7 +49,7 @@ func (s *notificationServiceStub) ListByDevicePage(
 func TestGetDeviceNotifications_Pages(t *testing.T) {
 	t.Parallel()
 
-	actor := auth.Actor{UserID: uuid.New(), Roles: []string{"user"}}
+	actor := auth.Actor{UserID: uuid.New()}
 	deviceID := uuid.New()
 	sensorID := uuid.New()
 	occurred := time.Date(2026, 11, 25, 12, 30, 1, 123456000, time.UTC)

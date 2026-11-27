@@ -9,10 +9,10 @@ import (
 	"fmt"
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
-	deviceService "github.com/ship-monitor/cloud/internal/v2/services/device"
-	userservice "github.com/ship-monitor/cloud/internal/v2/services/user"
 	"go.uber.org/zap"
 )
 
@@ -35,7 +35,7 @@ func (h *Handler) RefreshToken(
 ) (*api.RefreshResponseOK, error) {
 	token, refresh, err := h.tokenService.RefreshTokens(ctx, req.RefreshToken)
 	if err != nil {
-		return nil, errRefreshToken.WithDetail(err.Error())
+		return nil, errRefreshToken
 	}
 
 	return &api.RefreshResponseOK{
@@ -86,7 +86,7 @@ func (h *Handler) RemoveDevice(
 	}
 
 	err = h.devices.Remove(ctx, actor, params.DeviceID)
-	if errors.Is(err, deviceService.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return errDeviceNotFound
 	}
 
@@ -103,14 +103,14 @@ func (h *Handler) RegisterUser(
 	req *api.RegisterForm,
 ) error {
 	_, err := h.users.Register(ctx, req.Email, req.Password, req.Name)
-	if errors.Is(err, userservice.ErrEmailTaken) {
+	if errors.Is(err, user.ErrEmailTaken) {
 		return errEmailTaken
 	}
 
 	if err != nil {
 		h.logger.Error("Register user", zap.Error(err))
 
-		return errRegisterUser.WithDetail(err.Error())
+		return errRegisterUser
 	}
 
 	return nil
@@ -122,19 +122,17 @@ func (h *Handler) LoginUser(
 	req *api.LoginUserReq,
 ) (*api.LoginResponseOK, error) {
 	u, err := h.users.Login(ctx, req.Email, req.Password)
-	if errors.Is(err, userservice.ErrInvalidCredentials) {
+	if errors.Is(err, user.ErrInvalidCredentials) {
 		return nil, errInvalidCredentials
 	}
 
 	if err != nil {
-		return nil, errLogin.WithDetail(err.Error())
+		return nil, errLogin
 	}
 
 	token, refresh, err := h.tokenService.CreateTokens(ctx, &u)
 	if err != nil {
-		return nil, errLogin.WithDetail(
-			fmt.Errorf("create tokens: %w", err).Error(),
-		)
+		return nil, errLogin
 	}
 
 	return &api.LoginResponseOK{
@@ -179,9 +177,9 @@ func (h *Handler) ConnectDevice(
 	}
 
 	err = h.devices.Connect(ctx, actor, req.DeviceID, req.SecurityKey)
-	if errors.Is(err, deviceService.ErrAlreadyExists) {
+	if errors.Is(err, device.ErrAlreadyExists) {
 		return new(
-			toApiProblem(errAlreadyConnected.WithDetail(err.Error())),
+			toApiProblem(errAlreadyConnected),
 		), nil
 	}
 
@@ -189,7 +187,7 @@ func (h *Handler) ConnectDevice(
 		return nil, fmt.Errorf("add device: %w", err)
 	}
 
-	return &api.ConnectDeviceCreated{}, nil
+	return &api.ConnectDeviceAccepted{}, nil
 }
 
 // GetDevice implements [api.Handler].
@@ -203,7 +201,7 @@ func (h *Handler) GetDevice(
 	}
 
 	d, err := h.devices.Get(ctx, actor, params.DeviceID)
-	if errors.Is(err, deviceService.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 
@@ -226,7 +224,7 @@ func (h *Handler) EditDevice(
 	}
 
 	err = h.devices.Rename(ctx, actor, params.DeviceID, req.Name)
-	if errors.Is(err, deviceService.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return errDeviceNotFound
 	}
 
@@ -252,7 +250,7 @@ func (h *Handler) GetDeviceOnlineStatus(
 		actor,
 		params.DeviceID,
 	)
-	if errors.Is(err, deviceService.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 

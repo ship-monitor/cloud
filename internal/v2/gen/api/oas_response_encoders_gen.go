@@ -12,8 +12,8 @@ import (
 
 func encodeConnectDeviceResponse(response ConnectDeviceRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
-	case *ConnectDeviceCreated:
-		w.WriteHeader(201)
+	case *ConnectDeviceAccepted:
+		w.WriteHeader(202)
 
 		return nil
 

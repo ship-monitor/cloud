@@ -168,8 +168,8 @@ const (
           "$ref": "#/components/requestBodies/ConnectDeviceRequest"
         },
         "responses": {
-          "201": {
-            "description": "Successfully added new device"
+          "202": {
+            "description": "Successfully sended new connect request to device"
           },
           "409": {
             "$ref": "#/components/responses/ConnectDeviceConflict"
@@ -742,14 +742,18 @@ const (
         "properties": {
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "minLength": 1
           },
           "password": {
             "type": "string",
-            "format": "password"
+            "format": "password",
+            "maxLength": 72,
+            "minLength": 1
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [
@@ -1307,8 +1311,8 @@ paths:
             requestBody:
                 $ref: '#/components/requestBodies/ConnectDeviceRequest'
             responses:
-                "201":
-                    description: Successfully added new device
+                "202":
+                    description: Successfully sended new connect request to device
                 "409":
                     $ref: '#/components/responses/ConnectDeviceConflict'
                 default:
@@ -1651,11 +1655,15 @@ components:
                 email:
                     type: string
                     format: email
+                    minLength: 1
                 password:
                     type: string
                     format: password
+                    maxLength: 72
+                    minLength: 1
                 name:
                     type: string
+                    minLength: 1
             required:
                 - email
                 - password
@@ -1959,8 +1967,8 @@ tags:
         description: Meta endpoints
 `
 
-	specJSONETag = "\"5440d05c53a41c78542aa0ce07b75c07\""
-	specYAMLETag = "\"35528dd667c24e52f6c2559a1d3bf674\""
+	specJSONETag = "\"5e62e2c6f8b43c1a897cd0d7f20c62af\""
+	specYAMLETag = "\"38b887588892b5863e1d02c82b66622f\""
 )
 
 // SpecJSON returns a copy of the embedded OpenAPI document encoded as JSON.

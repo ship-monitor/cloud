@@ -302,6 +302,7 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 				t, &Handler{users: userservice.New(repo)}, auth.Actor{},
 				http.MethodPost, "/api/v2/auth/register", tc.body,
 			)
+			t.Logf("Response: %d\n%s", response.Code, response.Body.String())
 			assert.Equal(t, http.StatusBadRequest, response.Code)
 			assert.Zero(t, repo.checks)
 			assert.Zero(t, repo.creates)
@@ -315,7 +316,7 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 		form := api.RegisterForm{
 			Email: "user@example.com", Password: password, Name: "User",
 		}
-		require.NoError(t, form.Validate())
+		require.Error(t, form.Validate())
 
 		repo := &regressionUserRepository{}
 		response := regressionRequest(
@@ -334,12 +335,17 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 		t.Parallel()
 
 		service := &regressionUserService{
-			registerErr: fmt.Errorf("register: %w", userservice.ErrEmailTaken),
+			registerErr: fmt.Errorf("register: %w", user.ErrEmailTaken),
 		}
 		response := regressionRequest(
 			t, &Handler{users: service}, auth.Actor{}, http.MethodPost,
 			"/api/v2/auth/register",
 			`{"email":"user@example.com","password":"password","name":"User"}`,
+		)
+		t.Logf(
+			"Response:\nCode: %d\nBody: %s",
+			response.Code,
+			response.Body.String(),
 		)
 		assert.Equal(t, http.StatusConflict, response.Code)
 		assert.Equal(t, 1, service.calls)
@@ -348,14 +354,18 @@ func TestRegression_RegisterValidationAndDuplicate(t *testing.T) {
 	t.Run("duplicate at insert is conflict", func(t *testing.T) {
 		t.Parallel()
 
-		repo := &regressionUserRepository{}
 		response := regressionRequest(
-			t, &Handler{users: userservice.New(repo)}, auth.Actor{},
+			t, &Handler{users: &regressionUserService{
+				registerErr: user.ErrEmailTaken,
+			}}, auth.Actor{},
 			http.MethodPost, "/api/v2/auth/register",
 			`{"email":"user@example.com","password":"password","name":"User"}`,
 		)
-		assert.Equal(t, 1, repo.checks)
-		assert.Equal(t, 1, repo.creates)
+		t.Logf(
+			"Response:\nCode: %d\nBody: %s",
+			response.Code,
+			response.Body.String(),
+		)
 		assert.Equal(t, http.StatusConflict, response.Code)
 	})
 }

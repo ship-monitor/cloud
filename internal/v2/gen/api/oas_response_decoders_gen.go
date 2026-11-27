@@ -15,9 +15,9 @@ import (
 
 func decodeConnectDeviceResponse(resp *http.Response) (res ConnectDeviceRes, _ error) {
 	switch resp.StatusCode {
-	case 201:
-		// Code 201.
-		return &ConnectDeviceCreated{}, nil
+	case 202:
+		// Code 202.
+		return &ConnectDeviceAccepted{}, nil
 	case 409:
 		// Code 409.
 		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))

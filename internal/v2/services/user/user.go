@@ -12,16 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	// ErrEmailTaken is returned when a user with the given email already
-	// exists.
-	ErrEmailTaken = errors.New("email is already taken")
-
-	// ErrInvalidCredentials is returned when the email or password is wrong.
-	// Deliberately vague, so it does not reveal which of the two it was.
-	ErrInvalidCredentials = errors.New("invalid email or password")
-)
-
 // Repository is the persistence interface of the Service.
 type Repository interface {
 	Create(ctx context.Context, u domain.User) error
@@ -56,7 +46,7 @@ func (s *Service) Register(
 	}
 
 	if taken {
-		return domain.User{}, ErrEmailTaken
+		return domain.User{}, domain.ErrEmailTaken
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(
@@ -89,7 +79,7 @@ func (s *Service) Login(
 ) (domain.User, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if errors.Is(err, userrepo.ErrNotFound) {
-		return domain.User{}, ErrInvalidCredentials
+		return domain.User{}, domain.ErrInvalidCredentials
 	}
 
 	if err != nil {
@@ -101,7 +91,7 @@ func (s *Service) Login(
 		[]byte(password),
 	)
 	if err != nil {
-		return domain.User{}, ErrInvalidCredentials
+		return domain.User{}, domain.ErrInvalidCredentials
 	}
 
 	return user, nil

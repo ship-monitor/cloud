@@ -51,9 +51,6 @@ func NewRefreshClaims(userID uuid.UUID, ttl time.Duration) *RefreshClaims {
 // Actor is the authenticated user on whose behalf the request is performed.
 type Actor struct {
 	UserID uuid.UUID
-
-	// Roles comes from the token, and is empty unless the token carries them.
-	Roles []string
 }
 
 type actorKey struct{}
