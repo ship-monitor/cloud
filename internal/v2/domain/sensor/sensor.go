@@ -1,8 +1,13 @@
 package sensor
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 )
+
+// ErrNotFound is returned when no sensor matches the given ID and device.
+var ErrNotFound = errors.New("sensor not found")
 
 type Sensor struct {
 	ID           ID        `json:"id" validate:"required"`

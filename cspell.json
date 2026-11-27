@@ -11,6 +11,7 @@
     "exhaustruct",
     "gosec",
     "zapslog",
+    "funlen",
     "asyncapi"
   ],
   "userWords": ["healthnes"]

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
@@ -74,6 +75,7 @@ type NotificationService interface {
 }
 
 type S struct {
+	validator  validator.Validate
 	controller *asyncapi.AppController
 	logger     *zap.Logger
 	handler    Handler
@@ -95,6 +97,7 @@ func New(
 	notify NotificationService,
 ) *S {
 	return &S{
+		validator:  *validator.New(),
 		controller: controller,
 		logger:     logger.Named("Subscriber"),
 		handler:    handler,
@@ -307,7 +310,12 @@ func (s *S) HandleSensorDeclaration(
 	ctx context.Context,
 	msg asyncapi.SensorDeclarationMessage,
 ) error {
-	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
+	err := s.validator.Struct(&msg)
+	if err != nil {
+		return fmt.Errorf("invalid message: %w", err)
+	}
+
+	ctx, err = s.security.HandleMessage(ctx, msg.Headers)
 	if err != nil {
 		return fmt.Errorf("handle security: %w", err)
 	}

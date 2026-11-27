@@ -2,6 +2,7 @@ package queuesecurity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,6 +11,8 @@ import (
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 	"go.uber.org/zap"
 )
+
+var errInvalidID = errors.New("invalid device id")
 
 var _ subscriber.SecurityHandler = (*Handler)(nil)
 
@@ -35,6 +38,10 @@ func (h *Handler) HandleMessage(
 	deviceID, err := uuid.Parse(header.Authorization)
 	if err != nil {
 		return ctx, fmt.Errorf("parse uuid: %w", err)
+	}
+
+	if deviceID == uuid.Nil {
+		return ctx, fmt.Errorf("%w: %s", errInvalidID, deviceID.String())
 	}
 
 	return device.WithDeviceID(ctx, deviceID), nil

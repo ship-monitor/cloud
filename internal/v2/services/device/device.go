@@ -10,25 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
-	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	"github.com/ship-monitor/cloud/pkg/connector/asyncapi"
 )
 
 const Unknown = "Unknown"
-
-var (
-	// ErrNotFound is returned when the device does not exist,
-	// or exists but is owned by another user.
-	//
-	// TODO: make private or remove.
-	ErrNotFound = domain.ErrNotFound
-
-	// ErrAlreadyExists is returned when a device with the given id
-	// was already added.
-	//
-	// TODO: make private or remove.
-	ErrAlreadyExists = domain.ErrAlreadyExists
-)
 
 // Repository is the persistence interface of the Service.
 //
@@ -110,8 +95,8 @@ func (s *Service) Get(
 	id uuid.UUID,
 ) (domain.Device, error) {
 	device, err := s.repo.Get(ctx, actor.UserID, id)
-	if errors.Is(err, devicerepo.ErrNotFound) {
-		return domain.Device{}, ErrNotFound
+	if errors.Is(err, domain.ErrNotFound) {
+		return domain.Device{}, fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
 	if err != nil {
@@ -152,7 +137,7 @@ func (s *Service) Connect(
 	}
 
 	if exists {
-		return ErrAlreadyExists
+		return domain.ErrAlreadyExists
 	}
 
 	requestID := uuid.New()
@@ -192,13 +177,13 @@ func (s *Service) Rename(
 	name string,
 ) error {
 	device, err := s.repo.Get(ctx, actor.UserID, id)
-	if errors.Is(err, devicerepo.ErrNotFound) {
-		return ErrNotFound
+	if errors.Is(err, domain.ErrNotFound) {
+		return fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
 	err = s.repo.Rename(ctx, actor.UserID, device.ID, name)
-	if errors.Is(err, devicerepo.ErrNotFound) {
-		return ErrNotFound
+	if errors.Is(err, domain.ErrNotFound) {
+		return fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
 	if err != nil {
@@ -215,8 +200,8 @@ func (s *Service) Remove(
 	id uuid.UUID,
 ) error {
 	err := s.repo.Delete(ctx, actor.UserID, id)
-	if errors.Is(err, devicerepo.ErrNotFound) {
-		return ErrNotFound
+	if errors.Is(err, domain.ErrNotFound) {
+		return fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
 	if err != nil {
@@ -310,7 +295,7 @@ func (s *Service) SetFirmware(
 	}
 
 	if !exists {
-		return ErrNotFound
+		return fmt.Errorf("service: %w", domain.ErrNotFound)
 	}
 
 	err = s.repo.UpdateFirmware(

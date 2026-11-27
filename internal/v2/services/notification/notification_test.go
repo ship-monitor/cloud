@@ -11,7 +11,6 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domainnotification "github.com/ship-monitor/cloud/internal/v2/domain/notification"
 	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/ship-monitor/cloud/internal/v2/services/notification"
 	"github.com/stretchr/testify/require"
 )
@@ -85,7 +84,7 @@ func TestService_ListByDevicePage(t *testing.T) {
 		t.Parallel()
 
 		ctx := context.WithValue(t.Context(), contextKey{}, "request")
-		actor := auth.Actor{UserID: uuid.New(), Roles: []string{"user"}}
+		actor := auth.Actor{UserID: uuid.New()}
 		deviceID := uuid.New()
 		cursor := domainnotification.Cursor{
 			OccurredAt: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
@@ -119,7 +118,7 @@ func TestService_ListByDevicePage(t *testing.T) {
 	t.Run("inaccessible device prevents listing", func(t *testing.T) {
 		t.Parallel()
 
-		devices := &deviceStub{err: deviceservice.ErrNotFound}
+		devices := &deviceStub{err: device.ErrNotFound}
 		repo := &repoStub{}
 		service := notification.New(repo, devices)
 
@@ -127,7 +126,7 @@ func TestService_ListByDevicePage(t *testing.T) {
 			t.Context(), auth.Actor{UserID: uuid.New()}, uuid.New(),
 			notificationRequest{},
 		)
-		require.ErrorIs(t, err, deviceservice.ErrNotFound)
+		require.ErrorIs(t, err, device.ErrNotFound)
 		require.Equal(t, 1, devices.calls)
 		require.Zero(t, repo.calls)
 	})

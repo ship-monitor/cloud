@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 )
 
 // GetDeviceMetricsByName implements [api.Handler].
@@ -41,7 +41,7 @@ func (h *Handler) GetDeviceMetricsByName(
 		params.DeviceID,
 		query,
 	)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 
@@ -71,7 +71,7 @@ func (h *Handler) GetSensorMetricsByName(
 		params.SensorID,
 		query,
 	)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 

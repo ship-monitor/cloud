@@ -16,9 +16,6 @@ import (
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/user"
 )
 
-// ErrNotFound is returned when no user matches the given constraints.
-var ErrNotFound = errors.New("user not found")
-
 // Repository reads and writes users in the database.
 //
 // It depends only on sqlx.ExtContext, so it works with both *sqlx.DB and
@@ -87,7 +84,7 @@ func (r *Repository) Get(
 		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.User{}, ErrNotFound
+		return domain.User{}, domain.ErrNotFound
 	}
 
 	if err != nil {
@@ -112,7 +109,7 @@ func (r *Repository) GetByEmail(
 		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.User{}, ErrNotFound
+		return domain.User{}, domain.ErrNotFound
 	}
 
 	if err != nil {
@@ -206,7 +203,7 @@ func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	if affected == 0 {
-		return ErrNotFound
+		return domain.ErrNotFound
 	}
 
 	return nil

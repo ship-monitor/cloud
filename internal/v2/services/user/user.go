@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/user"
-	userrepo "github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -78,7 +77,7 @@ func (s *Service) Login(
 	email, password string,
 ) (domain.User, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
-	if errors.Is(err, userrepo.ErrNotFound) {
+	if errors.Is(err, domain.ErrNotFound) {
 		return domain.User{}, domain.ErrInvalidCredentials
 	}
 

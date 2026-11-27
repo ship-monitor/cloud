@@ -78,6 +78,7 @@ func (h *Handler) HandleConnectResponse(
 	if !ok {
 		return errNoID
 	}
+
 	if response.Payload.Approve {
 		err := h.device.ApproveConnection(ctx, id, response.Payload.RequestID)
 		if err != nil {

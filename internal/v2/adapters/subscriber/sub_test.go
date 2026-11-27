@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/subscriber"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
@@ -26,6 +27,7 @@ func (s declarationSecurity) HandleMessage(
 }
 
 type declarationRecorder struct {
+	t        *testing.T
 	calls    int
 	deviceID uuid.UUID
 	sensors  []sensor.SensorDecl
@@ -36,6 +38,11 @@ func (r *declarationRecorder) DeclareSensors(
 	deviceID uuid.UUID,
 	sensors []sensor.SensorDecl,
 ) error {
+	r.t.Logf(
+		"\nDeclaring sensors\nDeviceID: %s, Declarations: %v",
+		deviceID,
+		sensors,
+	)
 	r.calls++
 	r.deviceID = deviceID
 	r.sensors = sensors
@@ -67,11 +74,29 @@ func TestHandleSensorDeclaration_RequiresSensorsArray(t *testing.T) {
 				json.Unmarshal([]byte(testCase.payload), &msg.Payload),
 			)
 
+			if testCase.valid {
+				require.NoError(
+					t,
+					validator.New().Struct(msg),
+				)
+			} else {
+				require.Error(
+					t,
+					validator.New().Struct(msg),
+				)
+			}
+
 			deviceID := uuid.New()
-			recorder := &declarationRecorder{}
+			recorder := &declarationRecorder{t: t}
 			sub := subscriber.New(
-				nil, zap.NewNop(), nil, declarationSecurity{deviceID: deviceID},
-				recorder, nil, nil, nil,
+				nil,
+				zap.NewExample(),
+				nil,
+				declarationSecurity{deviceID: deviceID},
+				recorder,
+				nil,
+				nil,
+				nil,
 			)
 
 			err := sub.HandleSensorDeclaration(t.Context(), msg)

@@ -2,7 +2,6 @@ package di
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -147,7 +146,7 @@ func newHTTPServer(
 		srvHandler = c.Handler(srvHandler)
 	}
 
-	server := http.Server{ //nolint:exhaustruct_v5
+	srv := http.Server{ //nolint:exhaustruct_v5
 		ReadHeaderTimeout: ReadHeaderTimeout,
 		Handler:           srvHandler,
 		Addr:              net.JoinHostPort(config.Host, config.Port),
@@ -155,48 +154,31 @@ func newHTTPServer(
 
 	url := url.URL{ //nolint:exhaustruct_v5
 		Scheme: "http",
-		Host:   server.Addr,
+		Host:   srv.Addr,
 	}
 
-	lc.Append(fx.StartHook(func(ctx context.Context) error {
-		ch := make(chan error)
+	lc.Append(fx.StartStopHook(func(ctx context.Context) error {
+		logger.Info("Starting", zap.String("addr", url.String()))
 
-		ctx, cancel := context.WithTimeout(ctx, time.Second)
-		defer cancel()
-
-		go func(ch chan error) {
-			logger.Info("Starting", zap.String("addr", url.String()))
-
-			err := server.ListenAndServe()
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				ch <- err
-			} else {
-				ch <- nil
-			}
-		}(ch)
-
-		select {
-		case err := <-ch:
-			if err != nil {
-				return fmt.Errorf("start http server: %w", err)
-			}
-
-			return nil
-		case <-ctx.Done():
-			return nil
-		}
-	}))
-
-	lc.Append(fx.StopHook(func(ctx context.Context) error {
-		err := server.Shutdown(ctx)
+		err := server.Start(ctx, &srv)
 		if err != nil {
-			return fmt.Errorf("shutdown server: %w", err)
+			return fmt.Errorf("start http server: %w", err)
 		}
 
 		return nil
-	}))
+	},
+		func(ctx context.Context) error {
+			logger.Info("Shutting down")
 
-	return &server
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				return fmt.Errorf("shutdown http server: %w", err)
+			}
+
+			return nil
+		}))
+
+	return &srv
 }
 
 func getCORS(config *config.Config, logger *zap.Logger) *cors.Cors {

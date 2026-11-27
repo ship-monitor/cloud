@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
-	devicerepo "github.com/ship-monitor/cloud/internal/v2/repositories/device"
 	"github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +25,7 @@ func (r *onlineDeviceRepo) Get(
 	ownerID, id uuid.UUID,
 ) (domain.Device, error) {
 	if ownerID != r.stored.OwnerID || id != r.stored.ID {
-		return domain.Device{}, devicerepo.ErrNotFound
+		return domain.Device{}, domain.ErrNotFound
 	}
 
 	return r.stored, nil

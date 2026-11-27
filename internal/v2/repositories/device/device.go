@@ -12,12 +12,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 )
-
-// ErrNotFound is returned when no device matches the given constraints.
-var ErrNotFound = errors.New("device not found")
 
 // Repository reads and writes devices in the database.
 //
@@ -98,7 +96,7 @@ func (r *Repository) Get(
 		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.Device{}, ErrNotFound
+		return domain.Device{}, device.ErrNotFound
 	}
 
 	if err != nil {
@@ -224,7 +222,7 @@ func (r *Repository) Delete(ctx context.Context, ownerID, id uuid.UUID) error {
 	}
 
 	if affected == 0 {
-		return ErrNotFound
+		return device.ErrNotFound
 	}
 
 	return nil

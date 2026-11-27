@@ -49,6 +49,5 @@ func (h *Handler) HandleBearerToken(
 
 	return auth.WithActor(ctx, auth.Actor{
 		UserID: claims.UserID,
-		Roles:  token.Roles,
 	}), nil
 }

@@ -91,13 +91,13 @@ func TestRepository_Get(t *testing.T) {
 			name:    "missing device",
 			ownerID: stored.OwnerID,
 			id:      uuid.New(),
-			wantErr: device.ErrNotFound,
+			wantErr: domain.ErrNotFound,
 		},
 		{
 			name:    "device owned by another user",
 			ownerID: uuid.New(),
 			id:      stored.ID,
-			wantErr: device.ErrNotFound,
+			wantErr: domain.ErrNotFound,
 		},
 	}
 

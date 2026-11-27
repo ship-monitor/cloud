@@ -10,9 +10,9 @@ import (
 
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
+	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 	"github.com/ship-monitor/cloud/internal/v2/domain/user"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
-	"github.com/ship-monitor/cloud/internal/v2/repositories/sensor"
 	"go.uber.org/zap"
 )
 
@@ -53,6 +53,10 @@ func New(
 	notifications NotificationService,
 	logger *zap.Logger,
 ) *Handler {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	return &Handler{
 		tokenService:  tokenService,
 		users:         users,

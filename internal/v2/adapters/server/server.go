@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ogen-go/ogen/middleware"
 	"github.com/ogen-go/ogen/ogenerrors"
@@ -151,4 +152,31 @@ func toBadResponse(p *problem.Error) *api.BadResponseStatusCode {
 	}
 
 	return resp
+}
+
+func Start(ctx context.Context, server *http.Server) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	ch := make(chan error)
+
+	go func(ch chan error) {
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			ch <- err
+		} else {
+			ch <- nil
+		}
+	}(ch)
+
+	select {
+	case err := <-ch:
+		if err != nil {
+			return fmt.Errorf("start server: %w", err)
+		}
+
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
 }

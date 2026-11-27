@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-faster/jx"
 	"github.com/google/uuid"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domainnotification "github.com/ship-monitor/cloud/internal/v2/domain/notification"
 	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 )
 
 type notificationCursor struct {
@@ -56,7 +56,7 @@ func (h *Handler) GetDeviceNotifications(
 		params.DeviceID,
 		req,
 	)
-	if errors.Is(err, deviceservice.ErrNotFound) {
+	if errors.Is(err, device.ErrNotFound) {
 		return nil, errDeviceNotFound
 	}
 

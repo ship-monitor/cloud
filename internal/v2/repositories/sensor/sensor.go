@@ -13,9 +13,6 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
 )
 
-// ErrNotFound is returned when no sensor matches the given ID and device.
-var ErrNotFound = errors.New("sensor not found")
-
 type Repo struct {
 	db *sqlx.DB
 }
@@ -152,7 +149,7 @@ func (s *Repo) GetSensor(
 		deviceID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, sensor.ErrNotFound
 	}
 
 	if err != nil {
@@ -186,7 +183,7 @@ func (s *Repo) RenameSensor(
 	}
 
 	if affected == 0 {
-		return ErrNotFound
+		return sensor.ErrNotFound
 	}
 
 	return nil
@@ -213,7 +210,7 @@ func (s *Repo) DeleteSensor(
 	}
 
 	if affected == 0 {
-		return ErrNotFound
+		return sensor.ErrNotFound
 	}
 
 	return nil

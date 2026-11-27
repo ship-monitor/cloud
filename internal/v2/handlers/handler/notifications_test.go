@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ship-monitor/cloud/internal/v2/domain/auth"
+	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domainnotification "github.com/ship-monitor/cloud/internal/v2/domain/notification"
 	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 	"github.com/ship-monitor/cloud/internal/v2/gen/api"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 	"github.com/ship-monitor/cloud/pkg/problem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -325,7 +325,7 @@ func TestGetDeviceNotifications_Errors(t *testing.T) {
 		{
 			name:       "device not found",
 			auth:       true,
-			serviceErr: fmt.Errorf("get device: %w", deviceservice.ErrNotFound),
+			serviceErr: fmt.Errorf("get device: %w", device.ErrNotFound),
 			wantErr:    errDeviceNotFound,
 			wantCalls:  1,
 		},

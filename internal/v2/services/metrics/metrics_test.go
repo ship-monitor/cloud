@@ -10,7 +10,6 @@ import (
 	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/metrics"
 	"github.com/ship-monitor/cloud/internal/v2/domain/sensor"
-	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
 	metricsservice "github.com/ship-monitor/cloud/internal/v2/services/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +26,7 @@ func (f *ownershipFixture) Get(
 	_ context.Context, actor auth.Actor, id uuid.UUID,
 ) (device.Device, error) {
 	if !f.present || id != f.deviceID || actor.UserID != f.ownerID {
-		return device.Device{}, deviceservice.ErrNotFound
+		return device.Device{}, device.ErrNotFound
 	}
 
 	return device.Device{ID: id, OwnerID: f.ownerID}, nil
@@ -149,14 +148,14 @@ func TestMetricsAuthorizationAfterDeviceReconnection(t *testing.T) {
 			// different owner while the metrics store retains its history.
 			owners.present = false
 			_, err = get(oldOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, device.ErrNotFound)
 
 			owners.ownerID, owners.present = newOwner.UserID, true
 
 			require.NoError(t, ingest(newSample))
 
 			_, err = get(oldOwner)
-			require.ErrorIs(t, err, deviceservice.ErrNotFound)
+			require.ErrorIs(t, err, device.ErrNotFound)
 			got, err = get(newOwner)
 			require.NoError(t, err)
 			assert.Contains(t, got, newSample)
