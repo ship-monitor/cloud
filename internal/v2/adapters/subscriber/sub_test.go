@@ -50,7 +50,7 @@ func (r *declarationRecorder) DeclareSensors(
 	return nil
 }
 
-//nolint:exhaustruct_v5
+//nolint:exhaustruct_v5,funlen
 func TestHandleSensorDeclaration_RequiresSensorsArray(t *testing.T) {
 	t.Parallel()
 

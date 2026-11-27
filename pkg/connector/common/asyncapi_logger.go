@@ -7,18 +7,24 @@ import (
 	"go.uber.org/zap"
 )
 
-type queueLogger struct {
+var _ extensions.Logger = (*Logger)(nil)
+
+type Logger struct {
 	zap *zap.Logger
 }
 
-func LoggerFromZap(logger *zap.Logger) extensions.Logger {
-	return &queueLogger{
-		zap: logger,
+func LoggerFromZap(logger *zap.Logger) *Logger {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	return &Logger{
+		zap: logger.WithOptions(zap.WithCaller(false)),
 	}
 }
 
 // Error implements [extensions.Logger].
-func (q *queueLogger) Error(
+func (q *Logger) Error(
 	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
@@ -27,7 +33,7 @@ func (q *queueLogger) Error(
 }
 
 // Info implements [extensions.Logger].
-func (q *queueLogger) Info(
+func (q *Logger) Info(
 	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
@@ -36,15 +42,13 @@ func (q *queueLogger) Info(
 }
 
 // Warning implements [extensions.Logger].
-func (q *queueLogger) Warning(
+func (q *Logger) Warning(
 	_ context.Context,
 	msg string,
 	info ...extensions.LogInfo,
 ) {
 	q.zap.Warn(msg, logInfoToFields(info)...)
 }
-
-var _ extensions.Logger = (*queueLogger)(nil)
 
 func logInfoToFields(info []extensions.LogInfo) []zap.Field {
 	fields := make([]zap.Field, 0, len(info))

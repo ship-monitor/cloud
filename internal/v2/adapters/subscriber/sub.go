@@ -374,6 +374,8 @@ func (s *S) HandleNotification(
 	ctx context.Context,
 	msg asyncapi.NotificationMessage,
 ) error {
+	defer s.logger.Info("Handled notification")
+
 	ctx, err := s.security.HandleMessage(ctx, msg.Headers)
 	if err != nil {
 		return fmt.Errorf("handle security: %w", err)
