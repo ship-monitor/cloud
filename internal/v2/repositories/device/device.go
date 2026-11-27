@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/domain/pagination"
 )
@@ -96,7 +95,7 @@ func (r *Repository) Get(
 		).
 		StructScan(&rw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.Device{}, device.ErrNotFound
+		return domain.Device{}, domain.ErrNotFound
 	}
 
 	if err != nil {
@@ -222,7 +221,7 @@ func (r *Repository) Delete(ctx context.Context, ownerID, id uuid.UUID) error {
 	}
 
 	if affected == 0 {
-		return device.ErrNotFound
+		return domain.ErrNotFound
 	}
 
 	return nil

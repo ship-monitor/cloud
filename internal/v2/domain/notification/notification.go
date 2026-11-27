@@ -17,6 +17,12 @@ type Cursor struct {
 	ID         uuid.UUID
 }
 
+const (
+	SeverityWarning  = "warning"
+	SeverityInfo     = "info"
+	SeverityCritical = "critical"
+)
+
 // Notification represents a device notification.
 type Notification struct {
 	ID         uuid.UUID

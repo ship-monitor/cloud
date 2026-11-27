@@ -19,6 +19,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
+//nolint:funlen
 func TestRepository_InsertNotification(t *testing.T) {
 	t.Parallel()
 
@@ -40,7 +41,7 @@ func TestRepository_InsertNotification(t *testing.T) {
 				DeviceID:   uuid.New(),
 				SensorID:   nil,
 				Type:       "engine_overheat",
-				Severity:   "warning",
+				Severity:   domain.SeverityWarning,
 				OccurredAt: time.Now().UTC(),
 				ReportedAt: time.Now().UTC(),
 				ReceivedAt: time.Now().UTC(),
@@ -196,7 +197,7 @@ func TestRepository_ListBySeverity(t *testing.T) {
 	now := time.Now().UTC()
 
 	warning := newNotification()
-	warning.Severity = "warning"
+	warning.Severity = domain.SeverityWarning
 	warning.OccurredAt = now.Add(-time.Hour)
 
 	critical := newNotification()
@@ -294,7 +295,7 @@ func newNotification() domain.Notification {
 		DeviceID:   uuid.New(),
 		SensorID:   &sensorID,
 		Type:       "engine_overheat",
-		Severity:   "warning",
+		Severity:   domain.SeverityWarning,
 		OccurredAt: time.Now().UTC(),
 		ReportedAt: time.Now().UTC(),
 		ReceivedAt: time.Now().UTC(),

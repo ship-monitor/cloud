@@ -55,6 +55,7 @@ func (r Row) ToDomain() notification.Notification {
 		ReportedAt: r.ReportedAt,
 		ReceivedAt: r.ReceivedAt,
 		Data:       map[string]any(r.Data),
+		IsRead:     false,
 	}
 }
 

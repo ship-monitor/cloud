@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE devices (
     id UUID primary key,
-    owner_id varchar not null,
+    owner_id UUID not null REFERENCES users(id),
     name TEXT not null,
     created_at TIMESTAMPTZ not null,
     updated_at TIMESTAMPTZ default null,

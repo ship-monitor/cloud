@@ -1,5 +1,6 @@
 //go:build integration
 
+//nolint:goconst
 package notification_test
 
 import (
@@ -14,8 +15,11 @@ import (
 )
 
 func TestReadStateRejectsMissingReferences(t *testing.T) {
+	t.Parallel()
+
 	for _, missing := range []string{"user", "notification"} {
 		t.Run(missing, func(t *testing.T) {
+			t.Parallel()
 			db := setupDB(t)
 			repo := notification.New(db)
 			ctx := t.Context()
@@ -54,8 +58,11 @@ func TestReadStateRejectsMissingReferences(t *testing.T) {
 }
 
 func TestReadStateDoesNotOutliveItsReferences(t *testing.T) {
+	t.Parallel()
+
 	for _, parent := range []string{"user", "notification"} {
 		t.Run(parent, func(t *testing.T) {
+			t.Parallel()
 			db := setupDB(t)
 			repo := notification.New(db)
 			ctx := t.Context()

@@ -2,7 +2,7 @@
 CREATE TABLE device_notifications (
     id UUID PRIMARY KEY,
 
-    device_id UUID NOT NULL,
+    device_id UUID NOT NULL REFERENCES devices(id),
     sensor_id UUID,
 
     type TEXT NOT NULL,
