@@ -11,7 +11,9 @@ import (
 	"github.com/lib/pq"
 	"github.com/ship-monitor/cloud/internal/v2/adapters/db"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
+	userDomain "github.com/ship-monitor/cloud/internal/v2/domain/user"
 	"github.com/ship-monitor/cloud/internal/v2/repositories/device"
+	"github.com/ship-monitor/cloud/internal/v2/repositories/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -146,13 +148,34 @@ func setupDB(t *testing.T) *sqlx.DB {
 		assert.NoError(t, sqlDB.Close())
 	})
 
+	createUser(t, sqlDB, defaultUserID)
+
 	return sqlDB
 }
+
+func createUser(t *testing.T, db *sqlx.DB, id uuid.UUID) {
+	t.Helper()
+
+	userRepo := user.New(db)
+	require.NoError(
+		t,
+		userRepo.Create(t.Context(), userDomain.User{
+			ID:           id,
+			Name:         "Default",
+			Email:        "e" + id.String() + "@mail.org",
+			PasswordHash: "2",
+		}),
+		"create defaut user",
+	)
+}
+
+//nolint:gochecknoglobals
+var defaultUserID = uuid.New()
 
 func newDevice() domain.Device {
 	return domain.Device{
 		ID:           uuid.New(),
-		OwnerID:      uuid.New(),
+		OwnerID:      defaultUserID,
 		Name:         "Engine monitor",
 		Manufacturer: "Ship Monitor",
 		Model:        "SM-100",

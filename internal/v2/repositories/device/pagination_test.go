@@ -22,6 +22,11 @@ func TestRepository_CursorPages(t *testing.T) {
 	first, foreign, last := newDevice(), newDevice(), newDevice()
 	first.ID, foreign.ID, last.ID = uuid.UUID{1}, uuid.UUID{2}, uuid.UUID{3}
 
+	secondUserID := uuid.New()
+	createUser(t, db, secondUserID)
+
+	foreign.OwnerID = secondUserID
+
 	last.OwnerID = first.OwnerID
 	for _, item := range []domaindevice.Device{last, first, foreign} {
 		require.NoError(t, devices.Create(ctx, item))
