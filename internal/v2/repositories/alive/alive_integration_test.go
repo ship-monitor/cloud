@@ -86,7 +86,7 @@ func TestHeartbeatMissingAndExpired(t *testing.T) {
 		t.Helper()
 
 		got, err := repo.GetLastHeartbeat(ctx, deviceID)
-		require.NoError(t, err, "an absent heartbeat is not a store failure")
+		require.ErrorIs(t, err, domain.ErrNoHeartbeat)
 		assert.Nil(t, got)
 	}
 

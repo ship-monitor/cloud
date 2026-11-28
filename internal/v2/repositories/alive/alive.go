@@ -61,6 +61,10 @@ func (r *Repo) GetLastHeartbeat(
 	err := r.valkey.Do(ctx,
 		r.valkey.B().Get().Key(key(deviceID)).Build(),
 	).DecodeJSON(&record)
+	if valkey.IsValkeyNil(err) {
+		return nil, fmt.Errorf("%w: %w", device.ErrNoHeartbeat, err)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get value: %w", err)
 	}

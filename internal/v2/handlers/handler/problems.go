@@ -81,6 +81,11 @@ var (
 		http.StatusNotFound,
 		"Sensors not found",
 	)
+	errNoDeviceHeartbeat = problem.New(
+		"no-heartbeat",
+		http.StatusNotFound,
+		"No heartbeats was recorded yet",
+	)
 )
 
 func (h *Handler) NewError(

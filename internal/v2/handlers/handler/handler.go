@@ -258,6 +258,10 @@ func (h *Handler) GetDeviceOnlineStatus(
 		return nil, errDeviceNotFound
 	}
 
+	if errors.Is(err, device.ErrNoHeartbeat) {
+		return nil, errNoDeviceHeartbeat
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("get device online status: %w", err)
 	}
