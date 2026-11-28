@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE devices (
     id UUID primary key,
-    owner_id UUID not null REFERENCES users(id),
+    owner_id UUID not null REFERENCES users(id) ON DELETE CASCADE,
     name TEXT not null,
     created_at TIMESTAMPTZ not null,
     updated_at TIMESTAMPTZ default null,
