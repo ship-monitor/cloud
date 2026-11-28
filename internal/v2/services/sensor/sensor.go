@@ -27,23 +27,19 @@ type Repo interface {
 	) ([]sensor.Sensor, error)
 	GetSensor(
 		ctx context.Context,
-		sensorID sensor.ID,
-		deviceID uuid.UUID,
+		identity sensor.SensorIdentity,
 	) (*sensor.Sensor, error)
 	SensorExists(
 		ctx context.Context,
-		sensorID sensor.ID,
-		deviceID uuid.UUID,
+		identity sensor.SensorIdentity,
 	) (bool, error)
 	DeleteSensor(
 		ctx context.Context,
-		sensorID sensor.ID,
-		deviceID uuid.UUID,
+		identity sensor.SensorIdentity,
 	) error
 	RenameSensor(
 		ctx context.Context,
-		sensorID sensor.ID,
-		deviceID uuid.UUID,
+		identity sensor.SensorIdentity,
 		displayName string,
 	) error
 }
@@ -103,7 +99,6 @@ func (s *Service) DeclareSensors(
 
 	err = s.deleteUndeclared(
 		ctx,
-		deviceID,
 		stored,
 		declaredByID,
 	)
@@ -171,7 +166,10 @@ func (s *Service) GetSensor(
 		return nil, fmt.Errorf("get device: %w", err)
 	}
 
-	sensor, err := s.repo.GetSensor(ctx, sensorID, deviceID)
+	sensor, err := s.repo.GetSensor(
+		ctx,
+		sensor.SensorIdentity{SensorID: sensorID, DeviceID: deviceID},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get sensor: %w", err)
 	}
@@ -191,7 +189,10 @@ func (s *Service) Rename(
 		return fmt.Errorf("get device: %w: %w", sensor.ErrNotFound, err)
 	}
 
-	_, err = s.repo.GetSensor(ctx, deviceID, id)
+	_, err = s.repo.GetSensor(
+		ctx,
+		sensor.SensorIdentity{SensorID: id, DeviceID: deviceID},
+	)
 	if errors.Is(err, sensor.ErrNotFound) {
 		return fmt.Errorf("service: %w", err)
 	}
@@ -200,7 +201,10 @@ func (s *Service) Rename(
 		return fmt.Errorf("get sensor: %w", err)
 	}
 
-	err = s.repo.RenameSensor(ctx, id, deviceID, displayName)
+	err = s.repo.RenameSensor(ctx, sensor.SensorIdentity{
+		SensorID: id,
+		DeviceID: deviceID,
+	}, displayName)
 	if err != nil {
 		return fmt.Errorf("rename sensor: %w", err)
 	}
@@ -247,7 +251,6 @@ func (s *Service) insertDeclared(
 // deleteUndeclared removes stored sensors that are missing from declaredByID.
 func (s *Service) deleteUndeclared(
 	ctx context.Context,
-	deviceID uuid.UUID,
 	stored []sensor.Sensor,
 	declaredByID map[uuid.UUID]sensor.SensorDecl,
 ) error {
@@ -256,7 +259,13 @@ func (s *Service) deleteUndeclared(
 			continue
 		}
 
-		err := s.repo.DeleteSensor(ctx, item.ID, deviceID)
+		err := s.repo.DeleteSensor(
+			ctx,
+			sensor.SensorIdentity{
+				SensorID: item.ID,
+				DeviceID: item.DeviceID,
+			},
+		)
 		if err != nil {
 			return fmt.Errorf("delete sensor %q: %w", item.ID, err)
 		}

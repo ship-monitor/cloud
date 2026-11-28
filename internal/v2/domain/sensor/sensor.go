@@ -20,7 +20,7 @@ type Sensor struct {
 	Software     string
 }
 
-// SensorDecl issensor declaration.
+// SensorDecl is sensor declaration.
 type SensorDecl struct {
 	ID           ID
 	Name         string
@@ -31,3 +31,8 @@ type SensorDecl struct {
 }
 
 type ID = uuid.UUID
+
+type SensorIdentity struct {
+	SensorID ID        `validate:"required"`
+	DeviceID uuid.UUID `validate:"required"`
+}

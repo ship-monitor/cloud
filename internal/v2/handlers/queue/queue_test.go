@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ship-monitor/cloud/internal/v2/domain/device"
 	domain "github.com/ship-monitor/cloud/internal/v2/domain/device"
 	"github.com/ship-monitor/cloud/internal/v2/handlers/queue"
 	deviceservice "github.com/ship-monitor/cloud/internal/v2/services/device"
@@ -39,7 +38,7 @@ func (r *connectRequestRepo) Get(
 	id uuid.UUID,
 ) (domain.ConnectRequest, error) {
 	if id != r.request.ID {
-		return domain.ConnectRequest{}, device.ErrNotFound
+		return domain.ConnectRequest{}, domain.ErrNotFound
 	}
 
 	return r.request, nil
@@ -51,7 +50,7 @@ func (r *connectRequestRepo) SetApproved(
 	approved bool,
 ) error {
 	if id != r.request.ID {
-		return device.ErrNotFound
+		return domain.ErrNotFound
 	}
 
 	r.request.Approved = approved

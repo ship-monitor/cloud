@@ -136,8 +136,7 @@ func toDomainAll(rows []row) []sensor.Sensor {
 
 func (s *Repo) GetSensor(
 	ctx context.Context,
-	sensorID sensor.ID,
-	deviceID uuid.UUID,
+	identity sensor.SensorIdentity,
 ) (*sensor.Sensor, error) {
 	var record row
 
@@ -145,8 +144,8 @@ func (s *Repo) GetSensor(
 		ctx,
 		&record,
 		`SELECT `+columns+` FROM sensors WHERE id = $1 AND device_id = $2`,
-		sensorID,
-		deviceID,
+		identity.SensorID,
+		identity.DeviceID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, sensor.ErrNotFound
@@ -165,13 +164,12 @@ func (s *Repo) GetSensor(
 // It returns ErrNotFound if the sensor does not exist for that device.
 func (s *Repo) RenameSensor(
 	ctx context.Context,
-	sensorID sensor.ID,
-	deviceID uuid.UUID,
+	identity sensor.SensorIdentity,
 	displayName string,
 ) error {
 	result, err := s.db.ExecContext(ctx,
 		`UPDATE sensors SET display_name = $1 WHERE id = $2 AND device_id = $3`,
-		displayName, sensorID, deviceID,
+		displayName, identity.SensorID, identity.DeviceID,
 	)
 	if err != nil {
 		return fmt.Errorf("rename sensor: %w", err)
@@ -193,12 +191,11 @@ func (s *Repo) RenameSensor(
 // It returns ErrNotFound if the sensor does not exist for that device.
 func (s *Repo) DeleteSensor(
 	ctx context.Context,
-	sensorID sensor.ID,
-	deviceID uuid.UUID,
+	identity sensor.SensorIdentity,
 ) error {
 	result, err := s.db.ExecContext(ctx,
 		`DELETE FROM sensors WHERE id = $1 AND device_id = $2`,
-		sensorID, deviceID,
+		identity.SensorID, identity.DeviceID,
 	)
 	if err != nil {
 		return fmt.Errorf("delete sensor: %w", err)
@@ -220,8 +217,7 @@ func (s *Repo) DeleteSensor(
 // device.
 func (s *Repo) SensorExists(
 	ctx context.Context,
-	sensorID sensor.ID,
-	deviceID uuid.UUID,
+	identity sensor.SensorIdentity,
 ) (bool, error) {
 	var exists bool
 
@@ -229,8 +225,8 @@ func (s *Repo) SensorExists(
 		QueryRowxContext(
 			ctx,
 			`SELECT EXISTS (SELECT 1 FROM sensors WHERE id = $1 AND device_id = $2)`,
-			sensorID,
-			deviceID,
+			identity.SensorID,
+			identity.DeviceID,
 		).
 		Scan(&exists)
 	if err != nil {
